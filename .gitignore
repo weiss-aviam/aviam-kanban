@@ -119,3 +119,11 @@ temp/
 *.njsproj
 *.sln
 *.sw?
+
+# Augment AI assistant files
+.augment/
+
+# Test files and temporary scripts
+test-*.js
+debug-*.js
+*-test.js
