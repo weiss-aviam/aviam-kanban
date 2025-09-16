@@ -1,0 +1,6 @@
+{
+  "tool-permissions": [
+    { "tool-name": "supabase", "event-type": "tool-call", "permission": { "type": "allow" } }
+    { "tool-name": "supabase", "event-type": "tool-response", "permission": { "type": "allow" } }
+  ]
+}
