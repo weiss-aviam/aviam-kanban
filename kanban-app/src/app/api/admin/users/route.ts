@@ -230,7 +230,7 @@ export async function POST(request: NextRequest) {
     const { data: inviteData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(
       email,
       {
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/accept-invitation?token=${token}`,
+        redirectTo: `${(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000')}${process.env.NEXT_PUBLIC_BASE_PATH || ''}/auth/accept-invitation?token=${token}`,
         data: {
           boardId,
           role,

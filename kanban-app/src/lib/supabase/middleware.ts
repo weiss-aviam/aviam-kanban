@@ -36,28 +36,32 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   // Protected routes
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+  const pathname = request.nextUrl.pathname;
+  const pathNoBase = basePath && pathname.startsWith(basePath) ? pathname.slice(basePath.length) : pathname;
+
   const protectedPaths = ['/boards', '/dashboard'];
-  const isProtectedPath = protectedPaths.some(path => 
-    request.nextUrl.pathname.startsWith(path)
+  const isProtectedPath = protectedPaths.some(path =>
+    pathNoBase.startsWith(path)
   );
 
   if (isProtectedPath && !user) {
     // Redirect to login if accessing protected route without authentication
     const url = request.nextUrl.clone();
-    url.pathname = '/auth/login';
+    url.pathname = `${basePath}/auth/login`;
     url.searchParams.set('redirectTo', request.nextUrl.pathname);
     return NextResponse.redirect(url);
   }
 
   // Redirect authenticated users away from auth pages
   const authPaths = ['/auth/login', '/auth/signup'];
-  const isAuthPath = authPaths.some(path => 
-    request.nextUrl.pathname.startsWith(path)
+  const isAuthPath = authPaths.some(path =>
+    pathNoBase.startsWith(path)
   );
 
   if (isAuthPath && user) {
     const url = request.nextUrl.clone();
-    url.pathname = '/dashboard';
+    url.pathname = `${basePath}/dashboard`;
     return NextResponse.redirect(url);
   }
 

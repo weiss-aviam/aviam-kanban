@@ -19,7 +19,7 @@ export const auth = {
     const { data, error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: redirectTo || `${window.location.origin}/auth/callback`,
+        emailRedirectTo: redirectTo || `${window.location.origin}${process.env.NEXT_PUBLIC_BASE_PATH || ''}/auth/callback`,
       },
     });
 
@@ -50,7 +50,7 @@ export const auth = {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${window.location.origin}${process.env.NEXT_PUBLIC_BASE_PATH || ''}/auth/callback`,
         data: {
           name: options?.name,
         },
@@ -69,8 +69,8 @@ export const auth = {
     const { error } = await supabase.auth.signOut();
     
     if (!error) {
-      // Redirect to home page after sign out
-      window.location.href = '/';
+      // Redirect to app root (supports sub-path hosting)
+      window.location.href = (process.env.NEXT_PUBLIC_BASE_PATH || '/');
     }
 
     return { error };
