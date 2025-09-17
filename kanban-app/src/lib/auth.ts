@@ -116,10 +116,10 @@ export const serverAuth = {
    * Get current user (server-side)
    */
   async getUser(): Promise<{ user: AuthUser | null; error: any }> {
-    const supabase = createServerClient();
-    
+    const supabase = await createServerClient();
+
     const { data, error } = await supabase.auth.getUser();
-    
+
     return { user: data.user as AuthUser | null, error };
   },
 
@@ -127,10 +127,10 @@ export const serverAuth = {
    * Get current session (server-side)
    */
   async getSession() {
-    const supabase = createServerClient();
-    
+    const supabase = await createServerClient();
+
     const { data, error } = await supabase.auth.getSession();
-    
+
     return { session: data.session, error };
   },
 };

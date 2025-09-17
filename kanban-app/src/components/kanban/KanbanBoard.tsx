@@ -8,21 +8,44 @@ import { KanbanCard } from './KanbanCard';
 import { EditCardDialog } from './EditCardDialog';
 import { EmptyBoard } from './EmptyStates';
 import { Button } from '../ui/button';
-import { Plus } from 'lucide-react';
+
+
 import { calculateColumnMove, bulkUpdateColumnPositions } from '../../lib/dnd-utils';
-import type { BoardWithDetails, User, Card as CardType } from '../../types/database';
+import type { BoardWithDetails, User, Card as CardType, BoardMemberRole } from '../../types/database';
+import { BoardFilters } from './BoardFilters';
+import { useBoardFilters } from '@/hooks/useBoardFilters';
+import { useAppActions, useCurrentBoard } from '@/store';
+
 
 interface KanbanBoardProps {
   boardData: BoardWithDetails;
   onBoardDataChange?: (data: BoardWithDetails) => void;
-  currentUser?: User;
+  currentUser: User | null;
+  userRole?: BoardMemberRole;
 }
 
-export function KanbanBoard({ boardData, onBoardDataChange, currentUser }: KanbanBoardProps) {
+export function KanbanBoard({ boardData, onBoardDataChange, currentUser, userRole = 'member' }: KanbanBoardProps) {
   const [activeCard, setActiveCard] = useState<CardType | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editingCard, setEditingCard] = useState<CardType | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Zustand store actions
+  const { addCard, updateCard, deleteCard } = useAppActions();
+
+
+  // Get all cards for filtering
+  const allCards = boardData.columns.flatMap(col => col.cards || []);
+
+  // Board filters hook
+  const {
+    filters,
+    setFilters,
+    cardsByColumn,
+    availableAssignees,
+    stats,
+    hasActiveFilters,
+  } = useBoardFilters(allCards);
 
   // Drag and drop sensors
   const sensors = useSensors(
@@ -248,14 +271,18 @@ export function KanbanBoard({ boardData, onBoardDataChange, currentUser }: Kanba
       labels: [],
       comments: [],
       assignee: newCard.assigneeId ? boardData.members?.find(m => m.user.id === newCard.assigneeId)?.user : undefined,
-    } as any;
+    };
 
+    // Use Zustand store action
+    addCard(cardWithDefaults as any);
+
+    // Also update the prop-based callback for backward compatibility
     if (onBoardDataChange) {
       const updatedColumns = boardData.columns.map(column => {
         if (column.id === newCard.columnId) {
           return {
             ...column,
-            cards: [...column.cards, cardWithDefaults]
+            cards: [...column.cards, cardWithDefaults as any]
           };
         }
         return column;
@@ -263,7 +290,7 @@ export function KanbanBoard({ boardData, onBoardDataChange, currentUser }: Kanba
 
       onBoardDataChange({
         ...boardData,
-        columns: updatedColumns
+        columns: updatedColumns as any
       });
     }
   };
@@ -274,14 +301,61 @@ export function KanbanBoard({ boardData, onBoardDataChange, currentUser }: Kanba
   };
 
   const handleCardUpdated = (updatedCard: CardType) => {
-    if (onBoardDataChange) {
-      const updatedColumns = boardData.columns.map(column => ({
-        ...column,
-        cards: column.cards.map(card =>
-          card.id === updatedCard.id ? updatedCard : card
-        )
-      }));
+    console.log('KanbanBoard - handleCardUpdated called with:', updatedCard);
 
+    // Convert card to store format and use Zustand store action first
+    const storeCard = {
+      ...updatedCard,
+      labels: (updatedCard as any).labels || [],
+      comments: (updatedCard as any).comments || [],
+    };
+    updateCard(storeCard as any);
+
+    // Also update the prop-based callback for backward compatibility
+    if (onBoardDataChange) {
+      // Find the current column of the card
+      const currentColumn = boardData.columns.find(col =>
+        col.cards.some(card => card.id === updatedCard.id)
+      );
+
+      console.log('Current column:', currentColumn?.title, 'Updated card column ID:', updatedCard.columnId);
+
+      // Check if the card moved to a different column
+      const cardMovedColumns = currentColumn && currentColumn.id !== updatedCard.columnId;
+
+      let updatedColumns;
+
+      if (cardMovedColumns) {
+        console.log('Card moved from column', currentColumn.id, 'to column', updatedCard.columnId);
+        // Handle column change: remove from old column and add to new column
+        updatedColumns = boardData.columns.map(column => {
+          if (column.id === currentColumn.id) {
+            // Remove from current column
+            return {
+              ...column,
+              cards: column.cards.filter(card => card.id !== updatedCard.id)
+            };
+          } else if (column.id === updatedCard.columnId) {
+            // Add to new column
+            return {
+              ...column,
+              cards: [...column.cards, updatedCard]
+            };
+          }
+          return column;
+        });
+      } else {
+        console.log('Card updated in same column');
+        // Handle in-place update (same column)
+        updatedColumns = boardData.columns.map(column => ({
+          ...column,
+          cards: column.cards.map(card =>
+            card.id === updatedCard.id ? updatedCard : card
+          )
+        }));
+      }
+
+      console.log('Updating board data with new columns');
       onBoardDataChange({
         ...boardData,
         columns: updatedColumns as any
@@ -290,6 +364,10 @@ export function KanbanBoard({ boardData, onBoardDataChange, currentUser }: Kanba
   };
 
   const handleCardDeleted = (cardId: string) => {
+    // Use Zustand store action first
+    deleteCard(cardId);
+
+    // Also update the prop-based callback for backward compatibility
     if (onBoardDataChange) {
       const updatedColumns = boardData.columns.map(column => ({
         ...column,
@@ -303,10 +381,7 @@ export function KanbanBoard({ boardData, onBoardDataChange, currentUser }: Kanba
     }
   };
 
-  const handleAddColumn = () => {
-    // This would open a create column dialog
-    console.log('Add column clicked');
-  };
+
 
   // Check if board has no columns
   const hasNoColumns = !boardData.columns || boardData.columns.length === 0;
@@ -314,7 +389,7 @@ export function KanbanBoard({ boardData, onBoardDataChange, currentUser }: Kanba
   if (hasNoColumns) {
     return (
       <div className="flex-1">
-        <EmptyBoard onCreateColumn={handleAddColumn} />
+        <EmptyBoard />
       </div>
     );
   }
@@ -323,6 +398,22 @@ export function KanbanBoard({ boardData, onBoardDataChange, currentUser }: Kanba
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
+      {/* Board Filters */}
+      <div className="border-b bg-white px-6 py-4">
+        <BoardFilters
+          filters={filters}
+          onFiltersChange={setFilters}
+          availableAssignees={availableAssignees}
+          className="mb-2"
+        />
+        {hasActiveFilters && (
+          <div className="text-sm text-gray-600">
+            Showing {stats.filtered} of {stats.total} cards
+            {stats.hidden > 0 && ` (${stats.hidden} hidden)`}
+          </div>
+        )}
+      </div>
+
       {/* Main Content */}
       <DndContext
         sensors={sensors}
@@ -341,7 +432,7 @@ export function KanbanBoard({ boardData, onBoardDataChange, currentUser }: Kanba
                 <KanbanColumn
                   key={column.id}
                   column={column}
-                  cards={column.cards}
+                  cards={cardsByColumn[column.id] || []}
                   boardId={boardData.id}
                   boardMembers={boardData.members?.map(m => m.user) || []}
                   boardLabels={boardData.labels}
@@ -349,22 +440,15 @@ export function KanbanBoard({ boardData, onBoardDataChange, currentUser }: Kanba
                   isLoading={isLoading}
                   onCardCreated={handleCardCreated}
                   onCardClick={handleCardClick}
+                  onCardEdit={handleCardClick}
+                  onCardUpdated={handleCardUpdated}
                   currentUser={currentUser}
+                  userRole={userRole}
                 />
               ))}
             </SortableContext>
 
-            {/* Add Column Button */}
-            <div className="flex-shrink-0">
-              <Button
-                variant="outline"
-                onClick={handleAddColumn}
-                className="h-12 px-4 border-dashed border-2 hover:border-solid"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Column
-              </Button>
-            </div>
+
           </div>
         </div>
 
@@ -372,7 +456,14 @@ export function KanbanBoard({ boardData, onBoardDataChange, currentUser }: Kanba
         <DragOverlay>
           {activeCard ? (
             <div className="rotate-3 opacity-90">
-              <KanbanCard card={activeCard} />
+              <KanbanCard
+                card={activeCard}
+                boardMembers={boardData.members?.map(m => m.user) || []}
+                boardLabels={boardData.labels}
+                allColumns={boardData.columns}
+                currentUser={currentUser || null}
+                userRole={userRole}
+              />
             </div>
           ) : null}
         </DragOverlay>
@@ -390,6 +481,8 @@ export function KanbanBoard({ boardData, onBoardDataChange, currentUser }: Kanba
         onCardUpdated={handleCardUpdated}
         onCardDeleted={handleCardDeleted}
       />
+
+
     </div>
   );
 }

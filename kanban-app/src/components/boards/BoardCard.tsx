@@ -71,6 +71,12 @@ export function BoardCard({ board, onEdit, onArchive, onDelete }: BoardCardProps
           <Badge className={getRoleBadgeClasses(board.role)}>
             {getRoleLabel(board.role)}
           </Badge>
+          {(board.role === 'owner' || board.role === 'admin') && (
+            <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+              <Users className="w-3 h-3 mr-1" />
+              Admin
+            </Badge>
+          )}
           {board.isArchived && (
             <Badge variant="secondary">Archived</Badge>
           )}

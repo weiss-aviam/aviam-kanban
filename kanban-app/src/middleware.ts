@@ -37,10 +37,14 @@ export async function middleware(request: NextRequest) {
 
   // Define protected routes
   const protectedRoutes = ['/dashboard', '/boards']
+  const adminRoutes = ['/admin']
   const authRoutes = ['/auth/login', '/auth/signup']
   const publicAuthRoutes = ['/auth/callback', '/auth/reset-password']
-  
+
   const isProtectedRoute = protectedRoutes.some(route =>
+    request.nextUrl.pathname.startsWith(route)
+  )
+  const isAdminRoute = adminRoutes.some(route =>
     request.nextUrl.pathname.startsWith(route)
   )
   const isAuthRoute = authRoutes.some(route =>
@@ -53,6 +57,36 @@ export async function middleware(request: NextRequest) {
   // Allow public auth routes (callback, reset-password) without authentication
   if (isPublicAuthRoute) {
     return supabaseResponse
+  }
+
+  // Admin route protection
+  if (isAdminRoute) {
+    if (!user) {
+      // Redirect to login if not authenticated
+      const redirectUrl = new URL('/auth/login', request.url)
+      redirectUrl.searchParams.set('redirectTo', request.nextUrl.pathname + request.nextUrl.search)
+      return NextResponse.redirect(redirectUrl)
+    }
+
+    // Check if user has admin access to the board
+    const boardId = request.nextUrl.searchParams.get('boardId')
+
+    if (boardId) {
+      const { data: membership, error } = await supabase
+        .from('board_members')
+        .select('role')
+        .eq('board_id', boardId)
+        .eq('user_id', user.id)
+        .single()
+
+      if (error || !membership || !['owner', 'admin'].includes(membership.role)) {
+        // Redirect to board if not admin
+        return NextResponse.redirect(new URL(`/boards/${boardId}`, request.url))
+      }
+    } else {
+      // If no boardId, redirect to boards list
+      return NextResponse.redirect(new URL('/boards', request.url))
+    }
   }
 
   // If user is not logged in and trying to access protected route

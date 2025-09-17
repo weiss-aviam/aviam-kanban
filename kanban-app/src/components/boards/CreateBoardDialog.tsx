@@ -14,6 +14,10 @@ import {
   DialogTrigger,
 } from '../ui/dialog';
 import { Plus, Loader2 } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+
 import { TemplateSelector } from '../templates/TemplateSelector';
 
 interface CreateBoardDialogProps {
@@ -23,19 +27,18 @@ interface CreateBoardDialogProps {
 
 export function CreateBoardDialog({ onBoardCreated, trigger }: CreateBoardDialogProps) {
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState('');
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | undefined>();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!name.trim()) {
-      setError('Board name is required');
-      return;
-    }
+  const schema = z.object({ name: z.string().min(1, 'Board name is required') });
+  type FormValues = z.infer<typeof schema>;
+  const { register, handleSubmit: rhfHandleSubmit, reset } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: { name: '' },
+  });
 
+  const onSubmit = async ({ name }: FormValues) => {
     setIsLoading(true);
     setError('');
 
@@ -57,12 +60,12 @@ export function CreateBoardDialog({ onBoardCreated, trigger }: CreateBoardDialog
       }
 
       const { board } = await response.json();
-      
+
       // Reset form
-      setName('');
+      reset({ name: '' });
       setSelectedTemplateId(undefined);
       setOpen(false);
-      
+
       // Notify parent component
       if (onBoardCreated) {
         onBoardCreated(board);
@@ -86,39 +89,44 @@ export function CreateBoardDialog({ onBoardCreated, trigger }: CreateBoardDialog
       <DialogTrigger asChild>
         {trigger || defaultTrigger}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-2xl w-[90vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New Board</DialogTitle>
           <DialogDescription>
             Create a new Kanban board to organize your project tasks.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="name">Board Name</Label>
+        <form onSubmit={rhfHandleSubmit(onSubmit)} className="space-y-6">
+          {error && (
+            <div className="text-sm text-red-600 bg-red-50 p-4 rounded-md border border-red-200">
+              {error}
+            </div>
+          )}
+
+          <div className="space-y-6">
+            <div className="space-y-3">
+              <Label htmlFor="name" className="text-base font-medium">Board Name</Label>
               <Input
                 id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
                 placeholder="Enter board name..."
                 disabled={isLoading}
                 autoFocus
+                className="h-11"
+                {...register('name')}
               />
             </div>
 
-            <TemplateSelector
-              selectedTemplateId={selectedTemplateId}
-              onTemplateSelect={setSelectedTemplateId}
-              disabled={isLoading}
-            />
-            {error && (
-              <div className="text-sm text-red-600">
-                {error}
-              </div>
-            )}
+            <div className="space-y-3">
+              <Label className="text-base font-medium">Template (Optional)</Label>
+              <TemplateSelector
+                selectedTemplateId={selectedTemplateId}
+                onTemplateSelect={setSelectedTemplateId}
+                disabled={isLoading}
+              />
+            </div>
           </div>
-          <DialogFooter>
+
+          <DialogFooter className="pt-6 border-t">
             <Button
               type="button"
               variant="outline"

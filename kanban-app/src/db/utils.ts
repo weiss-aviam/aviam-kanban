@@ -1,5 +1,6 @@
 import { db } from './index';
-import { boardMembers, type BoardMemberRole } from './schema';
+import { boardMembers } from './schema';
+import type { BoardMemberRole } from '@/types/database';
 import { eq, and } from 'drizzle-orm';
 
 /**
@@ -30,7 +31,7 @@ export function validateDatabaseConfig() {
  */
 export async function checkBoardAccess(
   userId: string,
-  boardId: number,
+  boardId: string,
   requiredRole?: BoardMemberRole
 ): Promise<boolean> {
   try {

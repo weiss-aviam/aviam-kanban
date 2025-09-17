@@ -14,6 +14,10 @@ import {
 } from '../ui/dialog';
 import { Edit, Loader2 } from 'lucide-react';
 import { BoardWithDetails } from '@/types/database';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+
 
 interface EditBoardDialogProps {
   board: BoardWithDetails | null;
@@ -22,31 +26,28 @@ interface EditBoardDialogProps {
   onBoardUpdated?: (board: any) => void;
 }
 
-export function EditBoardDialog({ 
-  board, 
-  open, 
-  onOpenChange, 
-  onBoardUpdated 
+export function EditBoardDialog({
+  board,
+  open,
+  onOpenChange,
+  onBoardUpdated
 }: EditBoardDialogProps) {
-  const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    if (board) {
-      setName(board.name);
-    }
-  }, [board]);
+  const schema = z.object({ name: z.string().min(1, 'Board name is required') });
+  type FormValues = z.infer<typeof schema>;
+  const { register, handleSubmit: rhfHandleSubmit, reset } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: { name: '' },
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  useEffect(() => {
+    reset({ name: board?.name ?? '' });
+  }, [board, reset]);
+
+  const onSubmit = async ({ name }: FormValues) => {
     if (!board) return;
-    
-    if (!name.trim()) {
-      setError('Board name is required');
-      return;
-    }
 
     setIsLoading(true);
     setError('');
@@ -66,10 +67,10 @@ export function EditBoardDialog({
       }
 
       const { board: updatedBoard } = await response.json();
-      
+
       // Close dialog
       onOpenChange(false);
-      
+
       // Notify parent component
       if (onBoardUpdated) {
         onBoardUpdated(updatedBoard);
@@ -83,33 +84,33 @@ export function EditBoardDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-2xl w-[90vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Board</DialogTitle>
           <DialogDescription>
             Update the board name and settings.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="name">Board Name</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Enter board name..."
-                disabled={isLoading}
-                autoFocus
-              />
+        <form onSubmit={rhfHandleSubmit(onSubmit)} className="space-y-6">
+          {error && (
+            <div className="text-sm text-red-600 bg-red-50 p-4 rounded-md border border-red-200">
+              {error}
             </div>
-            {error && (
-              <div className="text-sm text-red-600">
-                {error}
-              </div>
-            )}
+          )}
+
+          <div className="space-y-3">
+            <Label htmlFor="name" className="text-base font-medium">Board Name</Label>
+            <Input
+              id="name"
+              placeholder="Enter board name..."
+              disabled={isLoading}
+              autoFocus
+              className="h-11"
+              {...register('name')}
+            />
           </div>
-          <DialogFooter>
+
+          <DialogFooter className="pt-6 border-t">
             <Button
               type="button"
               variant="outline"

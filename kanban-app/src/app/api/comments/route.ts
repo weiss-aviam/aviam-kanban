@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     
     if (!validation.success) {
       return NextResponse.json(
-        { error: 'Invalid input', details: validation.error.errors },
+        { error: 'Invalid input', details: validation.error.issues },
         { status: 400 }
       );
     }
@@ -82,9 +82,9 @@ export async function POST(request: NextRequest) {
       body: newComment.body,
       createdAt: newComment.created_at,
       author: {
-        id: newComment.users.id,
-        email: newComment.users.email,
-        name: newComment.users.name,
+        id: Array.isArray(newComment.users) ? newComment.users[0]?.id : newComment.users?.id,
+        email: Array.isArray(newComment.users) ? newComment.users[0]?.email : newComment.users?.email,
+        name: Array.isArray(newComment.users) ? newComment.users[0]?.name : newComment.users?.name,
       },
     };
 
@@ -168,9 +168,9 @@ export async function GET(request: NextRequest) {
       body: comment.body,
       createdAt: comment.created_at,
       author: {
-        id: comment.users.id,
-        email: comment.users.email,
-        name: comment.users.name,
+        id: Array.isArray(comment.users) ? comment.users[0]?.id : comment.users?.id,
+        email: Array.isArray(comment.users) ? comment.users[0]?.email : comment.users?.email,
+        name: Array.isArray(comment.users) ? comment.users[0]?.name : comment.users?.name,
       },
     }));
 

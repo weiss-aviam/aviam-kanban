@@ -5,17 +5,21 @@ import { useRouter } from 'next/navigation';
 import { Button } from '../ui/button';
 // Removed unused Card imports
 import { Badge } from '../ui/badge';
-import { 
+import {
   ArrowLeft,
   Plus,
   Settings,
   Save,
-  MoreHorizontal
+  MoreHorizontal,
+  Users
 } from 'lucide-react';
+
 import { CreateColumnDialog } from '../columns/CreateColumnDialog';
+import { useAppActions, useCurrentBoard, useUserRole, useIsLoading, useError } from '@/store';
 import { SaveBoardAsTemplateDialog } from '../templates/SaveBoardAsTemplateDialog';
 import { KanbanBoard } from '../kanban/KanbanBoard';
-import type { BoardWithDetails, User } from '../../types/database';
+
+import type { BoardWithDetails, Column, User } from '../../types/database';
 import { getRoleBadgeClasses, getRoleLabel } from '../../lib/role-colors';
 
 interface BoardDetailPageProps {
@@ -26,46 +30,86 @@ interface BoardDetailPageProps {
 
 export function BoardDetailPage({ boardId, initialBoard, currentUser }: BoardDetailPageProps) {
   const [board, setBoard] = useState<BoardWithDetails | null>(initialBoard || null);
-  const [isLoading, setIsLoading] = useState(!initialBoard);
-  const [error, setError] = useState('');
   const [showCreateColumn, setShowCreateColumn] = useState(false);
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
+
   const router = useRouter();
+
+  // Zustand store state and actions
+  const storeBoard = useCurrentBoard();
+  const storeUserRole = useUserRole();
+  const storeIsLoading = useIsLoading();
+  const storeError = useError();
+  const {
+    setCurrentBoard,
+    setUserRole,
+    setLoading,
+    setError,
+    clearError,
+    addColumn
+  } = useAppActions();
+
+  // Use store state if available, otherwise fall back to local state
+  const isLoading = storeIsLoading;
+  const error = storeError || '';
+  const userRole = storeUserRole || 'member';
 
   useEffect(() => {
     if (!initialBoard) {
       fetchBoard();
+    } else {
+      // Initialize store with initial board data
+      setCurrentBoard(initialBoard);
+      setBoard(initialBoard);
     }
-  }, [boardId, initialBoard]);
+  }, [boardId, initialBoard, setCurrentBoard]);
 
   const fetchBoard = async () => {
     try {
-      setIsLoading(true);
+      setLoading(true);
+      clearError();
+
       const response = await fetch(`/api/boards/${boardId}`);
-      
+
       if (!response.ok) {
-        if (response.status === 404) {
-          setError('Board not found or you do not have access to it.');
-        } else {
-          setError('Failed to load board.');
-        }
+        const errorMessage = response.status === 404
+          ? 'Board not found or you do not have access to it.'
+          : 'Failed to load board.';
+        setError(errorMessage);
         return;
       }
 
       const { board } = await response.json();
+
+      // Update both local state and Zustand store
       setBoard(board);
+      setCurrentBoard(board);
+
+      // Determine user role from board membership
+      const membership = board.members?.find((m: any) => m.user.id === currentUser?.id);
+      if (membership) {
+        setUserRole(membership.role);
+      }
     } catch (err) {
       setError('Failed to load board.');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const handleColumnCreated = (newColumn: any) => {
+
+
+  const handleColumnCreated = (newColumn: Column) => {
+    const columnWithCards = { ...newColumn, cards: [] };
+
+    // Update Zustand store
+    addColumn(columnWithCards);
+
+    // Update local state for backward compatibility
     if (board) {
       setBoard({
         ...board,
-        columns: [...(board.columns || []), { ...newColumn, cards: [] }]
+        columns: [...(board.columns || []), columnWithCards]
       });
     }
   };
@@ -81,6 +125,7 @@ export function BoardDetailPage({ boardId, initialBoard, currentUser }: BoardDet
 
   const canManageBoard = board && ['owner', 'admin'].includes(board.role);
   const canAddColumns = board && ['owner', 'admin', 'member'].includes(board.role);
+
 
   const getTotalCards = () => {
     return board?.columns?.reduce((total, column) => total + (column.cards?.length || 0), 0) || 0;
@@ -138,7 +183,7 @@ export function BoardDetailPage({ boardId, initialBoard, currentUser }: BoardDet
                     <Badge variant="secondary">Archived</Badge>
                   )}
                   <span className="text-sm text-gray-500">
-                    {board.columns?.length || 0} columns • {getTotalCards()} cards
+                    {board.columns?.length || 0} columns • {getTotalCards()} cards • {board.members?.length || 0} members
                   </span>
                 </div>
               </div>
@@ -168,6 +213,17 @@ export function BoardDetailPage({ boardId, initialBoard, currentUser }: BoardDet
               )}
 
               {canManageBoard && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push(`/admin/users?boardId=${boardId}`)}
+                >
+                  <Users className="w-4 h-4 mr-2" />
+                  Manage Users
+                </Button>
+              )}
+
+              {canManageBoard && (
                 <Button variant="outline" size="sm">
                   <Settings className="w-4 h-4 mr-2" />
                   Settings
@@ -189,8 +245,12 @@ export function BoardDetailPage({ boardId, initialBoard, currentUser }: BoardDet
         <div className="h-[calc(100vh-120px)]">
           <KanbanBoard
             boardData={board}
-            onBoardDataChange={setBoard}
-            currentUser={currentUser}
+            onBoardDataChange={(updatedBoard) => {
+              setBoard(updatedBoard);
+              setCurrentBoard(updatedBoard);
+            }}
+            currentUser={currentUser || null}
+            userRole={userRole}
           />
         </div>
       </main>
@@ -211,6 +271,8 @@ export function BoardDetailPage({ boardId, initialBoard, currentUser }: BoardDet
         columns={board.columns}
         onTemplateSaved={handleTemplateSaved}
       />
+
+
     </div>
   );
 }

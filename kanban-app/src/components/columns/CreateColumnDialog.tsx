@@ -14,6 +14,10 @@ import {
   DialogTrigger,
 } from '../ui/dialog';
 import { Plus, Loader2 } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+
 
 interface CreateColumnDialogProps {
   boardId: string;
@@ -23,30 +27,29 @@ interface CreateColumnDialogProps {
   onOpenChange?: (open: boolean) => void;
 }
 
-export function CreateColumnDialog({ 
-  boardId, 
-  onColumnCreated, 
+export function CreateColumnDialog({
+  boardId,
+  onColumnCreated,
   trigger,
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange
 }: CreateColumnDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
-  const [title, setTitle] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const schema = z.object({ title: z.string().min(1, 'Column title is required') });
+  type FormValues = { title: string };
+  const { register, handleSubmit: rhfHandleSubmit, reset } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: { title: '' },
+  });
 
   // Use controlled or internal state
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
   const setOpen = controlledOnOpenChange || setInternalOpen;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!title.trim()) {
-      setError('Column title is required');
-      return;
-    }
-
+  const onSubmit = async ({ title }: FormValues) => {
     setIsLoading(true);
     setError('');
 
@@ -56,7 +59,7 @@ export function CreateColumnDialog({
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           boardId,
           title: title.trim()
         }),
@@ -70,7 +73,7 @@ export function CreateColumnDialog({
       const column = await response.json();
 
       // Reset form
-      setTitle('');
+      reset({ title: '' });
       setOpen(false);
 
       // Notify parent component
@@ -110,17 +113,16 @@ export function CreateColumnDialog({
             Create a new column to organize your tasks.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={rhfHandleSubmit(onSubmit)}>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="title">Column Title</Label>
               <Input
                 id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
                 placeholder="Enter column title..."
                 disabled={isLoading}
                 autoFocus
+                {...register('title')}
               />
             </div>
             {error && (

@@ -36,6 +36,9 @@ export const ROLE_COLORS: Record<string, RoleColorScheme> = {
  */
 export function getRoleBadgeClasses(role: string): string {
   const colors = ROLE_COLORS[role] || ROLE_COLORS.viewer;
+  if (!colors) {
+    return 'bg-gray-100 text-gray-800 border-gray-200';
+  }
   return `${colors.background} ${colors.text} ${colors.border}`;
 }
 
@@ -69,16 +72,18 @@ export function getUserAvatarColor(role?: string): string {
  */
 export function getUserInitials(name?: string, email?: string): string {
   if (name && name.trim()) {
-    const nameParts = name.trim().split(' ');
-    if (nameParts.length >= 2) {
+    const nameParts = name.trim().split(' ').filter(part => part.length > 0);
+    if (nameParts.length >= 2 && nameParts[0] && nameParts[1]) {
       return (nameParts[0].charAt(0) + nameParts[1].charAt(0)).toUpperCase();
     }
-    return nameParts[0].charAt(0).toUpperCase();
+    if (nameParts[0]) {
+      return nameParts[0].charAt(0).toUpperCase();
+    }
   }
-  
+
   if (email) {
     return email.charAt(0).toUpperCase();
   }
-  
+
   return '?';
 }

@@ -1,0 +1,484 @@
+feature: "Enhanced Card Details with Rich Text, Priority System, and Context Menu"
+description: "Add markdown support for card descriptions, implement color-coded priority system, and add right-click context menu for card actions"
+
+database_changes:
+  - task: "add_priority_field_to_cards"
+    description: "Add priority field to cards table"
+    files_to_modify:
+      - "kanban-app/src/db/schema/index.ts"
+    changes:
+      - "Add priority field to cards table: priority: varchar('priority', { enum: ['high', 'medium', 'low'] }).default('medium')"
+    migration_file: "src/db/migrations/07_add_card_priority.sql"
+    migration_content:
+      - "ALTER TABLE cards ADD COLUMN priority VARCHAR(10) DEFAULT 'medium' CHECK (priority IN ('high', 'medium', 'low'));"
+    
+  - task: "update_card_type_definitions"
+    description: "Update TypeScript types to include priority"
+    files_to_modify:
+      - "kanban-app/src/types/database.ts"
+    changes:
+      - "Add priority: 'high' | 'medium' | 'low' to Card interface"
+      - "Update CardWithDetails type to include priority"
+
+api_updates:
+  - task: "update_card_api_endpoints"
+    description: "Add priority support to card CRUD operations"
+    
+    files_to_modify:
+      - "kanban-app/src/app/api/cards/route.ts"
+        changes:
+          - "Add priority to createCardSchema: priority: z.enum(['high', 'medium', 'low']).default('medium')"
+          - "Include priority in card creation logic"
+          - "Return priority in transformed response"
+      
+      - "kanban-app/src/app/api/cards/[id]/route.ts"
+        changes:
+          - "Add priority to updateCardSchema: priority: z.enum(['high', 'medium', 'low']).optional()"
+          - "Include priority in update logic"
+          - "Return priority in update response"
+
+markdown_implementation:
+  - task: "install_markdown_dependencies"
+    description: "Add required packages for markdown support"
+    packages_to_install:
+      - "@uiw/react-md-editor"
+      - "rehype-sanitize"
+      - "remark-gfm"
+    command: "npm install @uiw/react-md-editor rehype-sanitize remark-gfm"
+  
+  - task: "create_markdown_components"
+    description: "Build reusable markdown editor and viewer components"
+    
+    components_to_create:
+      - file: "src/components/ui/markdown-editor.tsx"
+        description: "Markdown editor component with preview"
+        requirements:
+          - "Use @uiw/react-md-editor"
+          - "Support for GitHub Flavored Markdown"
+          - "Sanitize HTML output"
+          - "Toolbar with common formatting options"
+          - "Preview mode toggle"
+        props:
+          - "value: string"
+          - "onChange: (value: string) => void"
+          - "placeholder?: string"
+          - "height?: number"
+      
+      - file: "src/components/ui/markdown-viewer.tsx"
+        description: "Read-only markdown renderer"
+        requirements:
+          - "Render markdown to HTML safely"
+          - "Support GitHub Flavored Markdown"
+          - "Consistent styling with app theme"
+          - "Handle empty/null content gracefully"
+        props:
+          - "content: string"
+          - "className?: string"
+
+priority_system:
+  - task: "create_priority_utilities"
+    description: "Utility functions for priority handling"
+    
+    file: "src/lib/priority-colors.ts"
+    functions_to_implement:
+      - name: "getPriorityConfig"
+        description: "Get priority configuration including colors and labels"
+        return_type: "{ color: string; bgColor: string; label: string; badgeClass: string }"
+        priority_configs:
+          high:
+            color: "#dc2626"  # red-600
+            bgColor: "#fef2f2"  # red-50
+            label: "HIGH"
+            badgeClass: "bg-red-100 text-red-800 border-red-200"
+          medium:
+            color: "#d97706"  # amber-600
+            bgColor: "#fffbeb"  # amber-50
+            label: "MEDIUM"
+            badgeClass: "bg-amber-100 text-amber-800 border-amber-200"
+          low:
+            color: "#059669"  # emerald-600
+            bgColor: "#ecfdf5"  # emerald-50
+            label: "LOW"
+            badgeClass: "bg-emerald-100 text-emerald-800 border-emerald-200"
+      
+      - name: "getPriorityBadgeClasses"
+        description: "Get Tailwind classes for priority badge"
+        params: "priority: 'high' | 'medium' | 'low'"
+        return_type: "string"
+      
+      - name: "getPriorityLabel"
+        description: "Get capitalized priority label"
+        params: "priority: 'high' | 'medium' | 'low'"
+        return_type: "string"
+      
+      - name: "sortCardsByPriority"
+        description: "Sort cards by priority (high -> medium -> low)"
+        params: "cards: Card[]"
+        return_type: "Card[]"
+
+context_menu_implementation:
+  - task: "install_context_menu_dependencies"
+    description: "Add shadcn context menu component"
+    command: "npx shadcn-ui@latest add context-menu"
+    note: "This will add the ContextMenu components to src/components/ui/"
+  
+  - task: "create_card_context_menu"
+    description: "Build context menu component for card actions"
+    file: "src/components/kanban/CardContextMenu.tsx"
+    requirements:
+      - "Use shadcn ContextMenu components"
+      - "Right-click activation on cards"
+      - "Role-based action visibility"
+      - "Keyboard shortcuts support"
+      - "Icon integration with lucide-react"
+    
+    menu_items:
+      - label: "Edit Card"
+        icon: "Edit"
+        shortcut: "⌘E"
+        action: "onEdit"
+        permission: "member"
+      
+      - label: "Change Priority"
+        icon: "Flag"
+        submenu: true
+        items:
+          - "High Priority"
+          - "Medium Priority" 
+          - "Low Priority"
+        permission: "member"
+      
+      - label: "Move to Column"
+        icon: "ArrowRight"
+        submenu: true
+        dynamic_items: "columns"
+        permission: "member"
+      
+      - separator: true
+      
+      - label: "Duplicate Card"
+        icon: "Copy"
+        shortcut: "⌘D"
+        action: "onDuplicate"
+        permission: "member"
+      
+      - label: "Archive Card"
+        icon: "Archive"
+        action: "onArchive"
+        permission: "admin"
+      
+      - separator: true
+      
+      - label: "Delete Card"
+        icon: "Trash2"
+        shortcut: "⌘⌫"
+        action: "onDelete"
+        permission: "admin"
+        destructive: true
+    
+    props:
+      - "card: Card"
+      - "columns: Column[]"
+      - "userRole: 'owner' | 'admin' | 'member' | 'viewer'"
+      - "onEdit: (card: Card) => void"
+      - "onDelete: (card: Card) => void"
+      - "onDuplicate: (card: Card) => void"
+      - "onArchive: (card: Card) => void"
+      - "onPriorityChange: (card: Card, priority: string) => void"
+      - "onMoveToColumn: (card: Card, columnId: number) => void"
+      - "children: React.ReactNode"
+
+component_updates:
+  - task: "update_kanban_card_component"
+    description: "Add priority badge, markdown support, and context menu"
+    file: "kanban-app/src/components/kanban/KanbanCard.tsx"
+    changes:
+      - "Import priority utilities and CardContextMenu"
+      - "Wrap card content with CardContextMenu"
+      - "Add priority badge next to card title"
+      - "Update card description to use MarkdownViewer for rich text"
+      - "Add priority-based left border accent"
+      - "Handle context menu actions"
+      - "Prevent context menu during drag operations"
+    
+    new_elements:
+      - "Priority badge with color coding"
+      - "Markdown-rendered description"
+      - "Priority-based visual accent (left border)"
+      - "Context menu wrapper"
+    
+    event_handling:
+      - "onContextMenu: Prevent default browser context menu"
+      - "Handle context menu actions (edit, delete, duplicate, etc.)"
+      - "Disable context menu during drag operations"
+  
+  - task: "update_card_creation_dialog"
+    description: "Add priority selection and markdown editor"
+    file: "kanban-app/src/components/kanban/CreateCardDialog.tsx"
+    changes:
+      - "Add priority selection dropdown"
+      - "Replace description textarea with MarkdownEditor"
+      - "Include priority in form submission"
+      - "Add priority to form validation"
+    new_form_fields:
+      - "Priority selector with visual indicators"
+      - "Markdown editor for description"
+  
+  - task: "update_card_edit_dialog"
+    description: "Add priority editing and markdown support"
+    file: "kanban-app/src/components/kanban/EditCardDialog.tsx"
+    changes:
+      - "Add priority selection dropdown"
+      - "Replace description textarea with MarkdownEditor"
+      - "Include priority in update payload"
+      - "Show current priority in form"
+    features:
+      - "Priority change with visual feedback"
+      - "Markdown editing with preview"
+  
+  - task: "create_card_detail_modal"
+    description: "Full card details modal with rich content"
+    file: "src/components/kanban/CardDetailModal.tsx"
+    requirements:
+      - "Full-screen or large modal for card details"
+      - "Markdown viewer for description"
+      - "Priority badge prominently displayed"
+      - "Edit mode toggle"
+      - "Comments section"
+      - "Activity timeline"
+      - "Context menu integration"
+    sections:
+      - "Card header with title and priority"
+      - "Rich text description"
+      - "Metadata (assignee, due date, labels)"
+      - "Comments and activity"
+      - "Action buttons (edit, delete, etc.)"
+
+context_menu_actions:
+  - task: "implement_card_actions"
+    description: "Add action handlers for context menu operations"
+    file: "src/hooks/useCardActions.ts"
+    
+    actions_to_implement:
+      - name: "handleEditCard"
+        description: "Open edit dialog for card"
+        params: "card: Card"
+        
+      - name: "handleDeleteCard"
+        description: "Delete card with confirmation"
+        params: "card: Card"
+        requirements:
+          - "Show confirmation dialog"
+          - "Handle API call"
+          - "Update UI optimistically"
+          - "Show success/error feedback"
+        
+      - name: "handleDuplicateCard"
+        description: "Create copy of card"
+        params: "card: Card"
+        requirements:
+          - "Copy all card properties except ID"
+          - "Add '(Copy)' suffix to title"
+          - "Place in same column"
+          - "Show success feedback"
+        
+      - name: "handleArchiveCard"
+        description: "Archive/unarchive card"
+        params: "card: Card"
+        requirements:
+          - "Toggle archived status"
+          - "Update UI immediately"
+          - "Show undo option"
+        
+      - name: "handlePriorityChange"
+        description: "Update card priority"
+        params: "card: Card, priority: string"
+        requirements:
+          - "Update priority via API"
+          - "Optimistic UI update"
+          - "Visual feedback"
+        
+      - name: "handleMoveToColumn"
+        description: "Move card to different column"
+        params: "card: Card, columnId: number"
+        requirements:
+          - "Update card column"
+          - "Maintain position logic"
+          - "Animate movement"
+
+ui_enhancements:
+  - task: "create_priority_selector_component"
+    description: "Reusable priority selection component"
+    file: "src/components/ui/priority-selector.tsx"
+    requirements:
+      - "Dropdown with color-coded options"
+      - "Visual priority indicators"
+      - "Keyboard navigation support"
+      - "Consistent styling"
+    props:
+      - "value: 'high' | 'medium' | 'low'"
+      - "onChange: (priority: 'high' | 'medium' | 'low') => void"
+      - "disabled?: boolean"
+      - "size?: 'sm' | 'md' | 'lg'"
+  
+  - task: "update_card_filtering"
+    description: "Add priority-based filtering to board view"
+    files_to_modify:
+      - "src/components/kanban/KanbanBoard.tsx"
+    features:
+      - "Filter cards by priority"
+      - "Priority-based sorting options"
+      - "Visual filter indicators"
+      - "Clear all filters option"
+  
+  - task: "add_keyboard_shortcuts"
+    description: "Global keyboard shortcuts for card actions"
+    file: "src/hooks/useKeyboardShortcuts.ts"
+    shortcuts:
+      - "⌘E: Edit selected card"
+      - "⌘D: Duplicate selected card"
+      - "⌘⌫: Delete selected card"
+      - "1/2/3: Set priority (high/medium/low)"
+      - "Escape: Close context menu"
+
+styling_updates:
+  - task: "add_markdown_styles"
+    description: "Custom CSS for markdown content"
+    file: "src/app/globals.css"
+    styles_to_add:
+      - "Markdown content styling (.markdown-content)"
+      - "Code block styling"
+      - "Table styling"
+      - "Blockquote styling"
+      - "List styling"
+    requirements:
+      - "Consistent with app theme"
+      - "Proper contrast ratios"
+      - "Responsive design"
+  
+  - task: "add_priority_visual_accents"
+    description: "Visual indicators for card priorities"
+    styling_elements:
+      - "Left border accent on cards based on priority"
+      - "Subtle background tint for high priority cards"
+      - "Priority badge styling"
+      - "Hover effects for priority elements"
+  
+  - task: "add_context_menu_styles"
+    description: "Custom styling for context menu"
+    styling_elements:
+      - "Context menu animations"
+      - "Submenu transitions"
+      - "Destructive action styling"
+      - "Keyboard focus indicators"
+      - "Dark mode support"
+
+accessibility_requirements:
+  - task: "ensure_context_menu_accessibility"
+    description: "Make context menu fully accessible"
+    requirements:
+      - "Keyboard navigation (Tab, Arrow keys)"
+      - "Screen reader support"
+      - "Focus management"
+      - "ARIA labels and roles"
+      - "High contrast mode support"
+      - "Reduced motion support"
+
+data_migration:
+  - task: "create_priority_migration_script"
+    description: "Migrate existing cards to have default priority"
+    file: "src/scripts/migrate-card-priorities.ts"
+    requirements:
+      - "Set all existing cards to 'medium' priority"
+      - "Validate migration success"
+      - "Rollback capability"
+      - "Progress logging"
+
+testing_requirements:
+  unit_tests:
+    - "Test priority utility functions"
+    - "Test markdown editor component"
+    - "Test markdown viewer component"
+    - "Test priority selector component"
+    - "Test card filtering by priority"
+    - "Test context menu component"
+    - "Test card action handlers"
+  
+  integration_tests:
+    - "Test card creation with priority and markdown"
+    - "Test card editing with priority changes"
+    - "Test markdown rendering in card details"
+    - "Test priority-based sorting and filtering"
+    - "Test context menu actions end-to-end"
+    - "Test keyboard shortcuts"
+  
+  accessibility_tests:
+    - "Test context menu keyboard navigation"
+    - "Test screen reader compatibility"
+    - "Test focus management"
+    - "Test high contrast mode"
+  
+  visual_tests:
+    - "Test priority badge colors and styling"
+    - "Test markdown content rendering"
+    - "Test context menu appearance"
+    - "Test responsive design with new elements"
+
+implementation_order:
+  1. "Install required dependencies (markdown and context menu)"
+  2. "Database schema update and migration"
+  3. "Priority utility functions and types"
+  4. "Markdown components (editor and viewer)"
+  5. "Priority selector component"
+  6. "Context menu component and card actions"
+  7. "Update API endpoints for priority support"
+  8. "Update KanbanCard component with all new features"
+  9. "Update card creation/edit dialogs"
+  10. "Create comprehensive card detail modal"
+  11. "Add filtering and sorting by priority"
+  12. "Implement keyboard shortcuts"
+  13. "Styling and visual enhancements"
+  14. "Accessibility improvements"
+  15. "Testing and validation"
+
+validation_checklist:
+  functionality:
+    - "Cards display priority badges with correct colors"
+    - "Card descriptions render markdown properly"
+    - "Priority can be set during card creation"
+    - "Priority can be edited in existing cards"
+    - "Cards can be filtered by priority"
+    - "Markdown editor has preview functionality"
+    - "Markdown content is properly sanitized"
+    - "Right-click context menu appears on cards"
+    - "Context menu actions work correctly"
+    - "Context menu respects user permissions"
+    - "Keyboard shortcuts function properly"
+  
+  visual_design:
+    - "Priority colors are distinct and accessible"
+    - "Markdown styling is consistent with app theme"
+    - "Priority badges are clearly visible"
+    - "Card visual hierarchy is maintained"
+    - "Context menu styling matches app design"
+    - "Responsive design works on all devices"
+  
+  accessibility:
+    - "Context menu is keyboard navigable"
+    - "Screen readers can access all functionality"
+    - "Focus management works correctly"
+    - "High contrast mode is supported"
+    - "ARIA labels are properly implemented"
+  
+  performance:
+    - "Markdown rendering doesn't impact card list performance"
+    - "Large markdown content loads efficiently"
+    - "Priority filtering is responsive"
+    - "Context menu appears instantly"
+    - "No memory leaks from context menu listeners"
+  
+  security:
+    - "Markdown content is properly sanitized"
+    - "No XSS vulnerabilities in rich text"
+    - "Input validation for priority values"
+    - "Context menu actions respect permissions"

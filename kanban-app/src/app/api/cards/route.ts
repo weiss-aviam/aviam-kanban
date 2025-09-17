@@ -9,6 +9,7 @@ const createCardSchema = z.object({
   description: z.string().optional(),
   assigneeId: z.string().optional(),
   dueDate: z.string().datetime().optional(),
+  priority: z.enum(['high', 'medium', 'low']).default('medium'),
   position: z.number().int().optional(),
 });
 
@@ -32,12 +33,12 @@ export async function POST(request: NextRequest) {
     
     if (!validation.success) {
       return NextResponse.json(
-        { error: 'Invalid input', details: validation.error.errors },
+        { error: 'Invalid input', details: validation.error.issues },
         { status: 400 }
       );
     }
 
-    const { boardId, columnId, title, description, assigneeId, dueDate, position } = validation.data;
+    const { boardId, columnId, title, description, assigneeId, dueDate, priority, position } = validation.data;
 
     // Verify the column belongs to the board and user has access (using Supabase RLS)
     const { data: column, error: columnError } = await supabase
@@ -77,6 +78,7 @@ export async function POST(request: NextRequest) {
         description: description || null,
         assignee_id: assigneeId || null,
         due_date: dueDate ? new Date(dueDate).toISOString() : null,
+        priority: priority || 'medium',
         position: finalPosition,
       })
       .select('*')
@@ -99,6 +101,7 @@ export async function POST(request: NextRequest) {
       description: newCard.description,
       assigneeId: newCard.assignee_id,
       dueDate: newCard.due_date,
+      priority: newCard.priority,
       position: newCard.position,
       createdAt: newCard.created_at,
       labels: [],

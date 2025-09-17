@@ -9,8 +9,9 @@ const updateLabelSchema = z.object({
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const supabase = await createClient();
     
@@ -24,7 +25,7 @@ export async function PATCH(
       );
     }
 
-    const labelId = parseInt(params.id);
+    const labelId = parseInt(id);
     
     if (isNaN(labelId)) {
       return NextResponse.json(
@@ -39,7 +40,7 @@ export async function PATCH(
     
     if (!validation.success) {
       return NextResponse.json(
-        { error: 'Invalid input', details: validation.error.errors },
+        { error: 'Invalid input', details: validation.error.issues },
         { status: 400 }
       );
     }
@@ -88,8 +89,9 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const supabase = await createClient();
     
@@ -103,7 +105,7 @@ export async function DELETE(
       );
     }
 
-    const labelId = parseInt(params.id);
+    const labelId = parseInt(id);
     
     if (isNaN(labelId)) {
       return NextResponse.json(

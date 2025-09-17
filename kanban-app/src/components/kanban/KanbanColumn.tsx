@@ -6,12 +6,12 @@ import { useSortable } from '@dnd-kit/sortable';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { KanbanCard } from './KanbanCard';
-import { CreateCardDialog } from './CreateCardDialog';
+import { EditCardDialog } from './EditCardDialog';
 import { EmptyColumn } from './EmptyStates';
 import { Button } from '@/components/ui/button';
 import { Plus, MoreHorizontal, GripVertical } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import type { Column, Card as CardType, User, Label } from '@/types/database';
+import type { Column, Card as CardType, User, Label, BoardMemberRole } from '@/types/database';
 
 interface KanbanColumnProps {
   column: Column;
@@ -23,7 +23,10 @@ interface KanbanColumnProps {
   isLoading?: boolean;
   onCardCreated: (card: CardType) => void;
   onCardClick: (card: CardType) => void;
-  currentUser: User | undefined;
+  onCardEdit?: (card: CardType) => void;
+  onCardUpdated?: (card: CardType) => void;
+  currentUser: User | null;
+  userRole?: BoardMemberRole;
 }
 
 export function KanbanColumn({
@@ -36,7 +39,10 @@ export function KanbanColumn({
   isLoading = false,
   onCardCreated,
   onCardClick,
+  onCardEdit,
+  onCardUpdated,
   currentUser,
+  userRole = 'member',
 }: KanbanColumnProps) {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
@@ -125,7 +131,14 @@ export function KanbanColumn({
                     <KanbanCard
                       key={card.id}
                       card={card}
+                      boardMembers={boardMembers}
+                      boardLabels={boardLabels}
+                      allColumns={allColumns}
+                      currentUser={currentUser}
+                      userRole={userRole}
                       onClick={() => onCardClick(card)}
+                      onEdit={() => onCardEdit?.(card)}
+                      {...(onCardUpdated ? { onCardUpdated } : {})}
                     />
                   ))}
 
@@ -151,16 +164,17 @@ export function KanbanColumn({
         </SortableContext>
       </Card>
 
-      {/* Create Card Dialog */}
-      <CreateCardDialog
+      {/* Create/Edit Card Dialog (unified) */}
+      <EditCardDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
-        columnId={column.id}
-        boardId={boardId}
+        card={null}
         columns={allColumns}
         boardMembers={boardMembers}
         boardLabels={boardLabels}
         currentUser={currentUser}
+        boardId={boardId}
+        defaultColumnId={column.id}
         onCardCreated={onCardCreated}
       />
     </div>

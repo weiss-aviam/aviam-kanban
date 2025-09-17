@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -15,6 +14,11 @@ import {
   DialogTitle,
 } from '../ui/dialog';
 import { Save, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+
 
 interface Column {
   id: number;
@@ -39,38 +43,37 @@ export function SaveBoardAsTemplateDialog({
   columns,
   onTemplateSaved,
 }: SaveBoardAsTemplateDialogProps) {
-  const [name, setName] = useState(`${boardName} Template`);
-  const [description, setDescription] = useState('');
-  const [isPublic, setIsPublic] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!name.trim()) {
-      setError('Template name is required');
-      return;
-    }
+  const schema = z.object({
+    name: z.string().min(1, 'Template name is required'),
+    description: z.string().optional(),
+    isPublic: z.boolean().default(false),
+  });
+  type FormValues = { name: string; description?: string; isPublic?: boolean };
+  const { register, control, handleSubmit: rhfHandleSubmit, reset } = useForm<FormValues>({
+    resolver: zodResolver(schema) as any,
+    defaultValues: { name: `${boardName} Template`, description: '', isPublic: false },
+  });
 
+  useEffect(() => {
+    reset({ name: `${boardName} Template`, description: '', isPublic: false });
+  }, [boardName, reset]);
+
+  const onSubmit = async ({ name, description, isPublic = false }: FormValues) => {
     setIsLoading(true);
     setError('');
 
     try {
-      // Create the template
       const templateResponse = await fetch('/api/templates', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: name.trim(),
-          description: description.trim() || undefined,
+          description: description?.trim() || undefined,
           isPublic,
-          columns: columns.map(col => ({
-            title: col.title,
-            position: col.position,
-          })),
+          columns: columns.map(col => ({ title: col.title, position: col.position })),
         }),
       });
 
@@ -90,16 +93,14 @@ export function SaveBoardAsTemplateDialog({
   };
 
   const handleClose = () => {
-    setName(`${boardName} Template`);
-    setDescription('');
-    setIsPublic(false);
+    reset({ name: `${boardName} Template`, description: '', isPublic: false });
     setError('');
     onOpenChange(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-3xl w-[90vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Save className="w-5 h-5" />
@@ -110,7 +111,7 @@ export function SaveBoardAsTemplateDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={rhfHandleSubmit(onSubmit as any)} className="space-y-4">
           {error && (
             <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
               {error}
@@ -121,10 +122,9 @@ export function SaveBoardAsTemplateDialog({
             <Label htmlFor="template-name">Template Name</Label>
             <Input
               id="template-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
               placeholder="Enter template name"
               disabled={isLoading}
+              {...register('name')}
             />
           </div>
 
@@ -132,11 +132,10 @@ export function SaveBoardAsTemplateDialog({
             <Label htmlFor="template-description">Description (Optional)</Label>
             <Textarea
               id="template-description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe when to use this template"
               rows={3}
               disabled={isLoading}
+              {...register('description')}
             />
           </div>
 
@@ -160,11 +159,17 @@ export function SaveBoardAsTemplateDialog({
           </div>
 
           <div className="flex items-center space-x-2">
-            <Checkbox
-              id="is-public"
-              checked={isPublic}
-              onCheckedChange={(checked) => setIsPublic(checked as boolean)}
-              disabled={isLoading}
+            <Controller
+              name="isPublic"
+              control={control}
+              render={({ field }) => (
+                <Checkbox
+                  id="is-public"
+                  checked={!!field.value}
+                  onCheckedChange={(checked) => field.onChange(Boolean(checked))}
+                  disabled={isLoading}
+                />
+              )}
             />
             <Label htmlFor="is-public" className="text-sm">
               Make this template public (visible to all users)

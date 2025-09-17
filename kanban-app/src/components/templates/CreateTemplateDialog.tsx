@@ -18,6 +18,10 @@ import {
 import { Plus, Loader2, X, GripVertical } from 'lucide-react';
 import { Card, CardContent } from '../ui/card';
 
+import { useForm, Controller } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+
 interface ColumnConfig {
   id: string;
   title: string;
@@ -30,15 +34,12 @@ interface CreateTemplateDialogProps {
   initialColumns?: { title: string }[];
 }
 
-export function CreateTemplateDialog({ 
-  onTemplateCreated, 
+export function CreateTemplateDialog({
+  onTemplateCreated,
   trigger,
   initialColumns = []
 }: CreateTemplateDialogProps) {
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [isPublic, setIsPublic] = useState(false);
   const [columns, setColumns] = useState<ColumnConfig[]>(() => {
     if (initialColumns.length > 0) {
       return initialColumns.map((col, index) => ({
@@ -71,7 +72,7 @@ export function CreateTemplateDialog({
   };
 
   const updateColumn = (id: string, title: string) => {
-    setColumns(columns.map(col => 
+    setColumns(columns.map(col =>
       col.id === id ? { ...col, title } : col
     ));
   };
@@ -87,24 +88,32 @@ export function CreateTemplateDialog({
 
     const newColumns = [...columns];
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    [newColumns[index], newColumns[targetIndex]] = [newColumns[targetIndex], newColumns[index]];
-    
+
+    // Ensure both indices are valid
+    if (newColumns[index] && newColumns[targetIndex]) {
+      [newColumns[index], newColumns[targetIndex]] = [newColumns[targetIndex], newColumns[index]];
+    }
+
     // Update positions
     newColumns.forEach((col, idx) => {
       col.position = idx + 1;
     });
-    
+
     setColumns(newColumns);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!name.trim()) {
-      setError('Template name is required');
-      return;
-    }
+  const schema = z.object({
+    name: z.string().min(1, 'Template name is required'),
+    description: z.string().optional(),
+    isPublic: z.boolean().default(false),
+  });
+  type FormValues = { name: string; description?: string; isPublic?: boolean };
+  const { register, control, handleSubmit: rhfHandleSubmit, reset, getValues } = useForm<FormValues>({
+    resolver: zodResolver(schema) as any,
+    defaultValues: { name: '', description: '', isPublic: false },
+  });
 
+  const onSubmit = async ({ name, description, isPublic = false }: FormValues) => {
     const validColumns = columns.filter(col => col.title.trim());
     if (validColumns.length === 0) {
       setError('At least one column with a title is required');
@@ -117,17 +126,12 @@ export function CreateTemplateDialog({
     try {
       const response = await fetch('/api/templates', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: name.trim(),
-          description: description.trim() || undefined,
+          description: description?.trim() || undefined,
           isPublic,
-          columns: validColumns.map(col => ({
-            title: col.title.trim(),
-            position: col.position,
-          })),
+          columns: validColumns.map(col => ({ title: col.title.trim(), position: col.position })),
         }),
       });
 
@@ -137,22 +141,17 @@ export function CreateTemplateDialog({
       }
 
       const { template } = await response.json();
-      
+
       // Reset form
-      setName('');
-      setDescription('');
-      setIsPublic(false);
+      reset({ name: '', description: '', isPublic: false });
       setColumns([
         { id: 'col-1', title: 'To Do', position: 1 },
         { id: 'col-2', title: 'In Progress', position: 2 },
         { id: 'col-3', title: 'Done', position: 3 },
       ]);
       setOpen(false);
-      
-      // Notify parent component
-      if (onTemplateCreated) {
-        onTemplateCreated(template);
-      }
+
+      if (onTemplateCreated) onTemplateCreated(template);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
@@ -172,45 +171,49 @@ export function CreateTemplateDialog({
       <DialogTrigger asChild>
         {trigger || defaultTrigger}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create Column Template</DialogTitle>
           <DialogDescription>
             Save your column configuration as a template for future boards.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={rhfHandleSubmit(onSubmit as any)}>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="name">Template Name</Label>
               <Input
                 id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
                 placeholder="Enter template name..."
                 disabled={isLoading}
                 autoFocus
+                {...register('name')}
               />
             </div>
-            
+
             <div className="grid gap-2">
               <Label htmlFor="description">Description (optional)</Label>
               <Textarea
                 id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
                 placeholder="Describe when to use this template..."
                 disabled={isLoading}
                 rows={2}
+                {...register('description')}
               />
             </div>
 
             <div className="flex items-center space-x-2">
-              <Checkbox
-                id="isPublic"
-                checked={isPublic}
-                onCheckedChange={(checked) => setIsPublic(checked as boolean)}
-                disabled={isLoading}
+              <Controller
+                name="isPublic"
+                control={control}
+                render={({ field }) => (
+                  <Checkbox
+                    id="isPublic"
+                    checked={!!field.value}
+                    onCheckedChange={(checked) => field.onChange(Boolean(checked))}
+                    disabled={isLoading}
+                  />
+                )}
               />
               <Label htmlFor="isPublic" className="text-sm">
                 Make this template public (others can use it)

@@ -7,14 +7,16 @@ const updateCardSchema = z.object({
   description: z.string().optional(),
   assigneeId: z.string().nullable().optional(),
   dueDate: z.string().datetime().nullable().optional(),
+  priority: z.enum(['high', 'medium', 'low']).optional(),
   columnId: z.number().int().positive('Column ID must be a positive integer').optional(),
   position: z.number().int().positive('Position must be a positive integer').optional(),
 });
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const supabase = await createClient();
     
@@ -28,7 +30,7 @@ export async function PATCH(
       );
     }
 
-    const cardId = params.id;
+    const cardId = id;
 
     // Validate UUID format
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -45,12 +47,12 @@ export async function PATCH(
     
     if (!validation.success) {
       return NextResponse.json(
-        { error: 'Invalid input', details: validation.error.errors },
+        { error: 'Invalid input', details: validation.error.issues },
         { status: 400 }
       );
     }
 
-    const { title, description, assigneeId, dueDate, columnId, position } = validation.data;
+    const { title, description, assigneeId, dueDate, priority, columnId, position } = validation.data;
 
     // Get the existing card to verify access (using Supabase RLS)
     const { data: existingCard, error: cardError } = await supabase
@@ -89,6 +91,7 @@ export async function PATCH(
     if (description !== undefined) updateData.description = description;
     if (assigneeId !== undefined) updateData.assignee_id = assigneeId;
     if (dueDate !== undefined) updateData.due_date = dueDate ? new Date(dueDate).toISOString() : null;
+    if (priority !== undefined) updateData.priority = priority;
     if (columnId !== undefined) updateData.column_id = columnId;
     if (position !== undefined) updateData.position = position;
 
@@ -117,11 +120,12 @@ export async function PATCH(
       description: updatedCard.description,
       assigneeId: updatedCard.assignee_id,
       dueDate: updatedCard.due_date,
+      priority: updatedCard.priority,
       position: updatedCard.position,
       createdAt: updatedCard.created_at,
     };
 
-    return NextResponse.json(transformedCard);
+    return NextResponse.json({ card: transformedCard });
   } catch (error) {
     console.error('Update card error:', error);
     return NextResponse.json(
@@ -133,8 +137,9 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const supabase = await createClient();
     
@@ -148,7 +153,7 @@ export async function DELETE(
       );
     }
 
-    const cardId = params.id;
+    const cardId = id;
 
     // Validate UUID format
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

@@ -1,0 +1,384 @@
+/* Kanban Card Enhancements */
+
+/* Priority Border Animations */
+.kanban-card {
+  transition: all 0.2s ease-in-out;
+  position: relative;
+}
+
+.kanban-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.kanban-card.priority-high {
+  border-left: 4px solid #dc2626;
+}
+
+.kanban-card.priority-medium {
+  border-left: 4px solid #ea580c;
+}
+
+.kanban-card.priority-low {
+  border-left: 4px solid #65a30d;
+}
+
+/* Priority Badge Animations */
+.priority-badge {
+  transition: all 0.15s ease-in-out;
+}
+
+.priority-badge:hover {
+  transform: scale(1.05);
+}
+
+/* Markdown Content Styling */
+.markdown-viewer {
+  font-family: inherit;
+  line-height: 1.6;
+}
+
+.markdown-viewer h1,
+.markdown-viewer h2,
+.markdown-viewer h3,
+.markdown-viewer h4,
+.markdown-viewer h5,
+.markdown-viewer h6 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.markdown-viewer h1 {
+  font-size: 1.25rem;
+}
+
+.markdown-viewer h2 {
+  font-size: 1.125rem;
+}
+
+.markdown-viewer h3 {
+  font-size: 1rem;
+}
+
+.markdown-viewer h4,
+.markdown-viewer h5,
+.markdown-viewer h6 {
+  font-size: 0.875rem;
+}
+
+.markdown-viewer p {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+}
+
+.markdown-viewer p:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-viewer ul,
+.markdown-viewer ol {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+  padding-left: 1.5rem;
+}
+
+.markdown-viewer li {
+  margin-bottom: 0.25rem;
+}
+
+.markdown-viewer li:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-viewer blockquote {
+  margin: 0.75rem 0;
+  padding-left: 1rem;
+  border-left: 3px solid #e5e7eb;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.markdown-viewer code {
+  background-color: #f3f4f6;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+.markdown-viewer pre {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.375rem;
+  padding: 0.75rem;
+  margin: 0.75rem 0;
+  overflow-x: auto;
+  font-size: 0.875rem;
+}
+
+.markdown-viewer pre code {
+  background-color: transparent;
+  padding: 0;
+  border-radius: 0;
+}
+
+.markdown-viewer a {
+  color: #3b82f6;
+  text-decoration: underline;
+}
+
+.markdown-viewer a:hover {
+  color: #1d4ed8;
+}
+
+.markdown-viewer strong {
+  font-weight: 600;
+}
+
+.markdown-viewer em {
+  font-style: italic;
+}
+
+.markdown-viewer hr {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 1rem 0;
+}
+
+.markdown-viewer table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.75rem 0;
+  font-size: 0.875rem;
+}
+
+.markdown-viewer th,
+.markdown-viewer td {
+  border: 1px solid #e5e7eb;
+  padding: 0.5rem;
+  text-align: left;
+}
+
+.markdown-viewer th {
+  background-color: #f9fafb;
+  font-weight: 600;
+}
+
+/* Compact Markdown Viewer */
+.markdown-viewer-compact {
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.markdown-viewer-compact h1,
+.markdown-viewer-compact h2,
+.markdown-viewer-compact h3,
+.markdown-viewer-compact h4,
+.markdown-viewer-compact h5,
+.markdown-viewer-compact h6 {
+  font-size: 0.875rem;
+  margin-bottom: 0.25rem;
+}
+
+.markdown-viewer-compact p {
+  margin-bottom: 0.5rem;
+}
+
+.markdown-viewer-compact ul,
+.markdown-viewer-compact ol {
+  margin-bottom: 0.5rem;
+  padding-left: 1rem;
+}
+
+.markdown-viewer-compact blockquote {
+  margin: 0.5rem 0;
+  padding-left: 0.75rem;
+}
+
+.markdown-viewer-compact pre {
+  margin: 0.5rem 0;
+  padding: 0.5rem;
+}
+
+/* Context Menu Styling */
+.context-menu-content {
+  min-width: 220px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  padding: 0.25rem;
+}
+
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.context-menu-item:hover {
+  background-color: #f3f4f6;
+}
+
+.context-menu-item:focus {
+  background-color: #f3f4f6;
+  outline: none;
+}
+
+.context-menu-item.destructive {
+  color: #dc2626;
+}
+
+.context-menu-item.destructive:hover {
+  background-color: #fef2f2;
+}
+
+.context-menu-separator {
+  height: 1px;
+  background-color: #e5e7eb;
+  margin: 0.25rem 0;
+}
+
+/* Priority Selector Styling */
+.priority-selector-trigger {
+  transition: all 0.15s ease-in-out;
+}
+
+.priority-selector-trigger:hover {
+  background-color: #f9fafb;
+}
+
+/* Board Filter Styling */
+.board-filters {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.filter-badge {
+  transition: all 0.15s ease-in-out;
+}
+
+.filter-badge:hover {
+  transform: scale(1.02);
+}
+
+/* Markdown Editor Styling */
+.markdown-editor .w-md-editor {
+  background-color: transparent;
+}
+
+.markdown-editor .w-md-editor-text-pre,
+.markdown-editor .w-md-editor-text-input,
+.markdown-editor .w-md-editor-text {
+  font-size: 0.875rem !important;
+  line-height: 1.5 !important;
+  font-family: inherit !important;
+}
+
+.compact-markdown-editor .w-md-editor {
+  min-height: 120px;
+}
+
+.inline-markdown-editor .w-md-editor {
+  min-height: 80px;
+}
+
+.inline-markdown-editor .w-md-editor-toolbar {
+  display: none;
+}
+
+/* Card Drag and Drop Styling */
+.kanban-card.dragging {
+  opacity: 0.5;
+  transform: rotate(3deg);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+}
+
+.kanban-column.drag-over {
+  background-color: #f0f9ff;
+  border: 2px dashed #3b82f6;
+}
+
+/* Loading States */
+.kanban-card.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.kanban-card.loading::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .markdown-viewer {
+    font-size: 0.8rem;
+  }
+  
+  .priority-badge {
+    font-size: 0.75rem;
+    padding: 0.125rem 0.375rem;
+  }
+  
+  .context-menu-content {
+    min-width: 200px;
+  }
+  
+  .board-filters {
+    padding: 0.75rem;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .markdown-viewer code {
+    background-color: #374151;
+    color: #f3f4f6;
+  }
+  
+  .markdown-viewer pre {
+    background-color: #1f2937;
+    border-color: #374151;
+    color: #f3f4f6;
+  }
+  
+  .markdown-viewer blockquote {
+    border-left-color: #4b5563;
+    color: #9ca3af;
+  }
+  
+  .context-menu-content {
+    background: #1f2937;
+    border-color: #374151;
+  }
+  
+  .context-menu-item:hover {
+    background-color: #374151;
+  }
+}

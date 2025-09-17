@@ -29,7 +29,7 @@ interface Template {
 }
 
 interface TemplateSelectorProps {
-  selectedTemplateId?: number;
+  selectedTemplateId?: number | undefined;
   onTemplateSelect: (templateId: number | undefined) => void;
   disabled?: boolean;
 }

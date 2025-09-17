@@ -8,6 +8,8 @@ import {
   labels,
   cardLabels,
   comments,
+  adminAuditLog,
+  userInvitations,
 } from '@/db/schema';
 
 // Select types (for reading from database)
@@ -19,6 +21,8 @@ export type Card = InferSelectModel<typeof cards>;
 export type Label = InferSelectModel<typeof labels>;
 export type CardLabel = InferSelectModel<typeof cardLabels>;
 export type Comment = InferSelectModel<typeof comments>;
+export type AdminAuditLog = InferSelectModel<typeof adminAuditLog>;
+export type UserInvitation = InferSelectModel<typeof userInvitations>;
 
 // Insert types (for creating new records)
 export type NewUser = InferInsertModel<typeof users>;
@@ -29,9 +33,12 @@ export type NewCard = InferInsertModel<typeof cards>;
 export type NewLabel = InferInsertModel<typeof labels>;
 export type NewCardLabel = InferInsertModel<typeof cardLabels>;
 export type NewComment = InferInsertModel<typeof comments>;
+export type NewAdminAuditLog = InferInsertModel<typeof adminAuditLog>;
+export type NewUserInvitation = InferInsertModel<typeof userInvitations>;
 
 // Enum types
 export type BoardMemberRole = 'owner' | 'admin' | 'member' | 'viewer';
+export type CardPriority = 'high' | 'medium' | 'low';
 
 // Extended types with relations for API responses
 export type BoardWithDetails = Board & {
@@ -88,6 +95,10 @@ export type CreateCardRequest = {
   boardId: string;
   columnId: number;
   title: string;
+  description?: string;
+  assigneeId?: string;
+  dueDate?: Date;
+  priority?: CardPriority;
   position: number;
 };
 
@@ -96,6 +107,7 @@ export type UpdateCardRequest = {
   description?: string;
   assigneeId?: string | null;
   dueDate?: Date | null;
+  priority?: CardPriority;
   columnId?: number;
   position?: number;
 };
@@ -122,6 +134,7 @@ export type CardFilters = {
   assigneeId?: string;
   labelIds?: number[];
   dueDate?: 'overdue' | 'today' | 'week' | 'none';
+  priority?: CardPriority | 'all';
 };
 
 // Permission check types
@@ -129,4 +142,40 @@ export type PermissionContext = {
   userId: string;
   boardId: string;
   requiredRole?: BoardMemberRole;
+};
+
+// User management types
+export type UserWithRole = User & {
+  role: BoardMemberRole;
+  joinedAt: Date;
+};
+
+export type InviteUserRequest = {
+  email: string;
+  role: 'admin' | 'member' | 'viewer';
+  boardId: string;
+};
+
+export type UpdateUserRequest = {
+  name?: string;
+  role?: 'admin' | 'member' | 'viewer';
+};
+
+export type UpdateMembershipRequest = {
+  userId: string;
+  role: 'admin' | 'member' | 'viewer';
+};
+
+export type AdminAction =
+  | 'invite_user'
+  | 'update_user'
+  | 'remove_user'
+  | 'reset_password'
+  | 'update_role'
+  | 'bulk_update_roles';
+
+export type AdminAuditLogEntry = AdminAuditLog & {
+  adminUser: User;
+  targetUser?: User;
+  board?: Board;
 };

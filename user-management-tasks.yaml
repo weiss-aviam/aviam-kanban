@@ -1,0 +1,256 @@
+feature: "User Management for Board Admins"
+description: "Implement comprehensive user management functionality accessible only to board administrators"
+
+prerequisites:
+  - "Supabase service role key configured in environment"
+  - "Admin role system implemented in database"
+  - "Board membership table exists"
+  - "RLS policies allow admin operations"
+
+database_changes:
+  - task: "update_user_roles_schema"
+    description: "Ensure user roles and board memberships are properly defined"
+    files_to_check:
+      - "kanban-app/schema.sql"
+    required_tables:
+      - "board_members (board_id, user_id, role, invited_at, joined_at)"
+      - "users (id, email, name, created_at, updated_at)"
+    required_roles:
+      - "owner"
+      - "admin" 
+      - "member"
+      - "viewer"
+    validation:
+      - "Verify RLS policies allow admin operations"
+      - "Ensure cascade deletes for board member removal"
+
+api_endpoints:
+  base_path: "src/app/api/admin"
+  
+  - task: "create_user_management_api"
+    description: "Implement admin-only user management endpoints"
+    
+    endpoints_to_create:
+      - path: "/api/admin/users/route.ts"
+        methods: ["GET", "POST"]
+        description: "List users and invite new users"
+        requirements:
+          - "GET: Return paginated list of users with board access"
+          - "POST: Invite user via email using supabase.auth.admin.inviteUserByEmail"
+          - "Admin permission check required"
+          - "Input validation with Zod"
+        
+      - path: "/api/admin/users/[id]/route.ts"
+        methods: ["PATCH", "DELETE"]
+        description: "Edit user details and remove users"
+        requirements:
+          - "PATCH: Update user name and role using supabase.auth.admin.updateUserById"
+          - "DELETE: Remove user from board (soft delete from board_members)"
+          - "Prevent self-deletion for board owners"
+          - "Admin permission check required"
+        
+      - path: "/api/admin/users/[id]/reset-password/route.ts"
+        methods: ["POST"]
+        description: "Reset user password"
+        requirements:
+          - "Use supabase.auth.admin.generateLink with type 'recovery'"
+          - "Send password reset email"
+          - "Admin permission check required"
+          - "Log password reset action"
+        
+      - path: "/api/admin/memberships/route.ts"
+        methods: ["GET", "POST", "PATCH"]
+        description: "Manage board memberships"
+        requirements:
+          - "GET: List all board members with roles"
+          - "POST: Add user to board with specific role"
+          - "PATCH: Update member role"
+          - "Admin permission check required"
+
+    validation_schemas:
+      - name: "inviteUserSchema"
+        fields:
+          - "email: z.string().email()"
+          - "role: z.enum(['admin', 'member', 'viewer'])"
+          - "boardId: z.number().int().positive()"
+      
+      - name: "updateUserSchema"
+        fields:
+          - "name: z.string().min(1).max(100).optional()"
+          - "role: z.enum(['admin', 'member', 'viewer']).optional()"
+      
+      - name: "updateMembershipSchema"
+        fields:
+          - "userId: z.string().uuid()"
+          - "role: z.enum(['admin', 'member', 'viewer'])"
+
+    auth_middleware:
+      - task: "create_admin_check_utility"
+        file: "src/lib/auth/admin.ts"
+        description: "Utility to verify admin permissions"
+        requirements:
+          - "Check if user is board owner or admin"
+          - "Return user role and permissions"
+          - "Handle service role operations"
+        functions_to_implement:
+          - "checkAdminPermissions(userId: string, boardId: number)"
+          - "requireAdminAccess(request: NextRequest, boardId: number)"
+
+frontend_components:
+  base_path: "src/components/admin"
+  
+  - task: "create_user_management_ui"
+    description: "Build admin interface for user management"
+    
+    components_to_create:
+      - file: "UserManagementModal.tsx"
+        description: "Main modal for user management"
+        requirements:
+          - "Tabbed interface (Users, Invitations, Memberships)"
+          - "Only visible to board admins"
+          - "Real-time updates when users are modified"
+          - "Loading states and error handling"
+      
+      - file: "UserList.tsx"
+        description: "List of board users with actions"
+        requirements:
+          - "Display user name, email, role, join date"
+          - "Edit and delete actions per user"
+          - "Role dropdown for quick role changes"
+          - "Pagination for large user lists"
+          - "Search and filter functionality"
+      
+      - file: "InviteUserForm.tsx"
+        description: "Form to invite new users"
+        requirements:
+          - "Email input with validation"
+          - "Role selection dropdown"
+          - "Bulk invite capability (multiple emails)"
+          - "Success/error feedback"
+          - "Integration with Supabase admin.inviteUserByEmail"
+      
+      - file: "EditUserModal.tsx"
+        description: "Modal to edit user details"
+        requirements:
+          - "Edit name and role"
+          - "Password reset button"
+          - "Remove from board option"
+          - "Confirmation dialogs for destructive actions"
+      
+      - file: "MembershipTable.tsx"
+        description: "Table showing all board memberships"
+        requirements:
+          - "Sortable columns (name, role, joined date)"
+          - "Bulk role updates"
+          - "Export member list functionality"
+          - "Member activity indicators"
+
+  - task: "integrate_admin_access"
+    description: "Add admin access points in existing UI"
+    files_to_modify:
+      - "src/components/kanban/BoardHeader.tsx"
+        changes:
+          - "Add 'Manage Users' button for admins"
+          - "Show user count and admin indicator"
+      
+      - "src/app/dashboard/page.tsx"
+        changes:
+          - "Add admin badge to boards where user is admin"
+          - "Quick access to user management"
+
+hooks_and_utilities:
+  - task: "create_user_management_hooks"
+    description: "Custom hooks for user management operations"
+    
+    hooks_to_create:
+      - file: "src/hooks/useUserManagement.ts"
+        description: "Hook for user CRUD operations"
+        functions:
+          - "useUsers(boardId: number)"
+          - "useInviteUser()"
+          - "useUpdateUser()"
+          - "useRemoveUser()"
+          - "useResetPassword()"
+        requirements:
+          - "React Query integration"
+          - "Optimistic updates"
+          - "Error handling"
+          - "Loading states"
+      
+      - file: "src/hooks/useBoardMemberships.ts"
+        description: "Hook for membership management"
+        functions:
+          - "useMemberships(boardId: number)"
+          - "useUpdateMembership()"
+          - "useRemoveMembership()"
+        requirements:
+          - "Real-time subscription to membership changes"
+          - "Role-based filtering"
+          - "Bulk operations support"
+
+security_considerations:
+  admin_checks:
+    - "Verify admin role on every API call"
+    - "Prevent privilege escalation"
+    - "Log all admin actions"
+    - "Rate limit admin operations"
+  
+  data_protection:
+    - "Never expose service role key to client"
+    - "Validate all user inputs"
+    - "Sanitize email addresses"
+    - "Implement CSRF protection"
+  
+  audit_trail:
+    - "Log user invitations"
+    - "Log role changes"
+    - "Log password resets"
+    - "Track admin actions with timestamps"
+
+testing_requirements:
+  unit_tests:
+    - "Test admin permission checks"
+    - "Test user management API endpoints"
+    - "Test form validations"
+    - "Test error handling"
+  
+  integration_tests:
+    - "Test complete invite user flow"
+    - "Test role update workflow"
+    - "Test password reset process"
+    - "Test membership management"
+  
+  security_tests:
+    - "Test unauthorized access attempts"
+    - "Test privilege escalation prevention"
+    - "Test input validation edge cases"
+
+implementation_order:
+  1. "Database schema updates and RLS policies"
+  2. "Admin permission utility functions"
+  3. "API endpoints (start with GET operations)"
+  4. "Basic UI components (UserList, InviteForm)"
+  5. "Advanced features (bulk operations, search)"
+  6. "Integration with existing board interface"
+  7. "Testing and security validation"
+
+validation_checklist:
+  functionality:
+    - "Admins can view all board users"
+    - "Admins can invite users via email"
+    - "Admins can edit user names and roles"
+    - "Admins can reset user passwords"
+    - "Admins can manage board memberships"
+    - "Non-admins cannot access user management"
+  
+  security:
+    - "All admin operations require proper authentication"
+    - "Service role operations are server-side only"
+    - "Input validation prevents injection attacks"
+    - "Audit logs capture all admin actions"
+  
+  user_experience:
+    - "Clear feedback for all operations"
+    - "Loading states during async operations"
+    - "Error messages are user-friendly"
+    - "Responsive design works on all devices"

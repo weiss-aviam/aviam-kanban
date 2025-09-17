@@ -5,10 +5,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Columns, FileText, Filter } from 'lucide-react';
 
 interface EmptyBoardProps {
-  onCreateColumn: () => void;
+  // No props needed
 }
 
-export function EmptyBoard({ onCreateColumn }: EmptyBoardProps) {
+export function EmptyBoard({}: EmptyBoardProps) {
   return (
     <div className="flex items-center justify-center h-full">
       <Card className="w-full max-w-md mx-auto">
@@ -22,10 +22,9 @@ export function EmptyBoard({ onCreateColumn }: EmptyBoardProps) {
           <p className="text-gray-600 mb-6 max-w-sm">
             Get started by creating your first column. You can organize your tasks into different stages like "To Do", "In Progress", and "Done".
           </p>
-          <Button onClick={onCreateColumn}>
-            <Plus className="w-4 h-4 mr-2" />
-            Create First Column
-          </Button>
+          <p className="text-sm text-gray-500">
+            Use the "Add Column" button in the header to create your first column.
+          </p>
         </CardContent>
       </Card>
     </div>

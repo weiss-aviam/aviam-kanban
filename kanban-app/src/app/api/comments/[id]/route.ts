@@ -8,8 +8,9 @@ const updateCommentSchema = z.object({
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const supabase = await createClient();
     
@@ -23,7 +24,7 @@ export async function PATCH(
       );
     }
 
-    const commentId = parseInt(params.id);
+    const commentId = parseInt(id);
     
     if (isNaN(commentId)) {
       return NextResponse.json(
@@ -38,7 +39,7 @@ export async function PATCH(
     
     if (!validation.success) {
       return NextResponse.json(
-        { error: 'Invalid input', details: validation.error.errors },
+        { error: 'Invalid input', details: validation.error.issues },
         { status: 400 }
       );
     }
@@ -76,9 +77,9 @@ export async function PATCH(
       body: updatedComment.body,
       createdAt: updatedComment.created_at,
       author: {
-        id: updatedComment.users.id,
-        email: updatedComment.users.email,
-        name: updatedComment.users.name,
+        id: Array.isArray(updatedComment.users) ? updatedComment.users[0]?.id : updatedComment.users?.id,
+        email: Array.isArray(updatedComment.users) ? updatedComment.users[0]?.email : updatedComment.users?.email,
+        name: Array.isArray(updatedComment.users) ? updatedComment.users[0]?.name : updatedComment.users?.name,
       },
     };
 
@@ -94,8 +95,9 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const supabase = await createClient();
     
@@ -109,7 +111,7 @@ export async function DELETE(
       );
     }
 
-    const commentId = parseInt(params.id);
+    const commentId = parseInt(id);
     
     if (isNaN(commentId)) {
       return NextResponse.json(

@@ -49,10 +49,12 @@ export async function GET(
         created_at,
         cards (
           id,
+          board_id,
           title,
           description,
           position,
           due_date,
+          priority,
           created_at,
           assignee_id,
           users:assignee_id (
@@ -78,16 +80,19 @@ export async function GET(
       createdAt: column.created_at,
       cards: (column.cards || []).map(card => ({
         id: card.id,
+        boardId: card.board_id,
+        columnId: column.id,
         title: card.title,
         description: card.description,
         position: card.position,
         dueDate: card.due_date,
+        priority: card.priority || 'medium',
         createdAt: card.created_at,
         assigneeId: card.assignee_id,
         assignee: card.users ? {
-          id: card.users.id,
-          email: card.users.email,
-          name: card.users.name
+          id: Array.isArray(card.users) ? card.users[0]?.id : card.users?.id,
+          email: Array.isArray(card.users) ? card.users[0]?.email : card.users?.email,
+          name: Array.isArray(card.users) ? card.users[0]?.name : card.users?.name
         } : null
       }))
     }));
@@ -112,8 +117,9 @@ export async function GET(
 // PUT /api/boards/[id] - Update a board
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -193,8 +199,9 @@ export async function PUT(
 // DELETE /api/boards/[id] - Delete a board
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -203,10 +210,9 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id: boardId } = await params;
     // Validate UUID format
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(boardId)) {
+    if (!uuidRegex.test(id)) {
       return NextResponse.json({ error: 'Invalid board ID format' }, { status: 400 });
     }
 
@@ -214,7 +220,7 @@ export async function DELETE(
     const { data: memberData, error: memberError } = await supabase
       .from('board_members')
       .select('role')
-      .eq('board_id', boardId)
+      .eq('board_id', id)
       .eq('user_id', user.id)
       .single();
 
@@ -230,7 +236,7 @@ export async function DELETE(
     const { error: deleteError } = await supabase
       .from('boards')
       .delete()
-      .eq('id', boardId);
+      .eq('id', id);
 
     if (deleteError) {
       console.error('Error deleting board:', deleteError);

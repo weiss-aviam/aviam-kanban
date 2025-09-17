@@ -46,6 +46,7 @@ export const cards = pgTable('cards', {
   description: text('description'),
   assigneeId: varchar('assignee_id').references(() => users.id, { onDelete: 'set null' }),
   dueDate: timestamp('due_date'),
+  priority: varchar('priority', { enum: ['high', 'medium', 'low'] }).default('medium').notNull(),
   position: integer('position').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
@@ -94,6 +95,32 @@ export const templateColumns = pgTable('template_columns', {
   templateId: uuid('template_id').notNull().references(() => columnTemplates.id, { onDelete: 'cascade' }),
   title: varchar('title', { length: 120 }).notNull(),
   position: integer('position').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Admin audit log table - tracks all admin actions for security and compliance
+export const adminAuditLog = pgTable('admin_audit_log', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  adminUserId: varchar('admin_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  targetUserId: varchar('target_user_id').references(() => users.id, { onDelete: 'set null' }),
+  boardId: uuid('board_id').references(() => boards.id, { onDelete: 'set null' }),
+  action: varchar('action', { length: 50 }).notNull(), // 'invite_user', 'update_user', 'remove_user', 'reset_password', 'update_role'
+  details: text('details'), // JSON string with additional details
+  ipAddress: varchar('ip_address', { length: 45 }), // Support IPv6
+  userAgent: text('user_agent'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// User invitations table - tracks pending invitations
+export const userInvitations = pgTable('user_invitations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  email: varchar('email', { length: 255 }).notNull(),
+  boardId: uuid('board_id').notNull().references(() => boards.id, { onDelete: 'cascade' }),
+  role: varchar('role', { enum: ['admin', 'member', 'viewer'] }).notNull(),
+  invitedBy: varchar('invited_by').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  token: varchar('token', { length: 255 }).notNull().unique(), // Invitation token
+  expiresAt: timestamp('expires_at').notNull(),
+  acceptedAt: timestamp('accepted_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
@@ -195,5 +222,31 @@ export const templateColumnsRelations = relations(templateColumns, ({ one }) => 
   template: one(columnTemplates, {
     fields: [templateColumns.templateId],
     references: [columnTemplates.id],
+  }),
+}));
+
+export const adminAuditLogRelations = relations(adminAuditLog, ({ one }) => ({
+  adminUser: one(users, {
+    fields: [adminAuditLog.adminUserId],
+    references: [users.id],
+  }),
+  targetUser: one(users, {
+    fields: [adminAuditLog.targetUserId],
+    references: [users.id],
+  }),
+  board: one(boards, {
+    fields: [adminAuditLog.boardId],
+    references: [boards.id],
+  }),
+}));
+
+export const userInvitationsRelations = relations(userInvitations, ({ one }) => ({
+  board: one(boards, {
+    fields: [userInvitations.boardId],
+    references: [boards.id],
+  }),
+  inviter: one(users, {
+    fields: [userInvitations.invitedBy],
+    references: [users.id],
   }),
 }));
