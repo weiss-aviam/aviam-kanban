@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '../../../components/ui/button';
@@ -11,7 +11,7 @@ import { Alert, AlertDescription } from '../../../components/ui/alert';
 import { Kanban, Lock, ArrowLeft, Loader2 } from 'lucide-react';
 import { createClient } from '../../../lib/supabase/client';
 
-export default function ResetPasswordPage() {
+function ResetPasswordInner() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -22,7 +22,6 @@ export default function ResetPasswordPage() {
   const supabase = createClient();
 
   useEffect(() => {
-    // Check if we have the necessary tokens for password reset
     const accessToken = searchParams.get('access_token');
     const refreshToken = searchParams.get('refresh_token');
 
@@ -36,14 +35,12 @@ export default function ResetPasswordPage() {
     setIsLoading(true);
     setError('');
 
-    // Validate passwords match
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       setIsLoading(false);
       return;
     }
 
-    // Validate password length
     if (password.length < 6) {
       setError('Password must be at least 6 characters long');
       setIsLoading(false);
@@ -51,9 +48,7 @@ export default function ResetPasswordPage() {
     }
 
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: password,
-      });
+      const { error } = await supabase.auth.updateUser({ password });
 
       if (error) {
         setError(error.message);
@@ -61,8 +56,7 @@ export default function ResetPasswordPage() {
       }
 
       setSuccess('Password updated successfully! Redirecting to dashboard...');
-      
-      // Redirect to dashboard after a short delay
+
       setTimeout(() => {
         router.push('/dashboard');
       }, 2000);
@@ -153,9 +147,9 @@ export default function ResetPasswordPage() {
               )}
 
               {/* Submit Button */}
-              <Button 
-                type="submit" 
-                className="w-full" 
+              <Button
+                type="submit"
+                className="w-full"
                 disabled={isLoading || !!error}
               >
                 {isLoading ? (
@@ -182,5 +176,19 @@ export default function ResetPasswordPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center p-4">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      }
+    >
+      <ResetPasswordInner />
+    </Suspense>
   );
 }

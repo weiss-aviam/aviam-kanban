@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '../../../lib/supabase/client';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import { Button } from '../../../components/ui/button';
 import Link from 'next/link';
 
-export default function AuthCallbackPage() {
+function AuthCallbackInner() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('');
   const router = useRouter();
@@ -18,7 +18,6 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
-        // Get the code from URL parameters
         const code = searchParams.get('code');
         const error = searchParams.get('error');
         const errorDescription = searchParams.get('error_description');
@@ -30,7 +29,6 @@ export default function AuthCallbackPage() {
         }
 
         if (code) {
-          // Exchange the code for a session
           const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
 
           if (exchangeError) {
@@ -42,14 +40,11 @@ export default function AuthCallbackPage() {
           if (data.user) {
             setStatus('success');
             setMessage('Successfully authenticated! Redirecting to dashboard...');
-            
-            // Redirect to dashboard after a short delay
             setTimeout(() => {
               router.push('/dashboard');
             }, 2000);
           }
         } else {
-          // Check if user is already authenticated
           const { data: { user }, error: userError } = await supabase.auth.getUser();
 
           if (userError) {
@@ -61,7 +56,6 @@ export default function AuthCallbackPage() {
           if (user) {
             setStatus('success');
             setMessage('Already authenticated! Redirecting to dashboard...');
-            
             setTimeout(() => {
               router.push('/dashboard');
             }, 1000);
@@ -150,5 +144,19 @@ export default function AuthCallbackPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center p-4">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      }
+    >
+      <AuthCallbackInner />
+    </Suspense>
   );
 }
