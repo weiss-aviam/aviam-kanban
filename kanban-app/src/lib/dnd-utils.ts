@@ -1,5 +1,7 @@
 import type { Card, Column } from '@/types/database';
 
+type ColumnWithCards = Column & { cards: Card[] };
+
 /**
  * Utility functions for drag and drop operations
  */
@@ -19,7 +21,7 @@ export function calculateCardMove(
   cardId: string,
   targetColumnId: number,
   targetPosition: number,
-  columns: Column[]
+  columns: ColumnWithCards[]
 ): DragEndResult | null {
   // Find the card being moved
   let sourceCard: Card | null = null;
@@ -134,9 +136,9 @@ export function calculateCardMove(
  * Apply drag and drop updates optimistically to the local state
  */
 export function applyDragUpdatesOptimistically(
-  columns: Column[],
+  columns: ColumnWithCards[],
   updates: Array<{ id: string; columnId: number; position: number }>
-): Column[] {
+): ColumnWithCards[] {
   // Create a deep copy of columns
   const newColumns = columns.map(column => ({
     ...column,
@@ -189,7 +191,7 @@ export function applyDragUpdatesOptimistically(
  */
 export function getDropTarget(
   overId: string | number,
-  columns: Column[]
+  columns: ColumnWithCards[]
 ): { columnId: number; position: number } | null {
   if (typeof overId === 'string' && (overId.startsWith('column-') || overId.startsWith('column-drop-'))) {
     // Dropping over a column (append to end)
@@ -221,7 +223,7 @@ export function getDropTarget(
 export function validateDragOperation(
   cardId: string,
   targetColumnId: number,
-  columns: Column[]
+  columns: ColumnWithCards[]
 ): boolean {
   // Find the card
   const sourceCard = columns

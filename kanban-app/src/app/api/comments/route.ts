@@ -81,11 +81,14 @@ export async function POST(request: NextRequest) {
       authorId: newComment.author_id,
       body: newComment.body,
       createdAt: newComment.created_at,
-      author: {
-        id: Array.isArray(newComment.users) ? newComment.users[0]?.id : newComment.users?.id,
-        email: Array.isArray(newComment.users) ? newComment.users[0]?.email : newComment.users?.email,
-        name: Array.isArray(newComment.users) ? newComment.users[0]?.name : newComment.users?.name,
-      },
+      author: (() => {
+        const u = (newComment as any).users;
+        return {
+          id: Array.isArray(u) ? u[0]?.id : u?.id,
+          email: Array.isArray(u) ? u[0]?.email : u?.email,
+          name: Array.isArray(u) ? u[0]?.name : u?.name,
+        };
+      })(),
     };
 
     return NextResponse.json(transformedComment, { status: 201 });
@@ -167,11 +170,14 @@ export async function GET(request: NextRequest) {
       authorId: comment.author_id,
       body: comment.body,
       createdAt: comment.created_at,
-      author: {
-        id: Array.isArray(comment.users) ? comment.users[0]?.id : comment.users?.id,
-        email: Array.isArray(comment.users) ? comment.users[0]?.email : comment.users?.email,
-        name: Array.isArray(comment.users) ? comment.users[0]?.name : comment.users?.name,
-      },
+      author: (() => {
+        const u = (comment as any).users;
+        return {
+          id: Array.isArray(u) ? u[0]?.id : u?.id,
+          email: Array.isArray(u) ? u[0]?.email : u?.email,
+          name: Array.isArray(u) ? u[0]?.name : u?.name,
+        };
+      })(),
     }));
 
     return NextResponse.json({ comments: transformedComments });

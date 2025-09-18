@@ -46,7 +46,7 @@ export function InviteUserForm({ boardId, currentUserRole, onInviteSent }: Invit
 
   const updateInvitation = (index: number, field: keyof InvitationData, value: string) => {
     const updated = [...invitations];
-    updated[index] = { ...updated[index], [field]: value };
+    updated[index] = { ...updated[index], [field]: value } as InvitationData;
     setInvitations(updated);
   };
 

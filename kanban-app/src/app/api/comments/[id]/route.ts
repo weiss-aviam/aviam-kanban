@@ -24,9 +24,10 @@ export async function PATCH(
       );
     }
 
-    const commentId = parseInt(id);
-    
-    if (isNaN(commentId)) {
+    const commentId = id;
+
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(commentId)) {
       return NextResponse.json(
         { error: 'Invalid comment ID' },
         { status: 400 }
@@ -76,11 +77,14 @@ export async function PATCH(
       authorId: updatedComment.author_id,
       body: updatedComment.body,
       createdAt: updatedComment.created_at,
-      author: {
-        id: Array.isArray(updatedComment.users) ? updatedComment.users[0]?.id : updatedComment.users?.id,
-        email: Array.isArray(updatedComment.users) ? updatedComment.users[0]?.email : updatedComment.users?.email,
-        name: Array.isArray(updatedComment.users) ? updatedComment.users[0]?.name : updatedComment.users?.name,
-      },
+      author: (() => {
+        const u = (updatedComment as any).users;
+        return {
+          id: Array.isArray(u) ? u[0]?.id : u?.id,
+          email: Array.isArray(u) ? u[0]?.email : u?.email,
+          name: Array.isArray(u) ? u[0]?.name : u?.name,
+        };
+      })(),
     };
 
     return NextResponse.json(transformedComment);
@@ -111,9 +115,10 @@ export async function DELETE(
       );
     }
 
-    const commentId = parseInt(id);
-    
-    if (isNaN(commentId)) {
+    const commentId = id;
+
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(commentId)) {
       return NextResponse.json(
         { error: 'Invalid comment ID' },
         { status: 400 }

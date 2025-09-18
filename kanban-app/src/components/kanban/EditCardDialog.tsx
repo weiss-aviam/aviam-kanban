@@ -24,7 +24,7 @@ interface EditCardDialogProps {
   columns: Column[];
   boardMembers: User[];
   boardLabels: DatabaseLabel[];
-  currentUser: User | null;
+  currentUser: { id: string; name?: string | null; email?: string } | null;
   boardId?: string; // required for create mode
   defaultColumnId?: number; // initial column for create mode
   onCardUpdated?: (card: Card) => void;

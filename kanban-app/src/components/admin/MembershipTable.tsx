@@ -94,9 +94,10 @@ export function MembershipTable({
   const canChangeRole = (membership: Membership) => {
     if (membership.role === 'owner') return false;
     if (currentUserRole === 'owner') return true;
-    if (currentUserRole === 'admin' && membership.role !== 'owner') return true;
+    if (currentUserRole === 'admin') return true;
     return false;
   };
+
 
   if (loading) {
     return (

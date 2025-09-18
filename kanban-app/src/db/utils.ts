@@ -54,7 +54,7 @@ export async function checkBoardAccess(
       return true;
     }
 
-    const userRole = membership[0]?.role;
+    const userRole = membership[0]!.role;
     
     // Role hierarchy: owner > admin > member > viewer
     const roleHierarchy: Record<BoardMemberRole, number> = {

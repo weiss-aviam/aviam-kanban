@@ -19,13 +19,13 @@ import { useAppActions, useCurrentBoard, useUserRole, useIsLoading, useError } f
 import { SaveBoardAsTemplateDialog } from '../templates/SaveBoardAsTemplateDialog';
 import { KanbanBoard } from '../kanban/KanbanBoard';
 
-import type { BoardWithDetails, Column, User } from '../../types/database';
+import type { BoardWithDetails, Column } from '../../types/database';
 import { getRoleBadgeClasses, getRoleLabel } from '../../lib/role-colors';
 
 interface BoardDetailPageProps {
   boardId: string;
   initialBoard?: BoardWithDetails;
-  currentUser?: User;
+  currentUser?: { id: string; name?: string | null; email?: string } | null;
 }
 
 export function BoardDetailPage({ boardId, initialBoard, currentUser }: BoardDetailPageProps) {

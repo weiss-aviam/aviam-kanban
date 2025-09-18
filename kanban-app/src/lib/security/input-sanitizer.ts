@@ -192,13 +192,14 @@ export class InputSanitizer {
    */
   private static normalizeEmail(email: string): string {
     const [localPart, domain] = email.split('@');
-    
+    if (!localPart || !domain) return email;
+
     // Remove dots from Gmail addresses
     if (domain === 'gmail.com') {
       const normalizedLocal = localPart.replace(/\./g, '').split('+')[0];
       return `${normalizedLocal}@${domain}`;
     }
-    
+
     return email;
   }
 

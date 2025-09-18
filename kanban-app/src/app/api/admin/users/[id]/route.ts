@@ -98,7 +98,8 @@ export async function PATCH(
     const auditDetails: any = {};
 
     // Update user name if provided
-    if (name && name !== (Array.isArray(targetUser.users) ? targetUser.users[0]?.name : targetUser.users?.name)) {
+    const targetUsers = (targetUser as any).users;
+    if (name && name !== (Array.isArray(targetUsers) ? targetUsers[0]?.name : targetUsers?.name)) {
       const { error: nameUpdateError } = await adminClient.auth.admin.updateUserById(
         targetUserId,
         { user_metadata: { name } }
@@ -116,7 +117,7 @@ export async function PATCH(
         .eq('id', targetUserId);
 
       auditDetails.nameChanged = {
-        from: Array.isArray(targetUser.users) ? targetUser.users[0]?.name : targetUser.users?.name,
+        from: Array.isArray(targetUsers) ? targetUsers[0]?.name : targetUsers?.name,
         to: name
       };
     }
@@ -172,14 +173,17 @@ export async function PATCH(
 
     return NextResponse.json({
       message: 'User updated successfully',
-      user: {
-        id: Array.isArray(updatedUser.users) ? updatedUser.users[0]?.id : updatedUser.users?.id,
-        email: Array.isArray(updatedUser.users) ? updatedUser.users[0]?.email : updatedUser.users?.email,
-        name: Array.isArray(updatedUser.users) ? updatedUser.users[0]?.name : updatedUser.users?.name,
-        role: updatedUser.role,
-        joinedAt: updatedUser.created_at,
-        createdAt: Array.isArray(updatedUser.users) ? updatedUser.users[0]?.created_at : updatedUser.users?.created_at,
-      },
+      user: (() => {
+        const u = (updatedUser as any).users;
+        return {
+          id: Array.isArray(u) ? u[0]?.id : u?.id,
+          email: Array.isArray(u) ? u[0]?.email : u?.email,
+          name: Array.isArray(u) ? u[0]?.name : u?.name,
+          role: (updatedUser as any).role,
+          joinedAt: (updatedUser as any).created_at,
+          createdAt: Array.isArray(u) ? u[0]?.created_at : u?.created_at,
+        };
+      })(),
     });
 
   } catch (error) {
@@ -277,11 +281,14 @@ export async function DELETE(
       boardId,
       action: 'remove_user',
       details: {
-        removedUser: {
-          email: Array.isArray(targetUser.users) ? targetUser.users[0]?.email : targetUser.users?.email,
-          name: Array.isArray(targetUser.users) ? targetUser.users[0]?.name : targetUser.users?.name,
-          role: targetUser.role,
-        },
+        removedUser: (() => {
+          const u = (targetUser as any).users;
+          return {
+            email: Array.isArray(u) ? u[0]?.email : u?.email,
+            name: Array.isArray(u) ? u[0]?.name : u?.name,
+            role: (targetUser as any).role,
+          };
+        })(),
       },
       ipAddress: getClientIP(request) || "unknown",
       userAgent: getUserAgent(request) || "unknown",

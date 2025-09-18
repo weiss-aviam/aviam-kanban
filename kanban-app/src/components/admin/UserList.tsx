@@ -139,16 +139,17 @@ export function UserList({ boardId, currentUserRole, refreshTrigger, onUserActio
 
   const canEditUser = (user: User) => {
     if (currentUserRole === 'owner') return true;
-    if (currentUserRole === 'admin' && user.role !== 'owner') return true;
+    if (currentUserRole === 'admin') { if (user.role === 'owner') return false; return true; }
     return false;
   };
 
   const canRemoveUser = (user: User) => {
     if (user.role === 'owner') return false;
     if (currentUserRole === 'owner') return true;
-    if (currentUserRole === 'admin' && user.role !== 'owner') return true;
+    if (currentUserRole === 'admin') return true;
     return false;
   };
+
 
   if (loading && users.length === 0) {
     return (
@@ -207,8 +208,8 @@ export function UserList({ boardId, currentUserRole, refreshTrigger, onUserActio
         </Select>
         <Select value={`${sortBy}-${sortOrder}`} onValueChange={(value) => {
           const [newSortBy, newSortOrder] = value.split('-');
-          setSortBy(newSortBy);
-          setSortOrder(newSortOrder as 'asc' | 'desc');
+          setSortBy(newSortBy ?? 'name');
+          setSortOrder((newSortOrder as 'asc' | 'desc') ?? 'asc');
           setPage(1);
         }}>
           <SelectTrigger className="w-[180px]">

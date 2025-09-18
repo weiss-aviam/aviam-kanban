@@ -89,11 +89,15 @@ export async function GET(
         priority: card.priority || 'medium',
         createdAt: card.created_at,
         assigneeId: card.assignee_id,
-        assignee: card.users ? {
-          id: Array.isArray(card.users) ? card.users[0]?.id : card.users?.id,
-          email: Array.isArray(card.users) ? card.users[0]?.email : card.users?.email,
-          name: Array.isArray(card.users) ? card.users[0]?.name : card.users?.name
-        } : null
+        assignee: (() => {
+          const u = (card as any).users;
+          if (!u) return null;
+          return {
+            id: Array.isArray(u) ? u[0]?.id : u?.id,
+            email: Array.isArray(u) ? u[0]?.email : u?.email,
+            name: Array.isArray(u) ? u[0]?.name : u?.name,
+          };
+        })()
       }))
     }));
 
@@ -103,7 +107,7 @@ export async function GET(
       isArchived: boardData.is_archived,
       createdAt: boardData.created_at,
       ownerId: boardData.owner_id,
-      role: boardData.board_members[0]?.role || 'viewer',
+      role: (boardData as any).board_members?.[0]?.role || 'viewer',
       columns: columns
     };
 

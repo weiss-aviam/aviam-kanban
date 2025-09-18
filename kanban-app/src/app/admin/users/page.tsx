@@ -79,7 +79,8 @@ export default function AdminUsersPage() {
       }
 
       setUserRole(membership.role);
-      setBoardName(membership.boards?.name || 'Board');
+      const boardNameVal = Array.isArray((membership as any).boards) ? (membership as any).boards[0]?.name : (membership as any).boards?.name;
+      setBoardName(boardNameVal || 'Board');
       await fetchInvitations(boardIdParam);
     } catch (error) {
       console.error('Error checking admin access:', error);
@@ -190,10 +191,11 @@ export default function AdminUsersPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <UserList 
-                  boardId={boardId} 
+                <UserList
+                  boardId={boardId}
+                  currentUserRole={userRole as 'owner' | 'admin' | 'member' | 'viewer'}
                   refreshTrigger={refreshTrigger}
-                  onRefresh={handleRefresh}
+                  onUserAction={handleRefresh}
                 />
               </CardContent>
             </Card>
@@ -209,9 +211,10 @@ export default function AdminUsersPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <InviteUserForm 
-                    boardId={boardId} 
-                    onSuccess={handleInviteSuccess}
+                  <InviteUserForm
+                    boardId={boardId}
+                    currentUserRole={userRole as 'owner' | 'admin' | 'member' | 'viewer'}
+                    onInviteSent={handleInviteSuccess}
                   />
                 </CardContent>
               </Card>
@@ -242,9 +245,11 @@ export default function AdminUsersPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <MembershipTable 
-                  boardId={boardId} 
+                <MembershipTable
+                  boardId={boardId}
+                  currentUserRole={userRole as 'owner' | 'admin' | 'member' | 'viewer'}
                   refreshTrigger={refreshTrigger}
+                  onMembershipAction={handleRefresh}
                 />
               </CardContent>
             </Card>

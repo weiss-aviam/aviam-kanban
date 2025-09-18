@@ -76,7 +76,7 @@ export function withAdminSecurity(
       const handlerContext: ApiHandlerContext = {
         request,
         security: securityResult.context!,
-        params: context?.params,
+        params: (context?.params ?? {}) as Record<string, string>,
       };
 
       return await handler(handlerContext);
@@ -99,7 +99,7 @@ export function withAdminSecurity(
  */
 export class ApiError extends Error {
   constructor(
-    public message: string,
+    public override message: string,
     public statusCode: number = 500,
     public code: string = 'UNKNOWN_ERROR',
     public details?: any

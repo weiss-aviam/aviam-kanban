@@ -173,7 +173,7 @@ export async function validateAdminSecurity(
     // 8. Log successful validation
     await logAdminAction({
       adminUserId: userId,
-      boardId: boardId || undefined,
+      ...(boardId ? { boardId } : {}),
       action: `security_validation_${operation}`,
       details: {
         operation,
@@ -401,7 +401,7 @@ function extractBoardId(request: NextRequest): string | null {
 
   // Try path parameters
   const pathMatch = request.nextUrl.pathname.match(/\/boards\/([^\/]+)/);
-  if (pathMatch) return pathMatch[1];
+  if (pathMatch?.[1]) return pathMatch[1] ?? null;
 
   return null;
 }
@@ -412,15 +412,16 @@ function extractBoardId(request: NextRequest): string | null {
 function getClientIP(request: NextRequest): string {
   const forwarded = request.headers.get('x-forwarded-for');
   const realIP = request.headers.get('x-real-ip');
-  
-  if (forwarded) {
-    return forwarded.split(',')[0].trim();
+
+  if (forwarded && forwarded.length > 0) {
+    const first = forwarded.split(',')[0];
+    return first ? first.trim() : 'unknown';
   }
-  
+
   if (realIP) {
     return realIP;
   }
-  
+
   return 'unknown';
 }
 
@@ -459,7 +460,7 @@ async function logSecurityEvent(params: {
 }): Promise<void> {
   await logAdminAction({
     adminUserId: params.userId || 'system',
-    boardId: params.boardId,
+    ...(params.boardId ? { boardId: params.boardId } : {}),
     action: params.action,
     details: {
       operation: params.operation,

@@ -18,8 +18,8 @@ export async function syncUserProfile(authUser: User): Promise<void> {
 
     if (existingUser.length > 0) {
       // User exists, update their profile if needed
-      const user = existingUser[0];
-      const needsUpdate = 
+      const user = existingUser[0]!;
+      const needsUpdate =
         user.email !== authUser.email ||
         user.name !== (authUser.user_metadata?.name || authUser.user_metadata?.full_name);
 

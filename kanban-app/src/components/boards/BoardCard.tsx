@@ -25,7 +25,7 @@ import { getRoleBadgeClasses, getRoleLabel } from '../../lib/role-colors';
 
 interface BoardCardProps {
   board: {
-    id: number;
+    id: string;
     name: string;
     isArchived: boolean;
     createdAt: string;

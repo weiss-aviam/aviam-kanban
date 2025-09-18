@@ -20,7 +20,7 @@ interface KanbanCardProps {
   boardMembers?: User[];
   boardLabels?: Label[];
   allColumns?: Column[];
-  currentUser: User | null;
+  currentUser: { id: string; name?: string | null; email?: string } | null;
   userRole?: BoardMemberRole;
   onClick?: () => void;
   onEdit?: (card: CardType) => void;

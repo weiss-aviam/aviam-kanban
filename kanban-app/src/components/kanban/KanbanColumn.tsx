@@ -25,7 +25,7 @@ interface KanbanColumnProps {
   onCardClick: (card: CardType) => void;
   onCardEdit?: (card: CardType) => void;
   onCardUpdated?: (card: CardType) => void;
-  currentUser: User | null;
+  currentUser: { id: string; name?: string | null; email?: string } | null;
   userRole?: BoardMemberRole;
 }
 

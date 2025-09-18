@@ -11,7 +11,7 @@ import { Button } from '../ui/button';
 
 
 import { calculateColumnMove, bulkUpdateColumnPositions } from '../../lib/dnd-utils';
-import type { BoardWithDetails, User, Card as CardType, BoardMemberRole } from '../../types/database';
+import type { BoardWithDetails, Card as CardType, BoardMemberRole } from '../../types/database';
 import { BoardFilters } from './BoardFilters';
 import { useBoardFilters } from '@/hooks/useBoardFilters';
 import { useAppActions, useCurrentBoard } from '@/store';
@@ -20,7 +20,7 @@ import { useAppActions, useCurrentBoard } from '@/store';
 interface KanbanBoardProps {
   boardData: BoardWithDetails;
   onBoardDataChange?: (data: BoardWithDetails) => void;
-  currentUser: User | null;
+  currentUser: { id: string; name?: string | null; email?: string } | null;
   userRole?: BoardMemberRole;
 }
 

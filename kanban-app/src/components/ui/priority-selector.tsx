@@ -270,7 +270,7 @@ export function PriorityIndicator({
     <Icon
       className={cn(sizeClasses[size], className)}
       style={{ color: config.color }}
-      title={`Priority: ${config.label}`}
+      aria-label={`Priority: ${config.label}`}
     />
   );
 }

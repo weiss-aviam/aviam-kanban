@@ -13,14 +13,14 @@ import {
   DialogTitle,
 } from '../ui/dialog';
 import { Edit, Loader2 } from 'lucide-react';
-import { BoardWithDetails } from '@/types/database';
+import type { BoardWithDetails } from '@/types/database';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 
 
 interface EditBoardDialogProps {
-  board: BoardWithDetails | null;
+  board: { id: string; name: string } | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onBoardUpdated?: (board: any) => void;

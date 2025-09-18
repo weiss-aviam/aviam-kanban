@@ -23,7 +23,7 @@ import { BoardCard } from '../../components/boards/BoardCard';
 import type { User as UserType } from '@supabase/supabase-js';
 
 interface Board {
-  id: number;
+  id: string;
   name: string;
   isArchived: boolean;
   createdAt: string;
