@@ -12,6 +12,7 @@ module.exports = {
         NODE_ENV: 'production',
         PORT: 8777,
         NEXT_PUBLIC_APP_URL: 'https://aviam.intranet/kanban',
+        NEXT_PUBLIC_BASE_PATH:'/kanban',
       },
       env_production: {
         NODE_ENV: 'production',
