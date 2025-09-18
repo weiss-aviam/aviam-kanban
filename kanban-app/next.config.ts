@@ -8,10 +8,11 @@ const basePath = process.env.NEXT_PUBLIC_BASE_PATH?.trim() || "";
 const nextConfig: NextConfig = {
   // Only set basePath when provided
   ...(basePath ? { basePath } : {}),
-
+  standalone: true,
+  trailingSlash: true,
+  poweredByHeader: false,
   // Skip ESLint during production builds to avoid blocking on warnings/strict rules
   eslint: { ignoreDuringBuilds: true },
-
   // If you use next/image with a reverse proxy under a base path, Next handles basePath automatically.
   // Add additional config here if needed (e.g., images.remotePatterns, headers, etc.)
 };

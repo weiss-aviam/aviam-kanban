@@ -4,18 +4,16 @@ import { immer } from 'zustand/middleware/immer';
 import { useMemo } from 'react';
 import type {
   BoardWithDetails,
-  Card,
   Column,
   User,
   BoardMemberRole
 } from '@/types/database';
 
-// Extended card type for the store (includes UI-specific properties)
-export type StoreCard = Card & {
-  labels: any[];
-  comments: any[];
-  assignee?: User;
-};
+// Canonical card/column types derived from BoardWithDetails
+type BoardColumn = BoardWithDetails['columns'][number];
+type BoardCard = BoardColumn['cards'][number];
+// Back-compat alias used across the app
+export type StoreCard = BoardCard;
 
 // Main application state interface
 export interface AppState {
@@ -150,11 +148,11 @@ export const useAppStore = create<AppStore>()(
           const columnIndex = state.currentBoard.columns.findIndex(col => col.id === card.columnId);
           if (columnIndex !== -1 && state.currentBoard.columns[columnIndex]) {
             // Ensure card has all required properties
-            const cardWithDefaults = {
+            const cardWithDefaults: BoardCard = {
               ...card,
-              labels: card.labels || [],
-              comments: card.comments || [],
-            } as any; // Type assertion to handle the complex type mismatch
+              labels: (card as BoardCard).labels ?? [],
+              comments: (card as BoardCard).comments ?? [],
+            };
             state.currentBoard.columns[columnIndex].cards.push(cardWithDefaults);
             state.lastUpdated = new Date();
           }
@@ -185,11 +183,11 @@ export const useAppStore = create<AppStore>()(
           const targetColumnIndex = state.currentBoard.columns.findIndex(col => col.id === card.columnId);
 
           // Ensure card has all required properties
-          const cardWithDefaults = {
-            ...card,
-            labels: card.labels || [],
-            comments: card.comments || [],
-          } as any; // Type assertion to handle the complex type mismatch
+          const cardWithDefaults: BoardCard = {
+            ...(card as BoardCard),
+            labels: (card as BoardCard).labels ?? [],
+            comments: (card as BoardCard).comments ?? [],
+          };
 
           const currentColumn = state.currentBoard.columns[currentColumnIndex];
           const targetColumn = state.currentBoard.columns[targetColumnIndex];
@@ -253,10 +251,10 @@ export const useAppStore = create<AppStore>()(
           if (!state.currentBoard) return;
 
           // Ensure column has cards array
-          const columnWithCards = {
-            ...column,
-            cards: column.cards || [],
-          } as any; // Type assertion to handle the complex type mismatch
+          const columnWithCards: BoardColumn = {
+            ...(column as Column as unknown as BoardColumn),
+            cards: (column as { cards?: BoardCard[] }).cards ?? [],
+          };
           state.currentBoard.columns.push(columnWithCards);
           state.lastUpdated = new Date();
         }),
@@ -267,10 +265,10 @@ export const useAppStore = create<AppStore>()(
           const index = state.currentBoard.columns.findIndex(col => col.id === column.id);
           if (index !== -1) {
             // Ensure column has cards array
-            const columnWithCards = {
-              ...column,
-              cards: column.cards || [],
-            } as any; // Type assertion to handle the complex type mismatch
+            const columnWithCards: BoardColumn = {
+              ...(column as Column as unknown as BoardColumn),
+              cards: (column as { cards?: BoardCard[] }).cards ?? [],
+            };
             state.currentBoard.columns[index] = columnWithCards;
             state.lastUpdated = new Date();
           }
@@ -346,18 +344,6 @@ export const useAppStore = create<AppStore>()(
   )
 );
 
-// Create stable selectors to prevent infinite loops
-const stateSelector = (state: AppStore) => ({
-  user: state.user,
-  isAuthenticated: state.isAuthenticated,
-  currentBoard: state.currentBoard,
-  currentBoardId: state.currentBoardId,
-  userRole: state.userRole,
-  isLoading: state.isLoading,
-  error: state.error,
-  lastUpdated: state.lastUpdated,
-  boards: state.boards,
-});
 
 // Selectors for common state access patterns
 export const useUser = () => useAppStore((state) => state.user);

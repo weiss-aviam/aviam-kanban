@@ -23,7 +23,7 @@ interface EditBoardDialogProps {
   board: { id: string; name: string } | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onBoardUpdated?: (board: any) => void;
+  onBoardUpdated?: (board: { id: string; name: string }) => void;
 }
 
 export function EditBoardDialog({
@@ -73,7 +73,7 @@ export function EditBoardDialog({
 
       // Notify parent component
       if (onBoardUpdated) {
-        onBoardUpdated(updatedBoard);
+        onBoardUpdated({ id: updatedBoard.id, name: updatedBoard.name });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');

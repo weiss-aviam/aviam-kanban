@@ -90,12 +90,15 @@ export async function GET(
         createdAt: card.created_at,
         assigneeId: card.assignee_id,
         assignee: (() => {
-          const u = (card as any).users;
+          type U = { id: string; email: string | null; name: string | null };
+          const u = (card as unknown as { users?: U | U[] | null }).users;
           if (!u) return null;
+          const single = Array.isArray(u) ? u[0] : u;
+          if (!single) return null;
           return {
-            id: Array.isArray(u) ? u[0]?.id : u?.id,
-            email: Array.isArray(u) ? u[0]?.email : u?.email,
-            name: Array.isArray(u) ? u[0]?.name : u?.name,
+            id: single.id,
+            email: single.email,
+            name: single.name,
           };
         })()
       }))
@@ -107,7 +110,7 @@ export async function GET(
       isArchived: boardData.is_archived,
       createdAt: boardData.created_at,
       ownerId: boardData.owner_id,
-      role: (boardData as any).board_members?.[0]?.role || 'viewer',
+      role: ((boardData as unknown as { board_members?: { role: 'owner'|'admin'|'member'|'viewer' }[] }).board_members?.[0]?.role) || 'viewer',
       columns: columns
     };
 
@@ -160,7 +163,7 @@ export async function PUT(
     }
 
     // Prepare update data
-    const updateData: any = {};
+    const updateData: Partial<{ name: string; is_archived: boolean }> = {};
     if (name !== undefined) {
       if (typeof name !== 'string' || name.trim().length === 0) {
         return NextResponse.json({ error: 'Board name is required' }, { status: 400 });

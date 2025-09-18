@@ -4,13 +4,14 @@ module.exports = {
       name: 'kanban-app',
       cwd: './kanban-app',
       // Start Next.js directly so we can pass the port
-      script: 'node_modules/next/dist/bin/next',
+      script: '.next/standalone/server.js', // if using `output: "standalone"`
       args: 'start -p 8777',
 
       // Environment
       env: {
         NODE_ENV: 'production',
         PORT: 8777,
+        NEXT_PUBLIC_APP_URL: 'https://aviam.intranet/kanban',
       },
       env_production: {
         NODE_ENV: 'production',
