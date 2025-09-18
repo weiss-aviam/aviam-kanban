@@ -82,11 +82,12 @@ export default function DashboardPage() {
     setBoards(prev => [newBoard, ...prev]);
   };
 
-  const handleBoardUpdated = (updatedBoard: Board) => {
+  const handleBoardUpdated = (updated: { id: string; name: string }) => {
     setBoards(prev => prev.map(board =>
-      board.id === updatedBoard.id ? updatedBoard : board
+      board.id === updated.id ? { ...board, name: updated.name } : board
     ));
   };
+
 
   const handleEditBoard = (board: Board) => {
     setEditingBoard(board);

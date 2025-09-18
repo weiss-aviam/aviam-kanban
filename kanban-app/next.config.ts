@@ -8,7 +8,7 @@ const basePath = process.env.NEXT_PUBLIC_BASE_PATH?.trim() || "";
 const nextConfig: NextConfig = {
   // Only set basePath when provided
   ...(basePath ? { basePath } : {}),
-  standalone: true,
+  output: 'standalone',
   trailingSlash: true,
   poweredByHeader: false,
   // Skip ESLint during production builds to avoid blocking on warnings/strict rules

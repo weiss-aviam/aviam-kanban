@@ -137,11 +137,11 @@ export default function BoardsPage() {
     setShowCreateBoard(false);
   };
 
-  const handleBoardUpdated = (updatedBoard: BoardWithDetails) => {
+  const handleBoardUpdated = (updated: { id: string; name: string }) => {
     setState(prev => ({
       ...prev,
-      boards: prev.boards.map(board => 
-        board.id === updatedBoard.id ? updatedBoard : board
+      boards: prev.boards.map(board =>
+        board.id === updated.id ? { ...board, name: updated.name } : board
       )
     }));
     setEditingBoard(null);
