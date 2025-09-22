@@ -1,3 +1,7 @@
+'use client';
+
+import { useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
@@ -12,8 +16,41 @@ import {
   ArrowRight,
   Star
 } from 'lucide-react';
+import { createClient } from '../lib/supabase/client';
 
-export default function LandingPage() {
+function LandingPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const supabase = createClient();
+
+  useEffect(() => {
+    const handlePasswordReset = async () => {
+      const code = searchParams.get('code');
+      const type = searchParams.get('type');
+
+      // Check if this is a password reset link
+      if (code && (type === 'recovery' || !type)) {
+        try {
+          // Exchange code for session
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+
+          if (error) {
+            console.error('Password reset session error:', error);
+            router.push('/auth/login?error=invalid_reset_link');
+            return;
+          }
+
+          // Successfully established session, redirect to reset password form
+          router.push('/auth/reset-password');
+        } catch (err) {
+          console.error('Password reset handler error:', err);
+          router.push('/auth/login?error=reset_failed');
+        }
+      }
+    };
+
+    handlePasswordReset();
+  }, [searchParams, router, supabase.auth]);
   const features = [
     {
       icon: Kanban,
@@ -193,5 +230,20 @@ export default function LandingPage() {
         </div>
       </footer>
     </div>
+  );
+}
+
+export default function LandingPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    }>
+      <LandingPageContent />
+    </Suspense>
   );
 }

@@ -11,7 +11,8 @@ import {
   Settings,
   Save,
   MoreHorizontal,
-  Users
+  Users,
+  User
 } from 'lucide-react';
 
 import { CreateColumnDialog } from '../columns/CreateColumnDialog';
@@ -222,6 +223,15 @@ export function BoardDetailPage({ boardId, initialBoard, currentUser }: BoardDet
                   Manage Users
                 </Button>
               )}
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.push('/profile')}
+              >
+                <User className="w-4 h-4 mr-2" />
+                Profile
+              </Button>
 
               {canManageBoard && (
                 <Button variant="outline" size="sm">
