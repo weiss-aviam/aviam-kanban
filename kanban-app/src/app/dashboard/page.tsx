@@ -160,6 +160,10 @@ export default function DashboardPage() {
                 <Kanban className="w-4 h-4 mr-2" />
                 All Boards
               </Button>
+              <Button variant="outline" size="sm" onClick={() => router.push('/profile')}>
+                <User className="w-4 h-4 mr-2" />
+                Profile
+              </Button>
               <Button variant="outline" size="sm">
                 <Settings className="w-4 h-4 mr-2" />
                 Settings

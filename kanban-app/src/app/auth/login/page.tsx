@@ -244,17 +244,7 @@ export default function LoginPage() {
           </CardContent>
         </Card>
 
-        {/* Demo Account Info */}
-        <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <h3 className="text-sm font-medium text-blue-900 mb-2">Demo Account</h3>
-          <p className="text-xs text-blue-700 mb-2">
-            Want to try the app without signing up? Use these demo credentials:
-          </p>
-          <div className="text-xs text-blue-800 font-mono">
-            <p>Email: demo@example.com</p>
-            <p>Password: demo123456</p>
-          </div>
-        </div>
+
       </div>
     </div>
   );

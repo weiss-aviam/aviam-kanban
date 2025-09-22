@@ -20,7 +20,10 @@ import {
   List,
   Archive,
   Star,
-  MoreHorizontal
+  MoreHorizontal,
+  Edit,
+  Trash2,
+  User
 } from 'lucide-react';
 import { createClient } from '../../lib/supabase/client';
 import { CreateBoardDialog } from '../../components/boards/CreateBoardDialog';
@@ -29,6 +32,13 @@ import type { User as UserType } from '@supabase/supabase-js';
 import type { BoardWithDetails } from '../../types/database';
 import { format } from 'date-fns';
 import { getRoleBadgeClasses, getRoleLabel } from '../../lib/role-colors';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../../components/ui/dropdown-menu';
 
 interface BoardsPageState {
   boards: BoardWithDetails[];
@@ -147,6 +157,21 @@ export default function BoardsPage() {
     setEditingBoard(null);
   };
 
+  const handleDeleteBoard = async (board: BoardWithDetails) => {
+    if (!confirm(`Delete board "${board.name}"? This cannot be undone.`)) return;
+    try {
+      const res = await fetch(`/api/boards/${board.id}` , { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete board');
+      setState(prev => ({
+        ...prev,
+        boards: prev.boards.filter(b => b.id !== board.id),
+      }));
+    } catch (err) {
+      console.error('Delete board failed:', err);
+      alert('Could not delete board');
+    }
+  };
+
 
 
   const getFilterCount = (filter: string) => {
@@ -188,6 +213,10 @@ export default function BoardsPage() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
+              <Button variant="outline" size="sm" onClick={() => router.push('/profile')}>
+                <User className="w-4 h-4 mr-2" />
+                Profile
+              </Button>
               <Button variant="outline" size="sm">
                 <Settings className="w-4 h-4 mr-2" />
                 Settings
@@ -315,7 +344,7 @@ export default function BoardsPage() {
                 board={board}
                 viewMode={state.viewMode}
                 onEdit={() => setEditingBoard(board)}
-
+                onDelete={() => handleDeleteBoard(board)}
               />
             ))}
           </div>
@@ -340,9 +369,10 @@ interface BoardCardProps {
   board: BoardWithDetails;
   viewMode: 'grid' | 'list';
   onEdit: () => void;
+  onDelete?: () => void;
 }
 
-function BoardCard({ board, viewMode, onEdit }: BoardCardProps) {
+function BoardCard({ board, viewMode, onEdit, onDelete }: BoardCardProps) {
   if (viewMode === 'list') {
     return (
       <Card className="hover:shadow-md transition-shadow">
@@ -378,9 +408,24 @@ function BoardCard({ board, viewMode, onEdit }: BoardCardProps) {
                 </span>
               </div>
             </div>
-            <Button variant="ghost" size="sm" onClick={onEdit}>
-              <MoreHorizontal className="w-4 h-4" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  <MoreHorizontal className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={onEdit}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit Board
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={onDelete} className="text-red-600">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete Board
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </CardContent>
       </Card>
@@ -398,17 +443,29 @@ function BoardCard({ board, viewMode, onEdit }: BoardCardProps) {
                 {board.description || 'No description'}
               </CardDescription>
             </div>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={(e) => {
-                e.preventDefault();
-                onEdit();
-              }}
-              className="opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <MoreHorizontal className="w-4 h-4" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => e.preventDefault()}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <MoreHorizontal className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={(e) => { e.preventDefault(); onEdit(); }}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit Board
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={(e) => { e.preventDefault(); onDelete?.(); }} className="text-red-600">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete Board
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </CardHeader>
         <CardContent>

@@ -15,6 +15,7 @@ function ResetPasswordInner() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const router = useRouter();
@@ -22,13 +23,54 @@ function ResetPasswordInner() {
   const supabase = createClient();
 
   useEffect(() => {
-    const accessToken = searchParams.get('access_token');
-    const refreshToken = searchParams.get('refresh_token');
+    const initializeSession = async () => {
+      try {
+        // Check for various token formats that Supabase might use
+        const accessToken = searchParams.get('access_token');
+        const refreshToken = searchParams.get('refresh_token');
+        const code = searchParams.get('code');
+        const type = searchParams.get('type');
 
-    if (!accessToken || !refreshToken) {
-      setError('Invalid password reset link. Please request a new one.');
-    }
-  }, [searchParams]);
+        if (code) {
+          // Handle code-based flow (newer Supabase versions)
+          const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+          if (exchangeError) {
+            setError('Invalid or expired reset link. Please request a new one.');
+            setIsInitializing(false);
+            return;
+          }
+        } else if (accessToken && refreshToken) {
+          // Handle token-based flow (older Supabase versions)
+          const { data, error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (sessionError) {
+            setError('Invalid or expired reset link. Please request a new one.');
+            setIsInitializing(false);
+            return;
+          }
+        } else {
+          // Check if user is already authenticated (direct access)
+          const { data: { user }, error: userError } = await supabase.auth.getUser();
+          if (!user || userError) {
+            setError('Invalid password reset link. Please request a new one.');
+            setIsInitializing(false);
+            return;
+          }
+        }
+
+        // If we get here, the session is valid
+        setIsInitializing(false);
+      } catch (err) {
+        console.error('Session initialization error:', err);
+        setError('Failed to initialize password reset session. Please try again.');
+        setIsInitializing(false);
+      }
+    };
+
+    initializeSession();
+  }, [searchParams, supabase.auth]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,6 +108,22 @@ function ResetPasswordInner() {
       setIsLoading(false);
     }
   };
+
+  // Show loading state while initializing session
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Loader2 className="h-12 w-12 text-blue-600 mb-4 animate-spin" />
+              <p className="text-gray-600">Initializing password reset...</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
@@ -150,7 +208,7 @@ function ResetPasswordInner() {
               <Button
                 type="submit"
                 className="w-full"
-                disabled={isLoading || !!error}
+                disabled={isLoading || (!!error && !password)}
               >
                 {isLoading ? (
                   <>
