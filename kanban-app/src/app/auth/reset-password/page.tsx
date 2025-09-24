@@ -23,84 +23,55 @@ function ResetPasswordInner() {
   const supabase = createClient();
 
   useEffect(() => {
-    let isPasswordRecoverySession = false;
+    const checkSession = async () => {
+      try {
+        // Check if user has a valid session
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('Current session:', session);
 
-    // Set up auth state change listener for password recovery
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        // This is a password recovery session
-        isPasswordRecoverySession = true;
-        setIsInitializing(false);
-        return;
-      }
-
-      if (event === 'SIGNED_IN' && session) {
-        // Check if this is from a password recovery flow
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const searchParams = new URLSearchParams(window.location.search);
-
-        if (hashParams.get('type') === 'recovery' || searchParams.get('type') === 'recovery') {
-          isPasswordRecoverySession = true;
+        if (session?.user) {
+          // User has a session, allow them to reset their password
+          // This works for both recovery sessions and regular authenticated users
+          console.log('User has session, showing password reset form');
           setIsInitializing(false);
           return;
         }
-      }
-    });
 
-    // Check current session state and URL parameters
-    const checkSession = async () => {
-      try {
-        // Check URL hash and search parameters for recovery indicators
+        // Check URL hash for recovery tokens (from password reset email)
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const searchParams = new URLSearchParams(window.location.search);
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+        const type = hashParams.get('type');
 
-        const isRecoveryFlow = hashParams.get('type') === 'recovery' ||
-                              searchParams.get('type') === 'recovery' ||
-                              hashParams.get('access_token') || // Supabase includes access_token in hash for recovery
-                              isPasswordRecoverySession;
+        console.log('URL hash params:', { accessToken: !!accessToken, refreshToken: !!refreshToken, type });
 
-        if (isRecoveryFlow) {
-          // This is a password recovery session
+        if (accessToken && refreshToken && type === 'recovery') {
+          try {
+            // Set the session using the recovery tokens
+            const { error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken
+            });
 
-          // If we have tokens in the hash, set the session
-          const accessToken = hashParams.get('access_token');
-          const refreshToken = hashParams.get('refresh_token');
-
-          if (accessToken && refreshToken) {
-            try {
-              const { error } = await supabase.auth.setSession({
-                access_token: accessToken,
-                refresh_token: refreshToken
-              });
-
-              if (error) {
-                console.error('Error setting session:', error);
-                setError('Invalid or expired reset link. Please request a new one.');
-                setIsInitializing(false);
-                return;
-              }
-            } catch (err) {
-              console.error('Session setup error:', err);
-              setError('Failed to establish session. Please try the reset link again.');
+            if (error) {
+              console.error('Error setting session:', error);
+              setError('Invalid or expired reset link. Please request a new one.');
               setIsInitializing(false);
               return;
             }
+
+            // Session established, show the form
+            setIsInitializing(false);
+            return;
+          } catch (err) {
+            console.error('Session setup error:', err);
+            setError('Failed to establish session. Please try the reset link again.');
+            setIsInitializing(false);
+            return;
           }
-
-          // Show the form
-          setIsInitializing(false);
-          return;
         }
 
-        // Check if user is already authenticated (not from recovery)
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          // Regular authenticated user, redirect to dashboard
-          router.push('/dashboard');
-          return;
-        }
-
-        // No session and not a recovery flow
+        // No session and no recovery tokens
         setError('Please use the password reset link from your email to access this page.');
         setIsInitializing(false);
       } catch (err) {
@@ -110,13 +81,21 @@ function ResetPasswordInner() {
       }
     };
 
+    // Also listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        // User signed in (including from recovery), show the form
+        setIsInitializing(false);
+      }
+    });
+
     checkSession();
 
     // Cleanup subscription on unmount
     return () => {
       subscription.unsubscribe();
     };
-  }, [supabase.auth, router]);
+  }, [supabase.auth]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -136,12 +115,16 @@ function ResetPasswordInner() {
     }
 
     try {
-      const { error } = await supabase.auth.updateUser({ password });
+      console.log('Attempting to update password...');
+      const { data, error } = await supabase.auth.updateUser({ password });
 
       if (error) {
+        console.error('Password update error:', error);
         setError(error.message);
         return;
       }
+
+      console.log('Password updated successfully:', data);
 
       setSuccess('Password updated successfully! Redirecting to dashboard...');
 
