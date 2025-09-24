@@ -92,7 +92,7 @@ export default function ProfilePage() {
       } = await supabase.auth.getUser();
       if (userErr || !user || !user.email) throw new Error('Not authenticated');
 
-      const redirectTo = `${siteUrl}${basePath || ''}/`;
+      const redirectTo = `${siteUrl}${basePath || ''}/auth/reset-password`;
       const { error: resetErr } = await supabase.auth.resetPasswordForEmail(user.email, {
         redirectTo,
       });

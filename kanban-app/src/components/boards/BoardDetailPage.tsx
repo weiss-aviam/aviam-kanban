@@ -8,11 +8,8 @@ import { Badge } from '../ui/badge';
 import {
   ArrowLeft,
   Plus,
-  Settings,
   Save,
-  MoreHorizontal,
-  Users,
-  User
+  Users
 } from 'lucide-react';
 
 import { CreateColumnDialog } from '../columns/CreateColumnDialog';
@@ -223,28 +220,6 @@ export function BoardDetailPage({ boardId, initialBoard, currentUser }: BoardDet
                   Manage Users
                 </Button>
               )}
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => router.push('/profile')}
-              >
-                <User className="w-4 h-4 mr-2" />
-                Profile
-              </Button>
-
-              {canManageBoard && (
-                <Button variant="outline" size="sm">
-                  <Settings className="w-4 h-4 mr-2" />
-                  Settings
-                </Button>
-              )}
-
-              {/* Test button removed */}
-
-              <Button variant="outline" size="sm">
-                <MoreHorizontal className="w-4 h-4" />
-              </Button>
             </div>
           </div>
         </div>

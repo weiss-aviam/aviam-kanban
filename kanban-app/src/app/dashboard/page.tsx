@@ -10,16 +10,15 @@ import {
   Plus,
   Users,
   Calendar,
-  LogOut,
-  Settings,
-  User,
   Archive,
-  Trash2
+  Trash2,
+  User
 } from 'lucide-react';
 import { createClient } from '../../lib/supabase/client';
 import { CreateBoardDialog } from '../../components/boards/CreateBoardDialog';
 import { EditBoardDialog } from '../../components/boards/EditBoardDialog';
 import { BoardCard } from '../../components/boards/BoardCard';
+import { HeaderMenu } from '../../components/layout/HeaderMenu';
 import type { User as UserType } from '@supabase/supabase-js';
 
 interface Board {
@@ -156,22 +155,7 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <Button variant="outline" size="sm" onClick={() => router.push('/boards')}>
-                <Kanban className="w-4 h-4 mr-2" />
-                All Boards
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => router.push('/profile')}>
-                <User className="w-4 h-4 mr-2" />
-                Profile
-              </Button>
-              <Button variant="outline" size="sm">
-                <Settings className="w-4 h-4 mr-2" />
-                Settings
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleSignOut}>
-                <LogOut className="w-4 h-4 mr-2" />
-                Sign Out
-              </Button>
+              <HeaderMenu />
             </div>
           </div>
         </div>

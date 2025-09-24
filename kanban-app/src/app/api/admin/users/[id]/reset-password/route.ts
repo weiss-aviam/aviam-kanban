@@ -63,7 +63,7 @@ export async function POST(
       type: 'recovery',
       email: 'unknown@example.com', // Simplified to avoid type issues
       options: {
-        redirectTo: `${(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000')}${process.env.NEXT_PUBLIC_BASE_PATH || ''}/`,
+        redirectTo: `${(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000')}${process.env.NEXT_PUBLIC_BASE_PATH || ''}/auth/reset-password`,
       },
     });
 

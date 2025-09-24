@@ -12,8 +12,6 @@ import {
   Plus,
   Users,
   Calendar,
-  LogOut,
-  Settings,
   Search,
   Filter,
   Grid,
@@ -22,8 +20,7 @@ import {
   Star,
   MoreHorizontal,
   Edit,
-  Trash2,
-  User
+  Trash2
 } from 'lucide-react';
 import { createClient } from '../../lib/supabase/client';
 import { CreateBoardDialog } from '../../components/boards/CreateBoardDialog';
@@ -32,6 +29,7 @@ import type { User as UserType } from '@supabase/supabase-js';
 import type { BoardWithDetails } from '../../types/database';
 import { format } from 'date-fns';
 import { getRoleBadgeClasses, getRoleLabel } from '../../lib/role-colors';
+import { HeaderMenu } from '../../components/layout/HeaderMenu';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -213,18 +211,7 @@ export default function BoardsPage() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <Button variant="outline" size="sm" onClick={() => router.push('/profile')}>
-                <User className="w-4 h-4 mr-2" />
-                Profile
-              </Button>
-              <Button variant="outline" size="sm">
-                <Settings className="w-4 h-4 mr-2" />
-                Settings
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleSignOut}>
-                <LogOut className="w-4 h-4 mr-2" />
-                Sign Out
-              </Button>
+              <HeaderMenu />
             </div>
           </div>
         </div>

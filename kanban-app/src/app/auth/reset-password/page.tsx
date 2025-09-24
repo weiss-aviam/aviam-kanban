@@ -8,7 +8,7 @@ import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Alert, AlertDescription } from '../../../components/ui/alert';
-import { Kanban, Lock, ArrowLeft, Loader2 } from 'lucide-react';
+import { Kanban, Lock, Loader2 } from 'lucide-react';
 import { createClient } from '../../../lib/supabase/client';
 
 function ResetPasswordInner() {
@@ -23,18 +23,85 @@ function ResetPasswordInner() {
   const supabase = createClient();
 
   useEffect(() => {
+    let isPasswordRecoverySession = false;
+
+    // Set up auth state change listener for password recovery
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        // This is a password recovery session
+        isPasswordRecoverySession = true;
+        setIsInitializing(false);
+        return;
+      }
+
+      if (event === 'SIGNED_IN' && session) {
+        // Check if this is from a password recovery flow
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const searchParams = new URLSearchParams(window.location.search);
+
+        if (hashParams.get('type') === 'recovery' || searchParams.get('type') === 'recovery') {
+          isPasswordRecoverySession = true;
+          setIsInitializing(false);
+          return;
+        }
+      }
+    });
+
+    // Check current session state and URL parameters
     const checkSession = async () => {
       try {
-        // Check if user is authenticated (should be from reset link handler)
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        // Check URL hash and search parameters for recovery indicators
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const searchParams = new URLSearchParams(window.location.search);
 
-        if (!user || userError) {
-          setError('Please use the password reset link from your email to access this page.');
+        const isRecoveryFlow = hashParams.get('type') === 'recovery' ||
+                              searchParams.get('type') === 'recovery' ||
+                              hashParams.get('access_token') || // Supabase includes access_token in hash for recovery
+                              isPasswordRecoverySession;
+
+        if (isRecoveryFlow) {
+          // This is a password recovery session
+
+          // If we have tokens in the hash, set the session
+          const accessToken = hashParams.get('access_token');
+          const refreshToken = hashParams.get('refresh_token');
+
+          if (accessToken && refreshToken) {
+            try {
+              const { error } = await supabase.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken
+              });
+
+              if (error) {
+                console.error('Error setting session:', error);
+                setError('Invalid or expired reset link. Please request a new one.');
+                setIsInitializing(false);
+                return;
+              }
+            } catch (err) {
+              console.error('Session setup error:', err);
+              setError('Failed to establish session. Please try the reset link again.');
+              setIsInitializing(false);
+              return;
+            }
+          }
+
+          // Show the form
           setIsInitializing(false);
           return;
         }
 
-        // User is authenticated, show the form
+        // Check if user is already authenticated (not from recovery)
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          // Regular authenticated user, redirect to dashboard
+          router.push('/dashboard');
+          return;
+        }
+
+        // No session and not a recovery flow
+        setError('Please use the password reset link from your email to access this page.');
         setIsInitializing(false);
       } catch (err) {
         console.error('Session check error:', err);
@@ -44,7 +111,12 @@ function ResetPasswordInner() {
     };
 
     checkSession();
-  }, [supabase.auth]);
+
+    // Cleanup subscription on unmount
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [supabase.auth, router]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,10 +176,7 @@ function ResetPasswordInner() {
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center space-x-2 text-blue-600 hover:text-blue-700 mb-4">
-            <ArrowLeft className="w-4 h-4" />
-            <span>Back to home</span>
-          </Link>
+
           <div className="flex items-center justify-center space-x-2 mb-4">
             <Kanban className="h-8 w-8 text-blue-600" />
             <span className="text-2xl font-bold text-gray-900">Aviam Kanban</span>

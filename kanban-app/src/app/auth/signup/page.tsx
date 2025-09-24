@@ -8,7 +8,7 @@ import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Alert, AlertDescription } from '../../../components/ui/alert';
-import { Kanban, Mail, Lock, User, ArrowLeft, Loader2 } from 'lucide-react';
+import { Kanban, Mail, Lock, User, Loader2 } from 'lucide-react';
 import { createClient } from '../../../lib/supabase/client';
 
 export default function SignUpPage() {
@@ -93,10 +93,7 @@ export default function SignUpPage() {
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center space-x-2 text-blue-600 hover:text-blue-700 mb-4">
-            <ArrowLeft className="w-4 h-4" />
-            <span>Back To Home</span>
-          </Link>
+
           <div className="flex items-center justify-center space-x-2 mb-4">
             <Kanban className="h-8 w-8 text-blue-600" />
             <span className="text-2xl font-bold text-gray-900">Aviam Kanban</span>
