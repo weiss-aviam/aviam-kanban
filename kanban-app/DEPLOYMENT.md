@@ -8,7 +8,7 @@ To deploy the application with automatic database migrations:
 
 ```bash
 cd kanban-app
-pnpm deploy
+pnpm deploy:prod
 ```
 
 This single command will:
@@ -118,7 +118,7 @@ When you need to change the database schema:
 3. **Review the generated SQL** in `src/db/migrations/`
 4. **Deploy** (migrations will be applied automatically):
    ```bash
-   pnpm deploy
+   pnpm deploy:prod
    ```
 
 ## Troubleshooting
@@ -146,7 +146,7 @@ lsof -i :8777
 
 # Delete and restart
 pm2 delete kanban-app
-pnpm deploy
+pnpm deploy:prod
 ```
 
 ### Build Fails
@@ -171,7 +171,7 @@ If you need to rollback a deployment:
 2. **Rebuild and redeploy**:
    ```bash
    git checkout previous-commit
-   pnpm deploy
+   pnpm deploy:prod
    ```
 3. **Database rollback** must be done manually in Supabase SQL Editor
 

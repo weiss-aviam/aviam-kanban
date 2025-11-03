@@ -3,7 +3,7 @@
 ## One-Command Deploy
 
 ```bash
-pnpm deploy
+pnpm deploy:prod
 ```
 
 This does everything:
@@ -20,7 +20,7 @@ This does everything:
 
 ```bash
 # Full deployment (recommended)
-pnpm deploy
+pnpm deploy:prod
 
 # Check deployment status
 pnpm deploy:status
@@ -74,7 +74,7 @@ pnpm test
 1. **Edit schema** in `src/db/schema/`
 2. **Generate migration**: `pnpm db:generate`
 3. **Review SQL** in `src/db/migrations/`
-4. **Deploy**: `pnpm deploy`
+4. **Deploy**: `pnpm deploy:prod`
 
 ---
 
@@ -91,7 +91,7 @@ pnpm test
 ```bash
 pm2 logs kanban-app --lines 100
 pm2 delete kanban-app
-pnpm deploy
+pnpm deploy:prod
 ```
 
 ### Build errors?
