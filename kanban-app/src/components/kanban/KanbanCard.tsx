@@ -126,6 +126,14 @@ export function KanbanCard({
     onClick?.();
   };
 
+  const handleCardDoubleClick = () => {
+    // Prevent double-click when dragging
+    if (isCurrentlyDragging) return;
+
+    // Call the onEdit handler if provided
+    onEdit?.(card);
+  };
+
   const isOverdue = card.dueDate && new Date(card.dueDate) < new Date();
   const isDueSoon = card.dueDate &&
     new Date(card.dueDate) > new Date() &&
@@ -156,6 +164,7 @@ export function KanbanCard({
         isCurrentlyDragging ? 'opacity-50 rotate-3 shadow-lg cursor-grabbing' : ''
       }`}
       onClick={handleCardClick}
+      onDoubleClick={handleCardDoubleClick}
     >
       {/* Card Header with Title and Priority */}
       <div className="flex items-start justify-between mb-2">

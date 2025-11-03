@@ -92,7 +92,8 @@ export function KanbanColumn({
 
   // Permission checks - allow owners, admins, and members to manage columns
   const canEditColumn = ['owner', 'admin', 'member'].includes(userRole);
-  const canDeleteColumn = ['owner', 'admin', 'member'].includes(userRole);
+  const hasCards = cards && cards.length > 0;
+  const canDeleteColumn = ['owner', 'admin', 'member'].includes(userRole) && !hasCards;
 
   return (
     <div 
@@ -129,24 +130,20 @@ export function KanbanColumn({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            {canEditColumn && (
-              <DropdownMenuItem onClick={handleEditColumn}>
-                <Edit className="mr-2 h-4 w-4" />
-                Edit Column
-              </DropdownMenuItem>
-            )}
-            {canDeleteColumn && (
-              <>
-                {canEditColumn && <DropdownMenuSeparator />}
-                <DropdownMenuItem
-                  onClick={handleDeleteColumn}
-                  className="text-red-600 focus:text-red-600"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete Column
-                </DropdownMenuItem>
-              </>
-            )}
+            <DropdownMenuItem onClick={handleEditColumn}>
+              <Edit className="mr-2 h-4 w-4" />
+              Edit Column
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={handleDeleteColumn}
+              disabled={!canDeleteColumn}
+              className="text-red-600 focus:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete Column
+              {hasCards && <span className="ml-2 text-xs">(has cards)</span>}
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
