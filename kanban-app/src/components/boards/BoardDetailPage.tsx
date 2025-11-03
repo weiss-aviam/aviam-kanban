@@ -9,13 +9,24 @@ import {
   ArrowLeft,
   Plus,
   Save,
-  Users
+  Users,
+  Trash2,
+  MoreHorizontal
 } from 'lucide-react';
 
 import { CreateColumnDialog } from '../columns/CreateColumnDialog';
 import { useAppActions, useCurrentBoard, useUserRole, useIsLoading, useError } from '@/store';
 import { SaveBoardAsTemplateDialog } from '../templates/SaveBoardAsTemplateDialog';
 import { KanbanBoard } from '../kanban/KanbanBoard';
+import { HeaderMenu } from '../layout/HeaderMenu';
+import { DeleteBoardDialog } from './DeleteBoardDialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../ui/dropdown-menu';
 
 import type { BoardWithDetails, Column } from '../../types/database';
 import { getRoleBadgeClasses, getRoleLabel } from '../../lib/role-colors';
@@ -30,6 +41,7 @@ export function BoardDetailPage({ boardId, initialBoard, currentUser }: BoardDet
   const [board, setBoard] = useState<BoardWithDetails | null>(initialBoard || null);
   const [showCreateColumn, setShowCreateColumn] = useState(false);
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
+  const [showDeleteBoard, setShowDeleteBoard] = useState(false);
 
   const router = useRouter();
 
@@ -59,8 +71,14 @@ export function BoardDetailPage({ boardId, initialBoard, currentUser }: BoardDet
       // Initialize store with initial board data
       setCurrentBoard(initialBoard);
       setBoard(initialBoard);
+
+      // Set user role from initial board data
+      const membership = initialBoard.members?.find((m: any) => m.user.id === currentUser?.id);
+      if (membership) {
+        setUserRole(membership.role);
+      }
     }
-  }, [boardId, initialBoard, setCurrentBoard]);
+  }, [boardId, initialBoard, setCurrentBoard, currentUser?.id, setUserRole]);
 
   const fetchBoard = async () => {
     try {
@@ -123,6 +141,7 @@ export function BoardDetailPage({ boardId, initialBoard, currentUser }: BoardDet
 
   const canManageBoard = board && ['owner', 'admin'].includes(board.role);
   const canAddColumns = board && ['owner', 'admin', 'member'].includes(board.role);
+  const canDeleteBoard = board && board.role === 'owner'; // Only owners can delete boards
 
 
   const getTotalCards = () => {
@@ -220,6 +239,30 @@ export function BoardDetailPage({ boardId, initialBoard, currentUser }: BoardDet
                   Manage Users
                 </Button>
               )}
+
+              {/* Board Actions Dropdown */}
+              {canManageBoard && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <MoreHorizontal className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    {canDeleteBoard && (
+                      <DropdownMenuItem
+                        onClick={() => setShowDeleteBoard(true)}
+                        className="text-red-600 focus:text-red-600"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete Board
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+
+              <HeaderMenu />
             </div>
           </div>
         </div>
@@ -257,6 +300,11 @@ export function BoardDetailPage({ boardId, initialBoard, currentUser }: BoardDet
         onTemplateSaved={handleTemplateSaved}
       />
 
+      <DeleteBoardDialog
+        open={showDeleteBoard}
+        onOpenChange={setShowDeleteBoard}
+        board={board}
+      />
 
     </div>
   );

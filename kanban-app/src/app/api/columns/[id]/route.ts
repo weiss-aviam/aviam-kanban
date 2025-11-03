@@ -142,27 +142,33 @@ export async function DELETE(
       );
     }
 
-    // Check if column has any cards (only allow deletion of empty columns)
-    const { data: cards, error: cardsError } = await supabase
-      .from('cards')
-      .select('id')
-      .eq('column_id', columnId)
-      .limit(1);
+    // Check if user has permission to delete columns (admin or owner)
+    const { data: memberData, error: memberError } = await supabase
+      .from('board_members')
+      .select('role')
+      .eq('board_id', existingColumn.board_id)
+      .eq('user_id', user.id)
+      .single();
 
-    if (cardsError) {
-      console.error('Error checking cards:', cardsError);
+    if (memberError || !memberData) {
       return NextResponse.json(
-        { error: 'Failed to check column contents' },
-        { status: 500 }
+        { error: 'Board not found or access denied' },
+        { status: 404 }
       );
     }
 
-    if (cards && cards.length > 0) {
+    const userRole = memberData.role;
+
+    // For now, allow owners and admins to delete columns
+    // TODO: Consider if members should also be allowed to delete columns
+    if (!['owner', 'admin'].includes(userRole)) {
       return NextResponse.json(
-        { error: 'Cannot delete column with cards. Please move or delete all cards first.' },
-        { status: 400 }
+        { error: 'Insufficient permissions. Only board owners and admins can delete columns.' },
+        { status: 403 }
       );
     }
+
+    // Note: Cards will be automatically deleted due to CASCADE DELETE constraint
 
     // Delete the column using Supabase (respects RLS)
     const { error: deleteError } = await supabase

@@ -184,8 +184,7 @@ export function useCardActionsWithStore({
       }
 
       const { card: newCard } = await response.json();
-      console.log('Duplicate card - New card from API:', newCard);
-      
+
       // Add the new card to the store - convert to store format
       const storeCard = {
         ...newCard,

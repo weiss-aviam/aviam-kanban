@@ -29,15 +29,33 @@ export async function GET(
         name,
         is_archived,
         created_at,
-        owner_id,
-        board_members!inner(role)
+        owner_id
       `)
       .eq('id', boardId)
       .single();
 
     if (boardError || !boardData) {
+      console.error('Board fetch error:', boardError);
       return NextResponse.json({ error: 'Board not found or access denied' }, { status: 404 });
     }
+
+    // Separately fetch the user's role in this board
+    console.log('Looking up membership for user:', user.id, 'in board:', boardId);
+
+    const { data: memberData, error: memberError } = await supabase
+      .from('board_members')
+      .select('role, user_id, board_id')
+      .eq('board_id', boardId)
+      .eq('user_id', user.id)
+      .single();
+
+    console.log('Board data fetched:', JSON.stringify(boardData, null, 2));
+    console.log('Member data fetched:', JSON.stringify(memberData, null, 2));
+    console.log('Member error:', memberError);
+
+    // Also check if user is the board owner
+    const isOwner = boardData.owner_id === user.id;
+    console.log('Is user board owner?', isOwner, 'boardOwnerId:', boardData.owner_id, 'userId:', user.id);
 
     // Get columns for this board
     const { data: columnsData, error: columnsError } = await supabase
@@ -50,6 +68,7 @@ export async function GET(
         cards (
           id,
           board_id,
+          column_id,
           title,
           description,
           position,
@@ -81,7 +100,7 @@ export async function GET(
       cards: (column.cards || []).map(card => ({
         id: card.id,
         boardId: card.board_id,
-        columnId: column.id,
+        columnId: card.column_id,
         title: card.title,
         description: card.description,
         position: card.position,
@@ -104,16 +123,44 @@ export async function GET(
       }))
     }));
 
+    // Extract user role from separate member query, fallback to owner if user owns the board
+    let userRole = memberData?.role || 'viewer';
+
+    // If user is the board owner but no membership record exists, create one and set role to owner
+    if (!memberData && isOwner) {
+      console.log('No membership found but user is board owner, creating membership record');
+
+      // Create the missing membership record
+      const { error: createMemberError } = await supabase
+        .from('board_members')
+        .insert({
+          board_id: boardId,
+          user_id: user.id,
+          role: 'owner',
+        });
+
+      if (createMemberError) {
+        console.error('Error creating board membership:', createMemberError);
+      } else {
+        console.log('Successfully created board membership for owner');
+      }
+
+      userRole = 'owner';
+    }
+
+    console.log('Final extracted user role:', userRole);
+
     const board = {
       id: boardData.id,
       name: boardData.name,
       isArchived: boardData.is_archived,
       createdAt: boardData.created_at,
       ownerId: boardData.owner_id,
-      role: ((boardData as unknown as { board_members?: { role: 'owner'|'admin'|'member'|'viewer' }[] }).board_members?.[0]?.role) || 'viewer',
+      role: userRole,
       columns: columns
     };
 
+    console.log('Final board object role:', board.role);
     return NextResponse.json({ board });
   } catch (error) {
     console.error('Error fetching board:', error);

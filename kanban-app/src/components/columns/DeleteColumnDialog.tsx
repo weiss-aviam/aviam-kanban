@@ -1,49 +1,30 @@
 'use client';
 
 import { useState } from 'react';
-import { Button } from '../ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '../ui/dialog';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { Loader2, Trash2, AlertTriangle } from 'lucide-react';
+import { DeleteConfirmationDialog } from '../ui/delete-confirmation-dialog';
+import { useAppActions } from '@/store';
+import type { Column } from '@/types/database';
 
 interface DeleteColumnDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  column: {
-    id: number;
-    title: string;
-    cards?: any[];
-  };
-  onColumnDeleted: (columnId: number) => void;
+  column: Column | null;
+  cardCount?: number;
 }
 
-export function DeleteColumnDialog({ 
-  open, 
-  onOpenChange, 
-  column, 
-  onColumnDeleted 
+export function DeleteColumnDialog({
+  open,
+  onOpenChange,
+  column,
+  cardCount = 0,
 }: DeleteColumnDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  const hasCards = column.cards && column.cards.length > 0;
+  const { deleteColumn, setError } = useAppActions();
 
   const handleDelete = async () => {
-    if (hasCards) {
-      setError('Cannot delete column with cards. Please move or delete all cards first.');
-      return;
-    }
+    if (!column) return;
 
     setIsLoading(true);
-    setError('');
-
     try {
       const response = await fetch(`/api/columns/${column.id}`, {
         method: 'DELETE',
@@ -54,89 +35,34 @@ export function DeleteColumnDialog({
         throw new Error(errorData.error || 'Failed to delete column');
       }
 
-      // Notify parent component
-      onColumnDeleted(column.id);
+      // Update the store
+      deleteColumn(column.id);
+
       onOpenChange(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+    } catch (error) {
+      console.error('Error deleting column:', error);
+      setError(error instanceof Error ? error.message : 'Failed to delete column');
     } finally {
       setIsLoading(false);
     }
   };
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Trash2 className="w-5 h-5 text-red-600" />
-            Delete Column
-          </DialogTitle>
-          <DialogDescription>
-            Are you sure you want to delete the column "{column.title}"? This action cannot be undone.
-          </DialogDescription>
-        </DialogHeader>
+  if (!column) return null;
 
-        <div className="py-4 space-y-4">
-          {hasCards && (
-            <Alert className="border-yellow-200 bg-yellow-50">
-              <AlertTriangle className="h-4 w-4 text-yellow-600" />
-              <AlertTitle className="text-yellow-800">
-                Column contains {column.cards?.length} card{column.cards?.length !== 1 ? 's' : ''}
-              </AlertTitle>
-              <AlertDescription className="text-yellow-700">
-                You must move or delete all cards before deleting this column.
-              </AlertDescription>
-            </Alert>
-          )}
+  const hasCards = cardCount > 0;
 
-          {!hasCards && (
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>This will permanently delete the column</AlertTitle>
-              <AlertDescription>
-                This action cannot be undone.
-              </AlertDescription>
-            </Alert>
-          )}
+  const dialogProps = {
+    open,
+    onOpenChange,
+    title: "Delete Column",
+    description: hasCards
+      ? `This will permanently delete the column "${column.title}" and all ${cardCount} card${cardCount === 1 ? '' : 's'} in it. This action cannot be undone.`
+      : `This will permanently delete the empty column "${column.title}". This action cannot be undone.`,
+    destructiveAction: "Delete Column",
+    onConfirm: handleDelete,
+    isLoading,
+    ...(hasCards ? { confirmationText: column.title } : {}),
+  };
 
-          {error && (
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-        </div>
-
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={isLoading}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            variant="destructive"
-            onClick={handleDelete}
-            disabled={isLoading || hasCards}
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Deleting...
-              </>
-            ) : (
-              <>
-                <Trash2 className="w-4 h-4 mr-2" />
-                Delete Column
-              </>
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
+  return <DeleteConfirmationDialog {...dialogProps} />;
 }

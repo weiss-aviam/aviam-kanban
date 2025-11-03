@@ -25,6 +25,7 @@ import {
 import { createClient } from '../../lib/supabase/client';
 import { CreateBoardDialog } from '../../components/boards/CreateBoardDialog';
 import { EditBoardDialog } from '../../components/boards/EditBoardDialog';
+import { DeleteBoardDialog } from '../../components/boards/DeleteBoardDialog';
 import type { User as UserType } from '@supabase/supabase-js';
 import type { BoardWithDetails } from '../../types/database';
 import { format } from 'date-fns';
@@ -62,6 +63,7 @@ export default function BoardsPage() {
 
   const [showCreateBoard, setShowCreateBoard] = useState(false);
   const [editingBoard, setEditingBoard] = useState<BoardWithDetails | null>(null);
+  const [deletingBoard, setDeletingBoard] = useState<BoardWithDetails | null>(null);
 
   useEffect(() => {
     checkAuth();
@@ -155,15 +157,21 @@ export default function BoardsPage() {
     setEditingBoard(null);
   };
 
-  const handleDeleteBoard = async (board: BoardWithDetails) => {
-    if (!confirm(`Delete board "${board.name}"? This cannot be undone.`)) return;
+  const handleDeleteBoard = (board: BoardWithDetails) => {
+    setDeletingBoard(board);
+  };
+
+  const handleDeleteConfirmed = async () => {
+    if (!deletingBoard) return;
+
     try {
-      const res = await fetch(`/api/boards/${board.id}` , { method: 'DELETE' });
+      const res = await fetch(`/api/boards/${deletingBoard.id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete board');
       setState(prev => ({
         ...prev,
-        boards: prev.boards.filter(b => b.id !== board.id),
+        boards: prev.boards.filter(b => b.id !== deletingBoard.id),
       }));
+      setDeletingBoard(null);
     } catch (err) {
       console.error('Delete board failed:', err);
       alert('Could not delete board');
@@ -346,6 +354,14 @@ export default function BoardsPage() {
             onBoardUpdated={handleBoardUpdated}
           />
         )}
+
+        {/* Delete Board Dialog */}
+        <DeleteBoardDialog
+          open={!!deletingBoard}
+          onOpenChange={(open) => !open && setDeletingBoard(null)}
+          board={deletingBoard}
+          onConfirm={handleDeleteConfirmed}
+        />
       </main>
     </div>
   );

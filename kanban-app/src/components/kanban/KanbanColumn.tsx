@@ -9,8 +9,16 @@ import { KanbanCard } from './KanbanCard';
 import { EditCardDialog } from './EditCardDialog';
 import { EmptyColumn } from './EmptyStates';
 import { Button } from '@/components/ui/button';
-import { Plus, MoreHorizontal, GripVertical } from 'lucide-react';
+import { Plus, MoreHorizontal, GripVertical, Edit, Trash2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { DeleteColumnDialog } from '../columns/DeleteColumnDialog';
 import type { Column, Card as CardType, User, Label, BoardMemberRole } from '@/types/database';
 
 interface KanbanColumnProps {
@@ -45,6 +53,7 @@ export function KanbanColumn({
   userRole = 'member',
 }: KanbanColumnProps) {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   // Make columns sortable for drag & drop reordering
   const {
@@ -72,10 +81,18 @@ export function KanbanColumn({
     setShowCreateDialog(true);
   };
 
-  const handleColumnOptions = () => {
-    // This would open a menu for column options (edit, delete, etc.)
-    console.log('Column options for:', column.id);
+  const handleEditColumn = () => {
+    // TODO: Implement edit column functionality
+    console.log('Edit column:', column.id);
   };
+
+  const handleDeleteColumn = () => {
+    setShowDeleteDialog(true);
+  };
+
+  // Permission checks - allow owners, admins, and members to manage columns
+  const canEditColumn = ['owner', 'admin', 'member'].includes(userRole);
+  const canDeleteColumn = ['owner', 'admin', 'member'].includes(userRole);
 
   return (
     <div 
@@ -101,14 +118,37 @@ export function KanbanColumn({
             {cards.length}
           </span>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleColumnOptions}
-          className="h-8 w-8 p-0"
-        >
-          <MoreHorizontal className="w-4 h-4" />
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+            >
+              <MoreHorizontal className="w-4 h-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            {canEditColumn && (
+              <DropdownMenuItem onClick={handleEditColumn}>
+                <Edit className="mr-2 h-4 w-4" />
+                Edit Column
+              </DropdownMenuItem>
+            )}
+            {canDeleteColumn && (
+              <>
+                {canEditColumn && <DropdownMenuSeparator />}
+                <DropdownMenuItem
+                  onClick={handleDeleteColumn}
+                  className="text-red-600 focus:text-red-600"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete Column
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Cards Container */}
@@ -176,6 +216,14 @@ export function KanbanColumn({
         boardId={boardId}
         defaultColumnId={column.id}
         onCardCreated={onCardCreated}
+      />
+
+      {/* Delete Column Dialog */}
+      <DeleteColumnDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        column={column}
+        cardCount={cards.length}
       />
     </div>
   );
