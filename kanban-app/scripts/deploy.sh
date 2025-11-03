@@ -59,14 +59,26 @@ print_success "Dependencies installed"
 # Step 2: Apply database migrations
 print_info "Checking for database migrations..."
 
+# Check if migration tracker exists, if not initialize it
+if [ ! -f ".migrations-applied.json" ]; then
+    print_info "Migration tracker not found, initializing..."
+    bash scripts/init-migrations.sh
+    if [ $? -eq 0 ]; then
+        print_success "Migration tracker initialized - all existing migrations marked as applied"
+    else
+        print_error "Failed to initialize migration tracker"
+        exit 1
+    fi
+fi
+
 # Check if there are pending migrations
 if [ -d "src/db/migrations" ] && [ "$(ls -A src/db/migrations)" ]; then
     print_info "Found migrations directory with files"
-    
+
     # Generate SQL from Drizzle schema
     print_info "Generating migration SQL from Drizzle schema..."
     pnpm db:generate
-    
+
     # Check if there are new migration files
     MIGRATION_FILES=$(ls -t src/db/migrations/*.sql 2>/dev/null | head -1)
     
