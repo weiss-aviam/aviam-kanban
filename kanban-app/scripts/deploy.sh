@@ -36,11 +36,15 @@ fi
 # Try .env first (production), then .env.local (development)
 if [ -f ".env" ]; then
     print_info "Loading environment variables from .env..."
-    export $(cat .env | grep -v '^#' | xargs)
+    set -a  # Automatically export all variables
+    source .env
+    set +a
     print_success "Environment variables loaded from .env"
 elif [ -f ".env.local" ]; then
     print_info "Loading environment variables from .env.local..."
-    export $(cat .env.local | grep -v '^#' | xargs)
+    set -a  # Automatically export all variables
+    source .env.local
+    set +a
     print_success "Environment variables loaded from .env.local"
 else
     print_error "No .env or .env.local file found!"

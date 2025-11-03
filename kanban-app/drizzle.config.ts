@@ -1,15 +1,15 @@
 import { defineConfig } from 'drizzle-kit';
-import { config } from 'dotenv';
-import { existsSync } from 'fs';
 
-// Load environment variables
-// Try .env first (production), then .env.local (development)
-const envFile = existsSync('.env') ? '.env' : '.env.local';
-config({ path: envFile });
+// Database URL should be provided via environment variable
+// The deployment script loads .env or .env.local before running drizzle-kit
+const databaseUrl = process.env.DATABASE_URL;
 
-// For Supabase, we use the pooler connection (port 6543)
-// Direct connection (port 5432) has IPv6 issues
-const databaseUrl = process.env.DATABASE_URL!;
+if (!databaseUrl) {
+  throw new Error(
+    'DATABASE_URL environment variable is not set. ' +
+    'Make sure to run this with the deployment script or load .env/.env.local first.'
+  );
+}
 
 export default defineConfig({
   schema: './src/db/schema/index.ts',
