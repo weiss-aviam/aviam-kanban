@@ -33,12 +33,17 @@ if [ ! -f "package.json" ]; then
 fi
 
 # Load environment variables
-if [ -f ".env.local" ]; then
-    print_info "Loading environment variables..."
+# Try .env first (production), then .env.local (development)
+if [ -f ".env" ]; then
+    print_info "Loading environment variables from .env..."
+    export $(cat .env | grep -v '^#' | xargs)
+    print_success "Environment variables loaded from .env"
+elif [ -f ".env.local" ]; then
+    print_info "Loading environment variables from .env.local..."
     export $(cat .env.local | grep -v '^#' | xargs)
-    print_success "Environment variables loaded"
+    print_success "Environment variables loaded from .env.local"
 else
-    print_error ".env.local file not found!"
+    print_error "No .env or .env.local file found!"
     exit 1
 fi
 

@@ -1,19 +1,22 @@
 import { defineConfig } from 'drizzle-kit';
 import { config } from 'dotenv';
+import { existsSync } from 'fs';
 
 // Load environment variables
-config({ path: '.env.local' });
+// Try .env first (production), then .env.local (development)
+const envFile = existsSync('.env') ? '.env' : '.env.local';
+config({ path: envFile });
 
-// For Supabase, we need to use the direct connection (port 5432) for migrations
-// The pooler (port 6543) doesn't support all features needed for schema changes
-const directDatabaseUrl = process.env.DIRECT_DATABASE_URL || process.env.DATABASE_URL!;
+// For Supabase, we use the pooler connection (port 6543)
+// Direct connection (port 5432) has IPv6 issues
+const databaseUrl = process.env.DATABASE_URL!;
 
 export default defineConfig({
   schema: './src/db/schema/index.ts',
   out: './src/db/migrations',
   dialect: 'postgresql',
   dbCredentials: {
-    url: directDatabaseUrl,
+    url: databaseUrl,
   },
   verbose: true,
   strict: true,

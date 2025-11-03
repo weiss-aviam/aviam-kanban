@@ -2,6 +2,17 @@
 
 This guide explains how to deploy the Aviam Kanban application with automated database migrations.
 
+## First-Time Setup
+
+If you're setting up the deployment system on an existing database, initialize the migration tracker first:
+
+```bash
+cd kanban-app
+bash scripts/init-migrations.sh
+```
+
+This marks all existing migrations as applied so they won't be re-run.
+
 ## Quick Deploy
 
 To deploy the application with automatic database migrations:
@@ -65,21 +76,28 @@ The application is deployed using PM2 with the configuration in `ecosystem.confi
 
 ## Environment Variables
 
-Make sure your `.env.local` file contains:
+Make sure your environment file contains the required variables:
 
+**For production** - Create `.env` file:
 ```bash
 # Supabase Configuration
 NEXT_PUBLIC_SUPABASE_URL=https://sytznaqoznsazavumnry.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
-# Database (pooler for runtime)
+# Database (pooler connection)
 DATABASE_URL=postgresql://postgres.sytznaqoznsazavumnry:password@aws-1-eu-north-1.pooler.supabase.com:6543/postgres?sslmode=require
 
 # Environment
 NODE_ENV=production
 APP_URL=https://your-domain.com
 ```
+
+**For development** - Use `.env.local` file (same variables as above)
+
+The deployment scripts automatically detect which file to use:
+- `.env` is used if it exists (production)
+- `.env.local` is used as fallback (development)
 
 ## PM2 Commands
 

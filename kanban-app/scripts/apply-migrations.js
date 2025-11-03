@@ -2,23 +2,24 @@
 
 /**
  * Apply Database Migrations to Supabase
- * 
- * This script reads migration files and applies them to Supabase using the REST API.
- * It works around the IPv6 connection issue by using Supabase's Management API.
+ *
+ * This script reads migration files and applies them to Supabase.
+ * Since direct connection has IPv6 issues, we use the pooler connection.
  */
 
 const fs = require('fs');
 const path = require('path');
-const https = require('https');
+const postgres = require('postgres');
 
 // Load environment variables
-require('dotenv').config({ path: '.env.local' });
+// Try .env first (production), then .env.local (development)
+const envFile = fs.existsSync('.env') ? '.env' : '.env.local';
+require('dotenv').config({ path: envFile });
 
-const SUPABASE_PROJECT_REF = 'sytznaqoznsazavumnry';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const DATABASE_URL = process.env.DATABASE_URL;
 
-if (!SUPABASE_SERVICE_KEY) {
-  console.error('❌ SUPABASE_SERVICE_ROLE_KEY not found in environment variables');
+if (!DATABASE_URL) {
+  console.error('❌ DATABASE_URL not found in environment variables');
   process.exit(1);
 }
 
@@ -41,54 +42,12 @@ function markMigrationApplied(filename) {
   }
 }
 
-// Execute SQL via Supabase REST API
-async function executeSql(sql) {
-  return new Promise((resolve, reject) => {
-    const data = JSON.stringify({ query: sql });
-    
-    const options = {
-      hostname: 'api.supabase.com',
-      port: 443,
-      path: `/v1/projects/${SUPABASE_PROJECT_REF}/database/query`,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-        'Content-Length': data.length
-      }
-    };
-
-    const req = https.request(options, (res) => {
-      let responseData = '';
-
-      res.on('data', (chunk) => {
-        responseData += chunk;
-      });
-
-      res.on('end', () => {
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-          resolve(JSON.parse(responseData));
-        } else {
-          reject(new Error(`HTTP ${res.statusCode}: ${responseData}`));
-        }
-      });
-    });
-
-    req.on('error', (error) => {
-      reject(error);
-    });
-
-    req.write(data);
-    req.end();
-  });
-}
-
 // Main migration function
 async function applyMigrations() {
   console.log('🔍 Checking for pending migrations...\n');
 
   const migrationsDir = path.join(__dirname, '../src/db/migrations');
-  
+
   if (!fs.existsSync(migrationsDir)) {
     console.log('ℹ️  No migrations directory found');
     return;
@@ -112,27 +71,40 @@ async function applyMigrations() {
   pendingMigrations.forEach(file => console.log(`   - ${file}`));
   console.log('');
 
-  for (const file of pendingMigrations) {
-    const filePath = path.join(migrationsDir, file);
-    const sql = fs.readFileSync(filePath, 'utf8');
-
-    console.log(`⏳ Applying migration: ${file}...`);
-
-    try {
-      await executeSql(sql);
-      markMigrationApplied(file);
-      console.log(`✅ Successfully applied: ${file}\n`);
-    } catch (error) {
-      console.error(`❌ Failed to apply migration: ${file}`);
-      console.error(`   Error: ${error.message}\n`);
-      
-      // Ask if we should continue or abort
-      console.error('⚠️  Migration failed! Aborting deployment.\n');
-      process.exit(1);
+  // Connect to database
+  const sql = postgres(DATABASE_URL, {
+    max: 1,
+    ssl: 'require',
+    connection: {
+      application_name: 'kanban_migrations'
     }
-  }
+  });
 
-  console.log('🎉 All migrations applied successfully!\n');
+  try {
+    for (const file of pendingMigrations) {
+      const filePath = path.join(migrationsDir, file);
+      const migrationSql = fs.readFileSync(filePath, 'utf8');
+
+      console.log(`⏳ Applying migration: ${file}...`);
+
+      try {
+        // Execute the migration SQL
+        await sql.unsafe(migrationSql);
+        markMigrationApplied(file);
+        console.log(`✅ Successfully applied: ${file}\n`);
+      } catch (error) {
+        console.error(`❌ Failed to apply migration: ${file}`);
+        console.error(`   Error: ${error.message}\n`);
+        console.error('⚠️  Migration failed! Aborting deployment.\n');
+        await sql.end();
+        process.exit(1);
+      }
+    }
+
+    console.log('🎉 All migrations applied successfully!\n');
+  } finally {
+    await sql.end();
+  }
 }
 
 // Run migrations
