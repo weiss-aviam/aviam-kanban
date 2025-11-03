@@ -53,7 +53,7 @@ fi
 
 # Step 1: Install dependencies
 print_info "Installing dependencies..."
-pnpm install --frozen-lockfile
+pnpm install
 print_success "Dependencies installed"
 
 # Step 2: Apply database migrations
