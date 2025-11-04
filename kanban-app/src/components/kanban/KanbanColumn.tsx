@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { DeleteColumnDialog } from '../columns/DeleteColumnDialog';
+import { EditColumnDialog } from '../columns/EditColumnDialog';
 import type { Column, Card as CardType, User, Label, BoardMemberRole } from '@/types/database';
 
 interface KanbanColumnProps {
@@ -54,6 +55,7 @@ export function KanbanColumn({
 }: KanbanColumnProps) {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
 
   // Make columns sortable for drag & drop reordering
   const {
@@ -82,8 +84,7 @@ export function KanbanColumn({
   };
 
   const handleEditColumn = () => {
-    // TODO: Implement edit column functionality
-    console.log('Edit column:', column.id);
+    setShowEditDialog(true);
   };
 
   const handleDeleteColumn = () => {
@@ -213,6 +214,13 @@ export function KanbanColumn({
         boardId={boardId}
         defaultColumnId={column.id}
         onCardCreated={onCardCreated}
+      />
+
+      {/* Edit Column Dialog */}
+      <EditColumnDialog
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        column={column}
       />
 
       {/* Delete Column Dialog */}
