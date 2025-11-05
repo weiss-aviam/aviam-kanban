@@ -127,3 +127,13 @@ temp/
 test-*.js
 debug-*.js
 *-test.js
+*.test.js
+
+# PM2 logs
+.pm2/
+
+# Migration tracking (local only)
+.migrations-applied.json
+
+# pnpm
+.pnpm-debug.log*

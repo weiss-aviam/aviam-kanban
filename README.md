@@ -5,17 +5,20 @@ A modern, full-stack Kanban board application built with Next.js 14, TypeScript,
 ## 🚀 Features
 
 ### Core Functionality
+
 - **Drag & Drop Interface**: Intuitive card movement between columns using @dnd-kit
 - **Real-time Collaboration**: Live updates across multiple users with Supabase Realtime
 - **Authentication**: Secure user authentication with Supabase Auth (email/password + magic links)
 - **Row Level Security**: Database-level security ensuring users only access authorized data
 
 ### Board Management
+
 - **Multiple Boards**: Create and manage multiple Kanban boards
 - **Board Permissions**: Owner, Admin, Member, and Viewer roles with granular permissions
 - **Board Sharing**: Invite team members with specific access levels
 
 ### Card Features
+
 - **Rich Card Details**: Title, description, assignee, due dates, and labels
 - **Card Comments**: Threaded discussions on cards
 - **Label System**: Color-coded labels for categorization
@@ -23,6 +26,7 @@ A modern, full-stack Kanban board application built with Next.js 14, TypeScript,
 - **Card Filtering**: Filter by assignee, labels, and due date status
 
 ### User Experience
+
 - **Responsive Design**: Works seamlessly on desktop, tablet, and mobile
 - **Dark/Light Mode**: Adaptive UI with system preference detection
 - **Loading States**: Skeleton loaders for smooth user experience
@@ -32,6 +36,7 @@ A modern, full-stack Kanban board application built with Next.js 14, TypeScript,
 ## 🛠 Tech Stack
 
 ### Frontend
+
 - **Next.js 14**: React framework with App Router
 - **TypeScript**: Type-safe development
 - **Tailwind CSS**: Utility-first CSS framework
@@ -40,6 +45,7 @@ A modern, full-stack Kanban board application built with Next.js 14, TypeScript,
 - **date-fns**: Date manipulation and formatting
 
 ### Backend
+
 - **Supabase**: Backend-as-a-Service platform
 - **PostgreSQL**: Robust relational database
 - **Drizzle ORM**: Type-safe database operations
@@ -47,6 +53,7 @@ A modern, full-stack Kanban board application built with Next.js 14, TypeScript,
 - **Realtime**: Live data synchronization
 
 ### Development Tools
+
 - **ESLint**: Code linting
 - **Prettier**: Code formatting
 - **TypeScript**: Static type checking
@@ -67,7 +74,7 @@ Before running this application, make sure you have:
 
 ```bash
 git clone git@github.com:weiss-aviam/aviam-kanban.git
-cd aviam-kanban/kanban-app
+cd aviam-kanban
 ```
 
 ### 2. Install Dependencies
@@ -128,7 +135,7 @@ Visit [http://localhost:3000](http://localhost:3000) to see the application.
 ## 📁 Project Structure
 
 ```
-kanban-app/
+.
 ├── src/
 │   ├── app/                    # Next.js App Router pages
 │   │   ├── auth/              # Authentication pages
@@ -171,11 +178,13 @@ pnpm run type-check   # Run TypeScript compiler
 ## 🔐 Authentication & Security
 
 ### Authentication Methods
+
 - **Email/Password**: Traditional authentication
 - **Magic Links**: Passwordless authentication via email
 - **Social Providers**: Ready for Google, GitHub, etc. (configuration required)
 
 ### Security Features
+
 - **Row Level Security**: Database-level access control
 - **JWT Tokens**: Secure session management
 - **CSRF Protection**: Built-in Next.js protection
@@ -185,16 +194,19 @@ pnpm run type-check   # Run TypeScript compiler
 ## 🎨 Customization
 
 ### Styling
+
 - Modify `tailwind.config.js` for theme customization
 - Update `src/components/ui/` for component styling
 - Add custom CSS in `src/app/globals.css`
 
 ### Database Schema
+
 - Modify schemas in `src/db/schema/`
 - Generate migrations with `pnpm run db:generate`
 - Apply changes with `pnpm run db:push`
 
 ### API Endpoints
+
 - Add new routes in `src/app/api/`
 - Follow existing patterns for consistency
 - Include proper error handling and validation
@@ -211,6 +223,7 @@ pnpm run type-check   # Run TypeScript compiler
 ### Other Platforms
 
 The application can be deployed on any platform supporting Next.js:
+
 - Netlify
 - Railway
 - DigitalOcean App Platform
