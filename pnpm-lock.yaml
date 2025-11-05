@@ -163,7 +163,7 @@ importers:
         specifier: ^26.1.0
         version: 26.1.0
       lint-staged:
-        specifier: ^15.2.11
+        specifier: ^15.5.2
         version: 15.5.2
       prettier:
         specifier: ^3.6.2
