@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Users, TrendingUp, Activity } from "lucide-react";
+import { Users, TrendingUp, Activity, Trash2 } from "lucide-react";
 import { getRoleBadgeClasses, getRoleLabel } from "@/lib/role-colors";
 import { formatDistanceToNow } from "date-fns";
 import { t } from "@/lib/i18n";
@@ -52,6 +52,7 @@ export function MembershipTable({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<MembershipSummary | null>(null);
+  const [actionUserId, setActionUserId] = useState<string | null>(null);
 
   const fetchMemberships = async () => {
     try {
@@ -83,6 +84,7 @@ export function MembershipTable({
   }, [boardId, refreshTrigger]);
 
   const handleRoleChange = async (userId: string, newRole: string) => {
+    setActionUserId(userId);
     try {
       const response = await fetch(
         `/api/admin/memberships?boardId=${boardId}`,
@@ -106,6 +108,8 @@ export function MembershipTable({
       onMembershipAction();
     } catch (err) {
       alert(err instanceof Error ? err.message : t("admin.failedToUpdateRole"));
+    } finally {
+      setActionUserId(null);
     }
   };
 
@@ -114,6 +118,44 @@ export function MembershipTable({
     if (currentUserRole === "owner") return true;
     if (currentUserRole === "admin") return true;
     return false;
+  };
+
+  const canRemoveMember = (membership: Membership) => {
+    if (membership.role === "owner") return false;
+    if (currentUserRole === "owner") return true;
+    if (currentUserRole === "admin") return true;
+    return false;
+  };
+
+  const handleRemoveMember = async (userId: string) => {
+    if (!confirm(t("admin.confirmRemoveUser"))) {
+      return;
+    }
+
+    setActionUserId(userId);
+    try {
+      const response = await fetch(
+        `/api/admin/memberships?boardId=${boardId}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ userId }),
+        },
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || t("admin.failedToRemoveUser"));
+      }
+
+      onMembershipAction();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : t("admin.failedToRemoveUser"));
+    } finally {
+      setActionUserId(null);
+    }
   };
 
   if (loading) {
@@ -266,6 +308,7 @@ export function MembershipTable({
                       onValueChange={(value) =>
                         handleRoleChange(membership.id, value)
                       }
+                      disabled={actionUserId === membership.id}
                     >
                       <SelectTrigger className="w-32">
                         <SelectValue />
@@ -288,6 +331,19 @@ export function MembershipTable({
                     <Badge variant="outline" className="w-32 justify-center">
                       {getRoleLabel(membership.role)}
                     </Badge>
+                  )}
+                  {canRemoveMember(membership) && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRemoveMember(membership.id)}
+                      disabled={actionUserId === membership.id}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      aria-label={t("admin.removeFromBoard")}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   )}
                 </div>
               </div>

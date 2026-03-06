@@ -11,6 +11,7 @@ import {
   updateMembershipSchema,
   bulkUpdateMembershipsSchema,
   paginationSchema,
+  removeUserSchema,
 } from "@/lib/validations/admin";
 import {
   validateRoleAssignment,
@@ -410,6 +411,153 @@ export async function PATCH(request: NextRequest) {
     }
   } catch (error) {
     console.error("Error in PATCH /api/admin/memberships:", error);
+
+    if (error instanceof Error && error.message === "Admin access required") {
+      return NextResponse.json(
+        { error: "Admin access required" },
+        { status: 403 },
+      );
+    }
+
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * DELETE /api/admin/memberships - Remove member from board
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const boardId = searchParams.get("boardId");
+
+    if (!boardId) {
+      return NextResponse.json(
+        { error: "Board ID is required" },
+        { status: 400 },
+      );
+    }
+
+    const body = await request.json();
+    const validation = removeUserSchema.safeParse({ ...body, boardId });
+
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: "Invalid input", details: validation.error.issues },
+        { status: 400 },
+      );
+    }
+
+    const { userId: targetUserId } = validation.data;
+
+    await requireAdminAccess(user.id, boardId);
+
+    const adminClient = createAdminClient();
+    const { data: targetUser, error: membershipError } = await adminClient
+      .from("board_members")
+      .select(
+        `
+        role,
+        users!inner (
+          id,
+          email,
+          name
+        )
+      `,
+      )
+      .eq("board_id", boardId)
+      .eq("user_id", targetUserId)
+      .single();
+
+    if (membershipError || !targetUser) {
+      return NextResponse.json(
+        { error: "User not found in this board" },
+        { status: 404 },
+      );
+    }
+
+    const ownerValidation = validateOwnerRequirement(
+      targetUser.role,
+      targetUserId,
+      user.id,
+      undefined,
+      true,
+    );
+    if (!ownerValidation.isValid) {
+      return NextResponse.json(
+        { error: ownerValidation.error },
+        { status: 403 },
+      );
+    }
+
+    if (targetUserId === user.id) {
+      return NextResponse.json(
+        { error: "You cannot remove yourself from the board" },
+        { status: 403 },
+      );
+    }
+
+    const { error: removeError } = await adminClient
+      .from("board_members")
+      .delete()
+      .eq("board_id", boardId)
+      .eq("user_id", targetUserId);
+
+    if (removeError) {
+      console.error("Error removing member from board:", removeError);
+      return NextResponse.json(
+        { error: "Failed to remove user from board" },
+        { status: 500 },
+      );
+    }
+
+    await logAdminAction({
+      adminUserId: user.id,
+      targetUserId,
+      boardId,
+      action: "remove_user",
+      details: {
+        removedUser: (() => {
+          const relatedUsers = (
+            targetUser as unknown as {
+              users?:
+                | { email?: string; name?: string }
+                | { email?: string; name?: string }[];
+            }
+          ).users;
+          const targetDetails = Array.isArray(relatedUsers)
+            ? relatedUsers[0]
+            : relatedUsers;
+
+          return {
+            email: targetDetails?.email,
+            name: targetDetails?.name,
+            role: (targetUser as { role?: string }).role,
+          };
+        })(),
+      },
+      ipAddress: getClientIP(request) || "unknown",
+      userAgent: getUserAgent(request) || "unknown",
+    });
+
+    return NextResponse.json({
+      message: "User removed from board successfully",
+    });
+  } catch (error) {
+    console.error("Error in DELETE /api/admin/memberships:", error);
 
     if (error instanceof Error && error.message === "Admin access required") {
       return NextResponse.json(

@@ -48,7 +48,11 @@ import { t } from "@/lib/i18n";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { getEditCardAttachmentErrorMessage } from "./edit-card-dialog.utils";
+import {
+  getEditCardAttachmentErrorMessage,
+  getEditCardDueDateInputValue,
+  normalizeEditCardDueDateForApi,
+} from "./edit-card-dialog.utils";
 
 interface EditCardDialogProps {
   open: boolean;
@@ -88,11 +92,13 @@ export function EditCardDialog({
     columnId: z.string().min(1, t("editCard.columnRequired")),
     description: z.string().optional().default(""),
     assigneeId: z.string().optional().default("none"),
+    dueDate: z.string().optional().default(""),
     priority: z.enum(["high", "medium", "low"]).optional().default("medium"),
   });
-  type CardFormValues = z.infer<typeof CardFormSchema>;
+  type CardFormInput = z.input<typeof CardFormSchema>;
+  type CardFormValues = z.output<typeof CardFormSchema>;
 
-  const form = useForm({
+  const form = useForm<CardFormInput, unknown, CardFormValues>({
     resolver: zodResolver(CardFormSchema),
     defaultValues: {
       title: "",
@@ -103,6 +109,7 @@ export function EditCardDialog({
           ? String(defaultColumnId)
           : "",
       assigneeId: currentUser?.id || "none",
+      dueDate: getEditCardDueDateInputValue(card?.dueDate),
 
       priority: (card?.priority as CardPriority) || "medium",
     },
@@ -150,6 +157,7 @@ export function EditCardDialog({
         description: card.description || "",
         columnId: card.columnId ? String(card.columnId) : "",
         assigneeId: card.assigneeId || "none",
+        dueDate: getEditCardDueDateInputValue(card.dueDate),
 
         priority: (card.priority as CardPriority) || "medium",
       });
@@ -159,6 +167,7 @@ export function EditCardDialog({
         description: "",
         columnId: defaultColumnId ? String(defaultColumnId) : "",
         assigneeId: currentUser?.id || "none",
+        dueDate: "",
 
         priority: "medium",
       });
@@ -492,6 +501,11 @@ export function EditCardDialog({
     setError("");
 
     try {
+      const dueDate = normalizeEditCardDueDateForApi(values.dueDate);
+      if (values.dueDate && !dueDate) {
+        throw new Error(t("editCard.invalidDueDate"));
+      }
+
       if (card) {
         // Edit mode
         const response = await fetch(`/api/cards/${card.id}`, {
@@ -502,6 +516,7 @@ export function EditCardDialog({
             description: values.description.trim() || null,
             columnId: parseInt(values.columnId),
             assigneeId: values.assigneeId === "none" ? null : values.assigneeId,
+            dueDate,
 
             priority: values.priority,
           }),
@@ -528,6 +543,7 @@ export function EditCardDialog({
             title: values.title.trim(),
             description: values.description.trim() || null,
             assigneeId: values.assigneeId === "none" ? null : values.assigneeId,
+            dueDate: dueDate || undefined,
 
             priority: values.priority,
           }),
@@ -582,6 +598,7 @@ export function EditCardDialog({
       description: "",
       columnId: defaultColumnId ? String(defaultColumnId) : "",
       assigneeId: currentUser?.id || "none",
+      dueDate: "",
 
       priority: "medium",
     });
@@ -763,6 +780,22 @@ export function EditCardDialog({
                     </Select>
                   )}
                 />
+              </div>
+
+              <div className="space-y-3 flex flex-col max-w-[280px]">
+                <Label htmlFor="dueDate" className="text-base font-medium">
+                  {t("editCard.dueDateLabel")}
+                </Label>
+                <Input
+                  id="dueDate"
+                  type="datetime-local"
+                  disabled={isLoading || isDeleting}
+                  className="h-11"
+                  {...register("dueDate")}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {t("editCard.dueDateHelper")}
+                </p>
               </div>
             </div>
           </div>
