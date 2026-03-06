@@ -32,6 +32,7 @@ import type {
   BoardMemberRole,
 } from "../../types/database";
 import { BoardFilters } from "./BoardFilters";
+import { getKanbanColumnsLayoutStyle } from "./kanban-layout.utils";
 import { useBoardFilters } from "@/hooks/useBoardFilters";
 import { useAppActions, type StoreCard } from "@/store";
 import { t } from "@/lib/i18n";
@@ -432,6 +433,9 @@ export function KanbanBoard({
 
   // Check if board has no columns
   const hasNoColumns = !boardData.columns || boardData.columns.length === 0;
+  const columnsLayoutStyle = getKanbanColumnsLayoutStyle(
+    boardData.columns.length,
+  );
 
   if (hasNoColumns) {
     return (
@@ -472,12 +476,7 @@ export function KanbanBoard({
         onDragEnd={handleDragEnd}
       >
         <div className="flex-1 overflow-auto">
-          <div
-            className="grid gap-6 p-6"
-            style={{
-              gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-            }}
-          >
+          <div className="grid gap-6 p-6" style={columnsLayoutStyle}>
             {/* Column Sorting Context */}
             <SortableContext
               items={boardData.columns.map((col) => `column-${col.id}`)}

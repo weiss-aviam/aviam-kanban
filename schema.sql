@@ -1,6 +1,12 @@
 -- Aviam Kanban Database Schema
 -- Run this in your Supabase SQL Editor
 
+-- Legacy bootstrap/reference schema.
+-- The current UUID-based application schema lives in `src/db/schema/index.ts`
+-- and the active migration/RLS path is documented in:
+-- - `src/db/migrations/05_convert_boards_to_uuid.sql`
+-- - `src/db/migrations/add_user_management_tables.sql`
+
 -- Create users table
 CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

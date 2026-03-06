@@ -24,18 +24,29 @@ This document describes the `update-1` enhancements that were implemented and ve
 Relevant files:
 
 - `src/db/schema/index.ts`
+- `src/db/migrations/05_convert_boards_to_uuid.sql`
 - `src/db/migrations/add_user_management_tables.sql`
 - `schema.sql`
 
 ## Access control and RLS summary
 
-The instruction asked for Supabase RLS-backed board access control. The current repository contains SQL/RLS artifacts in two places:
+The instruction asked for Supabase RLS-backed board access control. The current repository contains SQL/RLS artifacts in three places:
 
+- `src/db/migrations/05_convert_boards_to_uuid.sql`
+  - converts the earlier integer-id board schema to UUIDs
+  - defines the core board/member/card/label RLS policies used by the UUID migration path
 - `schema.sql`
-  - documents broader board/member/column/card visibility and mutation policies
+  - preserves the original integer-id bootstrap/reference schema and policy set
 - `src/db/migrations/add_user_management_tables.sql`
   - adds `user_invitations` and `admin_audit_log`
   - includes policies limiting invitation and audit-log access to board owners/admins
+
+Schema alignment notes:
+
+- `src/db/schema/index.ts` is the current application-side schema reference.
+- `src/app/api/boards/route.ts` creates a board with both `boards.owner_id` and a matching `board_members` row with role `owner`, so owner access matches the app permission helpers and the SQL policy assumptions.
+- `src/db/migrations/0000_deep_thunderbolts.sql` and `schema.sql` reflect the earlier integer-id bootstrap story and should be treated as legacy/reference artifacts rather than the current UUID deployment target.
+- Because the original update-1 note allowed skipping risky RLS expansion for this intranet app, this pass aligns the documentation to the existing UUID migration/RLS artifacts instead of introducing another live-policy migration.
 
 In addition to SQL policy artifacts, the application now enforces board write access in the API layer:
 
@@ -115,7 +126,10 @@ This keeps card opening and reordering separate and avoids accidental modal open
 ## Additional board UX covered by update-1
 
 - assigned-to-me filter in `src/components/kanban/BoardFilters.tsx`
+- due date editing in `src/components/kanban/EditCardDialog.tsx`
 - due date formatting / overdue / due-soon helpers in `src/lib/board-permissions.ts`
+- board member removal in `src/components/admin/MembershipTable.tsx` and `src/app/api/admin/memberships/route.ts`
+- board columns now fill evenly for 1–4 columns and preserve a 300px minimum width with horizontal scroll for wider boards
 - priority emphasis in `src/components/kanban/KanbanCard.tsx`
 - branded layout/font work documented in `instructions/update-1/summary.md`
 
@@ -131,7 +145,10 @@ Focused regression suite:
 
 - `src/__tests__/board-permissions.test.ts`
 - `src/__tests__/api/board-mutation-routes.test.ts`
+- `src/__tests__/api/admin/memberships.test.ts`
 - `src/__tests__/components/admin/InviteUserForm.test.tsx`
+- `src/__tests__/components/kanban/edit-card-dialog.utils.test.ts`
+- `src/__tests__/components/kanban/kanban-layout.utils.test.ts`
 - `src/__tests__/components/admin/user-management-modal.utils.test.ts`
 
-Result: `27` passing tests.
+Result: the focused update-1 regression set covering permissions, invite flow, due-date helpers, member removal, and board layout utilities passes locally.

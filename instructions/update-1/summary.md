@@ -15,11 +15,13 @@
 - Added a post-create invite flow in `CreateBoardDialog`
 - Aligned invite defaults to `viewer`
 - Enforced viewer read-only behavior in both UI and mutation API routes
+- Added member removal in the memberships admin API/UI with audit logging safeguards
 
 ### Board and card UX improvements
 
 - Added an "Assigned to me" filter in `BoardFilters`
-- Preserved grid-based board layout improvements
+- Added due date editing in `EditCardDialog`
+- Updated board column sizing so 1–4 columns fill width evenly and 5+ columns keep a 300px minimum with horizontal scroll
 - Separated drag behavior from click/open behavior using a dedicated drag handle in `KanbanCard`
 - Kept double-click-to-edit card behavior
 - Preserved deadline and priority presentation on cards
@@ -50,11 +52,12 @@ Verified successfully with:
 - `pnpm run lint`
 - `pnpm run build`
 - `pnpm exec vitest run src/__tests__/board-permissions.test.ts src/__tests__/api/board-mutation-routes.test.ts src/__tests__/components/admin/InviteUserForm.test.tsx src/__tests__/components/admin/user-management-modal.utils.test.ts`
+- `pnpm exec vitest run src/__tests__/components/kanban/edit-card-dialog.utils.test.ts src/__tests__/api/admin/memberships.test.ts src/__tests__/components/kanban/kanban-layout.utils.test.ts`
 
 Focused regression result:
 
-- `4` test files passed
-- `27` tests passed
+- original focused regression set passed
+- additional due-date/member-removal/layout regressions passed
 
 ## Documentation delivered
 
@@ -65,5 +68,7 @@ Focused regression result:
 ## Notes
 
 - The implemented role model is `owner` / `admin` / `member` / `viewer`, which is broader than the smallest role set suggested in the original instruction file.
-- SQL/RLS-related artifacts exist in `schema.sql` and `src/db/migrations/add_user_management_tables.sql`; the app also now enforces viewer-safe mutation checks at the API layer.
+- The current UUID migration/RLS story is anchored in `src/db/schema/index.ts`, `src/db/migrations/05_convert_boards_to_uuid.sql`, and `src/db/migrations/add_user_management_tables.sql`; `schema.sql` and `src/db/migrations/0000_deep_thunderbolts.sql` are legacy/reference artifacts from the earlier integer-id bootstrap shape.
+- The board creation route inserts the creator into both `boards.owner_id` and `board_members(role='owner')`, which keeps owner access aligned across the app layer and SQL policies.
+- The app also enforces viewer-safe mutation checks at the API layer.
 - The Baseline warning mitigation remains repo-local because the warning originates from Next's bundled compiled dependency path.
