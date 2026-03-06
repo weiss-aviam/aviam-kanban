@@ -16,16 +16,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { UserPlus, Mail, X, Plus } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { t } from "@/lib/i18n";
+import {
+  addInvitationRow,
+  canInviteAdmins,
+  createEmptyInvitation,
+  getInvitationResultSummary,
+  getInvitationValidationError,
+  type InvitationData,
+  type InvitationRole,
+} from "./invite-user-form.utils";
 
 interface InviteUserFormProps {
   boardId: string;
   currentUserRole: "owner" | "admin" | "member" | "viewer";
   onInviteSent: () => void;
-}
-
-interface InvitationData {
-  email: string;
-  role: "admin" | "member" | "viewer";
 }
 
 export function InviteUserForm({
@@ -34,18 +39,18 @@ export function InviteUserForm({
   onInviteSent,
 }: InviteUserFormProps) {
   const [invitations, setInvitations] = useState<InvitationData[]>([
-    { email: "", role: "member" },
+    createEmptyInvitation(),
   ]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const canInviteAdmins = currentUserRole === "owner";
+  const canInviteAdminRole = canInviteAdmins(currentUserRole);
 
   const addInvitation = () => {
-    if (invitations.length < 10) {
-      setInvitations([...invitations, { email: "", role: "member" }]);
-    }
+    setInvitations((currentInvitations) =>
+      addInvitationRow(currentInvitations),
+    );
   };
 
   const removeInvitation = (index: number) => {
@@ -54,19 +59,26 @@ export function InviteUserForm({
     }
   };
 
-  const updateInvitation = (
-    index: number,
-    field: keyof InvitationData,
-    value: string,
-  ) => {
-    const updated = [...invitations];
-    updated[index] = { ...updated[index], [field]: value } as InvitationData;
-    setInvitations(updated);
+  const updateInvitationEmail = (index: number, email: string) => {
+    setInvitations((currentInvitations) =>
+      currentInvitations.map((invitation, currentIndex) =>
+        currentIndex === index ? { ...invitation, email } : invitation,
+      ),
+    );
   };
 
-  const validateEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+  const updateInvitationRole = (index: number, role: InvitationRole) => {
+    setInvitations((currentInvitations) =>
+      currentInvitations.map((invitation, currentIndex) =>
+        currentIndex === index ? { ...invitation, role } : invitation,
+      ),
+    );
+  };
+
+  const resetInvitations = () => {
+    setInvitations([createEmptyInvitation()]);
+    setError(null);
+    setSuccess(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -74,31 +86,15 @@ export function InviteUserForm({
     setError(null);
     setSuccess(null);
 
-    // Validate all invitations
-    const validInvitations = invitations.filter((inv) => inv.email.trim());
-
-    if (validInvitations.length === 0) {
-      setError("Please enter at least one email address");
+    const validationError = getInvitationValidationError(invitations);
+    if (validationError) {
+      setError(t(validationError));
       return;
     }
 
-    const invalidEmails = validInvitations.filter(
-      (inv) => !validateEmail(inv.email),
+    const validInvitations = invitations.filter((invitation) =>
+      invitation.email.trim(),
     );
-    if (invalidEmails.length > 0) {
-      setError("Please enter valid email addresses");
-      return;
-    }
-
-    // Check for duplicate emails
-    const emails = validInvitations.map((inv) => inv.email.toLowerCase());
-    const duplicates = emails.filter(
-      (email, index) => emails.indexOf(email) !== index,
-    );
-    if (duplicates.length > 0) {
-      setError("Duplicate email addresses are not allowed");
-      return;
-    }
 
     setLoading(true);
 
@@ -127,32 +123,23 @@ export function InviteUserForm({
         }),
       );
 
-      const successful = results.filter(
-        (result) => result.status === "fulfilled",
-      ).length;
-      const failed = results.filter((result) => result.status === "rejected");
+      const { successful, failedMessages } =
+        getInvitationResultSummary(results);
 
       if (successful > 0) {
-        setSuccess(
-          `Successfully sent ${successful} invitation${successful > 1 ? "s" : ""}`,
-        );
-        setInvitations([{ email: "", role: "member" }]);
+        setSuccess(t("admin.invitationSuccess", { count: String(successful) }));
+        setInvitations([createEmptyInvitation()]);
         onInviteSent();
       }
 
-      if (failed.length > 0) {
-        const errorMessages = failed.map((result) =>
-          result.status === "rejected"
-            ? result.reason.message
-            : "Unknown error",
-        );
+      if (failedMessages.length > 0) {
         setError(
-          `Failed to send some invitations:\n${errorMessages.join("\n")}`,
+          t("admin.invitationError", { errors: failedMessages.join("\n") }),
         );
       }
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to send invitations",
+        err instanceof Error ? err.message : t("admin.failedToSendInvitations"),
       );
     } finally {
       setLoading(false);
@@ -164,7 +151,7 @@ export function InviteUserForm({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <UserPlus className="w-5 h-5" />
-          Invite Users to Board
+          {t("admin.inviteUsersToBoard")}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -185,7 +172,9 @@ export function InviteUserForm({
 
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <Label className="text-base font-medium">Email Invitations</Label>
+              <Label className="text-base font-medium">
+                {t("admin.emailInvitations")}
+              </Label>
               <Button
                 type="button"
                 variant="outline"
@@ -194,7 +183,7 @@ export function InviteUserForm({
                 disabled={invitations.length >= 10}
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Add Another
+                {t("admin.addAnother")}
               </Button>
             </div>
 
@@ -204,40 +193,44 @@ export function InviteUserForm({
                 className="flex items-end gap-3 p-4 border rounded-lg"
               >
                 <div className="flex-1">
-                  <Label htmlFor={`email-${index}`}>Email Address</Label>
+                  <Label htmlFor={`email-${index}`}>
+                    {t("admin.emailAddress")}
+                  </Label>
                   <Input
                     id={`email-${index}`}
                     type="email"
-                    placeholder="user@example.com"
+                    placeholder={t("admin.emailPlaceholder")}
                     value={invitation.email}
                     onChange={(e) =>
-                      updateInvitation(index, "email", e.target.value)
+                      updateInvitationEmail(index, e.target.value)
                     }
                     required
                   />
                 </div>
 
                 <div className="w-32">
-                  <Label htmlFor={`role-${index}`}>Role</Label>
+                  <Label htmlFor={`role-${index}`}>{t("admin.role")}</Label>
                   <Select
                     value={invitation.role}
                     onValueChange={(value) =>
-                      updateInvitation(
-                        index,
-                        "role",
-                        value as "admin" | "member" | "viewer",
-                      )
+                      updateInvitationRole(index, value as InvitationRole)
                     }
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {canInviteAdmins && (
-                        <SelectItem value="admin">Admin</SelectItem>
+                      {canInviteAdminRole && (
+                        <SelectItem value="admin">
+                          {t("roles.admin")}
+                        </SelectItem>
                       )}
-                      <SelectItem value="member">Member</SelectItem>
-                      <SelectItem value="viewer">Viewer</SelectItem>
+                      <SelectItem value="member">
+                        {t("roles.member")}
+                      </SelectItem>
+                      <SelectItem value="viewer">
+                        {t("roles.viewer")}
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -257,66 +250,52 @@ export function InviteUserForm({
           </div>
 
           <div className="bg-gray-50 p-4 rounded-lg">
-            <h4 className="font-medium mb-2">Role Permissions</h4>
+            <h4 className="font-medium mb-2">{t("admin.rolePermissions")}</h4>
             <div className="space-y-2 text-sm text-gray-600">
               <div className="flex items-center gap-2">
                 <Badge
                   variant="outline"
                   className="bg-red-50 text-red-700 border-red-200"
                 >
-                  Admin
+                  {t("roles.admin")}
                 </Badge>
-                <span>
-                  Can manage users, edit board settings, and perform all actions
-                </span>
+                <span>{t("admin.rolePermissionDescriptions.admin")}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Badge
                   variant="outline"
                   className="bg-blue-50 text-blue-700 border-blue-200"
                 >
-                  Member
+                  {t("roles.member")}
                 </Badge>
-                <span>
-                  Can create and edit cards, add comments, and collaborate
-                </span>
+                <span>{t("admin.rolePermissionDescriptions.member")}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Badge
                   variant="outline"
                   className="bg-gray-50 text-gray-700 border-gray-200"
                 >
-                  Viewer
+                  {t("roles.viewer")}
                 </Badge>
-                <span>
-                  Can view the board and cards but cannot make changes
-                </span>
+                <span>{t("admin.rolePermissionDescriptions.viewer")}</span>
               </div>
             </div>
           </div>
 
           <div className="flex justify-end space-x-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setInvitations([{ email: "", role: "member" }]);
-                setError(null);
-                setSuccess(null);
-              }}
-            >
-              Clear All
+            <Button type="button" variant="outline" onClick={resetInvitations}>
+              {t("admin.clearAll")}
             </Button>
             <Button type="submit" disabled={loading}>
               {loading ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Sending...
+                  {t("common.sending")}
                 </>
               ) : (
                 <>
                   <Mail className="w-4 h-4 mr-2" />
-                  Send Invitations
+                  {t("admin.sendInvitations")}
                 </>
               )}
             </Button>

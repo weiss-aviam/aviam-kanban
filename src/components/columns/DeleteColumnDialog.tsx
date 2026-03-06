@@ -4,6 +4,11 @@ import { useState } from "react";
 import { DeleteConfirmationDialog } from "../ui/delete-confirmation-dialog";
 import { useAppActions } from "@/store";
 import type { Column } from "@/types/database";
+import { t } from "@/lib/i18n";
+import {
+  getColumnMutationErrorMessage,
+  getDeleteColumnDescription,
+} from "./column-dialog.utils";
 
 interface DeleteColumnDialogProps {
   open: boolean;
@@ -31,8 +36,10 @@ export function DeleteColumnDialog({
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to delete column");
+        const errorData: unknown = await response.json().catch(() => null);
+        throw new Error(
+          getColumnMutationErrorMessage(errorData, "failedToDelete"),
+        );
       }
 
       // Update the store
@@ -42,7 +49,7 @@ export function DeleteColumnDialog({
     } catch (error) {
       console.error("Error deleting column:", error);
       setError(
-        error instanceof Error ? error.message : "Failed to delete column",
+        error instanceof Error ? error.message : t("columns.failedToDelete"),
       );
     } finally {
       setIsLoading(false);
@@ -56,11 +63,9 @@ export function DeleteColumnDialog({
   const dialogProps = {
     open,
     onOpenChange,
-    title: "Delete Column",
-    description: hasCards
-      ? `This will permanently delete the column "${column.title}" and all ${cardCount} card${cardCount === 1 ? "" : "s"} in it. This action cannot be undone.`
-      : `This will permanently delete the empty column "${column.title}". This action cannot be undone.`,
-    destructiveAction: "Delete Column",
+    title: t("columns.deleteColumn"),
+    description: getDeleteColumnDescription(column.title, cardCount),
+    destructiveAction: t("columns.deleteColumn"),
     onConfirm: handleDelete,
     isLoading,
     ...(hasCards ? { confirmationText: column.title } : {}),

@@ -44,9 +44,11 @@ import { MarkdownEditor } from "@/components/ui/markdown-editor";
 import { PrioritySelector } from "@/components/ui/priority-selector";
 import { createClient as createSupabaseClient } from "@/lib/supabase/client";
 
+import { t } from "@/lib/i18n";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { getEditCardAttachmentErrorMessage } from "./edit-card-dialog.utils";
 
 interface EditCardDialogProps {
   open: boolean;
@@ -82,8 +84,8 @@ export function EditCardDialog({
 
   // react-hook-form setup
   const CardFormSchema = z.object({
-    title: z.string().min(1, "Title is required"),
-    columnId: z.string().min(1, "Column is required"),
+    title: z.string().min(1, t("editCard.titleRequired")),
+    columnId: z.string().min(1, t("editCard.columnRequired")),
     description: z.string().optional().default(""),
     assigneeId: z.string().optional().default("none"),
     priority: z.enum(["high", "medium", "low"]).optional().default("medium"),
@@ -222,10 +224,14 @@ export function EditCardDialog({
             return files;
           });
         } else if (error) {
-          setError("Failed to load attachments");
+          setError(
+            getEditCardAttachmentErrorMessage(error, "failedToLoadAttachments"),
+          );
         }
-      } catch (_e) {
-        setError("Failed to load attachments");
+      } catch (error: unknown) {
+        setError(
+          getEditCardAttachmentErrorMessage(error, "failedToLoadAttachments"),
+        );
       }
     };
     fetchComments();
@@ -248,7 +254,7 @@ export function EditCardDialog({
         setCommentBody("");
       } else {
         const err = await res.json();
-        setError(err.error || "Failed to add comment");
+        setError(err.error || t("editCard.failedToAddComment"));
       }
     } finally {
       setCommentsLoading(false);
@@ -264,7 +270,9 @@ export function EditCardDialog({
       const oversized = filesArr.filter((f) => f.size > MAX_FILE_SIZE);
       if (oversized.length > 0) {
         setError(
-          `Some files exceed 10 MB and were skipped: ${oversized.map((f) => f.name).join(", ")}`,
+          t("kanban.fileTooLarge", {
+            files: oversized.map((f) => f.name).join(", "),
+          }),
         );
       }
       for (const file of filesArr) {
@@ -275,7 +283,7 @@ export function EditCardDialog({
           .from("card-attachments")
           .upload(path, file, { upsert: false, cacheControl: "3600" });
         if (error) {
-          setError(error.message || "Failed to upload file");
+          setError(getEditCardAttachmentErrorMessage(error, "failedToUpload"));
           break;
         }
       }
@@ -287,7 +295,9 @@ export function EditCardDialog({
           sortBy: { column: "created_at", order: "desc" },
         });
       if (listErr) {
-        setError(listErr.message || "Failed to load attachments");
+        setError(
+          getEditCardAttachmentErrorMessage(listErr, "failedToLoadAttachments"),
+        );
       } else if (data) {
         const resolveUrl = async (path: string) => {
           const { data, error } = await supabase.storage
@@ -323,7 +333,7 @@ export function EditCardDialog({
         });
       }
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to upload files");
+      setError(getEditCardAttachmentErrorMessage(e, "failedToUpload"));
     } finally {
       setUploading(false);
     }
@@ -422,7 +432,9 @@ export function EditCardDialog({
         .from("card-attachments")
         .remove([path]);
       if (removeErr) {
-        setError(removeErr.message || "Failed to delete file");
+        setError(
+          getEditCardAttachmentErrorMessage(removeErr, "failedToDelete"),
+        );
       }
       const { data, error: listErr } = await supabase.storage
         .from("card-attachments")
@@ -431,7 +443,9 @@ export function EditCardDialog({
           sortBy: { column: "created_at", order: "desc" },
         });
       if (listErr) {
-        setError(listErr.message || "Failed to load attachments");
+        setError(
+          getEditCardAttachmentErrorMessage(listErr, "failedToLoadAttachments"),
+        );
       } else if (data) {
         const resolveUrl = async (p: string) => {
           const { data, error } = await supabase.storage
@@ -467,7 +481,7 @@ export function EditCardDialog({
         });
       }
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to delete attachment");
+      setError(getEditCardAttachmentErrorMessage(e, "failedToDelete"));
     } finally {
       setUploading(false);
     }
@@ -494,7 +508,7 @@ export function EditCardDialog({
         });
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error || "Failed to update card");
+          throw new Error(errorData.error || t("editCard.failedToUpdate"));
         }
         const { card: updatedCard } = await response.json();
         onCardUpdated?.(updatedCard);
@@ -502,7 +516,7 @@ export function EditCardDialog({
       } else {
         // Create mode
         if (!boardId) {
-          setError("Board ID is required");
+          setError(t("editCard.boardIdRequired"));
           return;
         }
         const response = await fetch("/api/cards", {
@@ -520,14 +534,16 @@ export function EditCardDialog({
         });
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error || "Failed to create card");
+          throw new Error(errorData.error || t("editCard.failedToCreate"));
         }
         const { card: newCard } = await response.json();
         onCardCreated?.(newCard);
         handleClose();
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to submit card");
+      setError(
+        err instanceof Error ? err.message : t("editCard.failedToCreate"),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -546,13 +562,15 @@ export function EditCardDialog({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to delete card");
+        throw new Error(errorData.error || t("editCard.failedToDelete"));
       }
 
       onCardDeleted?.(card.id);
       handleClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete card");
+      setError(
+        err instanceof Error ? err.message : t("editCard.failedToDelete"),
+      );
     } finally {
       setIsDeleting(false);
     }
@@ -586,11 +604,18 @@ export function EditCardDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-7xl w-[95vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{card ? "Edit Card" : "Create Card"}</DialogTitle>
+          <DialogTitle>
+            {card ? t("editCard.titleEdit") : t("editCard.titleCreate")}
+          </DialogTitle>
           <DialogDescription>
             {card
-              ? `Update card details in ${selectedColumn?.title || "the board"}`
-              : `Add a new card to ${selectedColumn?.title || "the selected column"}.`}
+              ? t("editCard.descriptionEdit", {
+                  column: selectedColumn?.title || t("editCard.theBoard"),
+                })
+              : t("editCard.descriptionCreate", {
+                  column:
+                    selectedColumn?.title || t("editCard.theSelectedColumn"),
+                })}
           </DialogDescription>
         </DialogHeader>
 
@@ -607,11 +632,11 @@ export function EditCardDialog({
             <div className="space-y-6">
               <div className="space-y-3">
                 <Label htmlFor="title" className="text-base font-medium">
-                  Title *
+                  {t("editCard.titleLabel")}
                 </Label>
                 <Input
                   id="title"
-                  placeholder="Enter card title"
+                  placeholder={t("editCard.titlePlaceholder")}
                   disabled={isLoading || isDeleting}
                   required
                   className="h-11"
@@ -621,7 +646,7 @@ export function EditCardDialog({
 
               <div className="space-y-3 flex flex-col">
                 <Label htmlFor="description" className="text-base font-medium">
-                  Description
+                  {t("editCard.descriptionLabel")}
                 </Label>
                 <Controller
                   name="description"
@@ -630,7 +655,7 @@ export function EditCardDialog({
                     <MarkdownEditor
                       value={field.value || ""}
                       onChange={field.onChange}
-                      placeholder="Enter card description (supports markdown)"
+                      placeholder={t("editCard.descriptionPlaceholder")}
                       height={200}
                       preview="live"
                       className={
@@ -647,7 +672,9 @@ export function EditCardDialog({
             {/* Right Column */}
             <div className="space-y-6">
               <div className="space-y-3 flex flex-col max-w-[200px]">
-                <Label className="text-base font-medium">Priority</Label>
+                <Label className="text-base font-medium">
+                  {t("editCard.priorityLabel")}
+                </Label>
                 <Controller
                   name="priority"
                   control={control}
@@ -663,7 +690,9 @@ export function EditCardDialog({
               </div>
 
               <div className="space-y-3 flex flex-col max-w-[200px]">
-                <Label className="text-base font-medium">Column</Label>
+                <Label className="text-base font-medium">
+                  {t("editCard.columnLabel")}
+                </Label>
                 <Controller
                   name="columnId"
                   control={control}
@@ -674,7 +703,9 @@ export function EditCardDialog({
                       disabled={isLoading || isDeleting}
                     >
                       <SelectTrigger className="h-11">
-                        <SelectValue placeholder="Select a column" />
+                        <SelectValue
+                          placeholder={t("editCard.columnPlaceholder")}
+                        />
                       </SelectTrigger>
                       <SelectContent>
                         {columns.map((column) => (
@@ -692,7 +723,9 @@ export function EditCardDialog({
               </div>
 
               <div className="space-y-3 flex flex-col max-w-[200px]">
-                <Label className="text-base font-medium">Assignee</Label>
+                <Label className="text-base font-medium">
+                  {t("editCard.assigneeLabel")}
+                </Label>
                 <Controller
                   name="assigneeId"
                   control={control}
@@ -703,10 +736,14 @@ export function EditCardDialog({
                       disabled={isLoading || isDeleting}
                     >
                       <SelectTrigger className="h-11">
-                        <SelectValue placeholder="Select an assignee (optional)" />
+                        <SelectValue
+                          placeholder={t("editCard.assigneePlaceholder")}
+                        />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">No assignee</SelectItem>
+                        <SelectItem value="none">
+                          {t("editCard.noAssignee")}
+                        </SelectItem>
                         {currentUser && (
                           <SelectItem
                             key={currentUser.id}
@@ -736,12 +773,14 @@ export function EditCardDialog({
               {/* Discussion */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <Label className="text-base font-medium">Discussion</Label>
+                  <Label className="text-base font-medium">
+                    {t("editCard.discussion")}
+                  </Label>
                 </div>
                 <div className="space-y-3">
                   {comments.length === 0 && !commentsLoading && (
                     <div className="text-sm text-muted-foreground">
-                      No comments yet.
+                      {t("editCard.noComments")}
                     </div>
                   )}
                   {comments.map((c) => (
@@ -759,7 +798,7 @@ export function EditCardDialog({
                   ))}
                   <div className="flex items-start gap-2">
                     <Input
-                      placeholder="Write a comment..."
+                      placeholder={t("editCard.commentPlaceholder")}
                       value={commentBody}
                       onChange={(e) => setCommentBody(e.target.value)}
                       disabled={commentsLoading || isLoading || isDeleting}
@@ -777,7 +816,7 @@ export function EditCardDialog({
                       {commentsLoading && (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       )}
-                      Comment
+                      {t("editCard.commentButton")}
                     </Button>
                   </div>
                 </div>
@@ -786,7 +825,9 @@ export function EditCardDialog({
               {/* Attachments */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <Label className="text-base font-medium">Attachments</Label>
+                  <Label className="text-base font-medium">
+                    {t("editCard.attachments")}
+                  </Label>
                 </div>
                 <div
                   className={`mt-1 border-2 border-dashed rounded-md p-4 cursor-pointer text-sm flex items-center justify-center gap-2 ${isDragging ? "bg-muted/50 border-primary" : "hover:bg-muted/40"}`}
@@ -802,10 +843,10 @@ export function EditCardDialog({
                       handleFileInputClick();
                     }
                   }}
-                  aria-label="Upload files"
+                  aria-label={t("kanban.uploadFile")}
                 >
                   <Paperclip className="h-5 w-5 text-muted-foreground" />
-                  <span>Click or drag files to upload (max 10 MB each)</span>
+                  <span>{t("editCard.uploadHint")}</span>
                 </div>
                 <input
                   ref={fileInputRef}
@@ -818,7 +859,7 @@ export function EditCardDialog({
                 {uploading && <Loader2 className="h-4 w-4 animate-spin" />}
                 {attachments.length === 0 ? (
                   <div className="text-sm text-muted-foreground">
-                    No files uploaded.
+                    {t("editCard.noFiles")}
                   </div>
                 ) : (
                   <ul className="space-y-2">
@@ -854,6 +895,7 @@ export function EditCardDialog({
                           size="sm"
                           onClick={() => handleDeleteAttachment(a.path)}
                           disabled={uploading || isLoading || isDeleting}
+                          aria-label={t("kanban.deleteAttachment")}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -865,7 +907,7 @@ export function EditCardDialog({
             </div>
           ) : (
             <div className="mt-4 text-sm text-muted-foreground">
-              Create the card to enable comments and attachments.
+              {t("editCard.createToEnable")}
             </div>
           )}
 
@@ -881,7 +923,7 @@ export function EditCardDialog({
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
                 <Trash2 className="mr-2 h-4 w-4" />
-                Delete
+                {t("common.delete")}
               </Button>
             )}
             <div className="flex space-x-2">
@@ -891,11 +933,11 @@ export function EditCardDialog({
                 onClick={handleClose}
                 disabled={isLoading || isDeleting}
               >
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button type="submit" disabled={isLoading || isDeleting}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {card ? "Update Card" : "Create Card"}
+                {card ? t("editCard.updateCard") : t("editCard.createCard")}
               </Button>
             </div>
           </DialogFooter>

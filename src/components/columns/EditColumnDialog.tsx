@@ -14,10 +14,15 @@ import {
 } from "../ui/dialog";
 import { Loader2 } from "lucide-react";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAppActions, useAppState } from "@/store";
 import type { Column } from "@/types/database";
+import { t } from "@/lib/i18n";
+import {
+  createColumnSchema,
+  getColumnMutationErrorMessage,
+  type ColumnFormValues,
+} from "./column-dialog.utils";
 
 interface EditColumnDialogProps {
   open: boolean;
@@ -25,11 +30,7 @@ interface EditColumnDialogProps {
   column: Column | null;
 }
 
-const schema = z.object({
-  title: z.string().min(1, "Column title is required"),
-});
-
-type FormValues = z.infer<typeof schema>;
+const schema = createColumnSchema();
 
 export function EditColumnDialog({
   open,
@@ -46,7 +47,7 @@ export function EditColumnDialog({
     handleSubmit: rhfHandleSubmit,
     reset,
     formState: { errors },
-  } = useForm<FormValues>({
+  } = useForm<ColumnFormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       title: column?.title || "",
@@ -60,7 +61,7 @@ export function EditColumnDialog({
     }
   }, [column, reset]);
 
-  const onSubmit = async (data: FormValues) => {
+  const onSubmit = async (data: ColumnFormValues) => {
     if (!column) return;
 
     setIsLoading(true);
@@ -78,8 +79,10 @@ export function EditColumnDialog({
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to update column");
+        const errorData: unknown = await response.json().catch(() => null);
+        throw new Error(
+          getColumnMutationErrorMessage(errorData, "failedToUpdate"),
+        );
       }
 
       const updatedColumn = await response.json();
@@ -101,7 +104,7 @@ export function EditColumnDialog({
       reset();
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : "Failed to update column";
+        err instanceof Error ? err.message : t("columns.failedToUpdate");
       setError(errorMessage);
       setGlobalError(errorMessage);
     } finally {
@@ -115,16 +118,18 @@ export function EditColumnDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Edit Column</DialogTitle>
-          <DialogDescription>Update the column title.</DialogDescription>
+          <DialogTitle>{t("columns.editColumn")}</DialogTitle>
+          <DialogDescription>
+            {t("columns.updateColumnTitle")}
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={rhfHandleSubmit(onSubmit)}>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="title">Column Title</Label>
+              <Label htmlFor="title">{t("columns.columnTitle")}</Label>
               <Input
                 id="title"
-                placeholder="Enter column title..."
+                placeholder={t("columns.enterColumnTitle")}
                 disabled={isLoading}
                 autoFocus
                 {...register("title")}
@@ -142,11 +147,11 @@ export function EditColumnDialog({
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button type="submit" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save Changes
+              {t("common.saveChanges")}
             </Button>
           </DialogFooter>
         </form>

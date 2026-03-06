@@ -21,6 +21,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Edit, Save, X } from "lucide-react";
+import { t } from "@/lib/i18n";
 
 interface User {
   id: string;
@@ -104,13 +105,15 @@ export function EditUserModal({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to update user");
+        throw new Error(errorData.error || t("admin.failedToUpdateUser"));
       }
 
       onUserUpdated();
       onOpenChange(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update user");
+      setError(
+        err instanceof Error ? err.message : t("admin.failedToUpdateUser"),
+      );
     } finally {
       setLoading(false);
     }
@@ -119,13 +122,13 @@ export function EditUserModal({
   const getRoleDescription = (roleValue: string) => {
     switch (roleValue) {
       case "owner":
-        return "Full control over the board and all settings";
+        return t("admin.roleDescriptions.owner");
       case "admin":
-        return "Can manage users and board settings";
+        return t("admin.roleDescriptions.admin");
       case "member":
-        return "Can create and edit cards and collaborate";
+        return t("admin.roleDescriptions.member");
       case "viewer":
-        return "Can view the board but cannot make changes";
+        return t("admin.roleDescriptions.viewer");
       default:
         return "";
     }
@@ -137,7 +140,7 @@ export function EditUserModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Edit className="w-5 h-5" />
-            Edit User
+            {t("admin.editUserTitle")}
           </DialogTitle>
         </DialogHeader>
 
@@ -151,9 +154,9 @@ export function EditUserModal({
           {/* User Info */}
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <Label className="text-sm font-medium">Email</Label>
+              <Label className="text-sm font-medium">{t("admin.email")}</Label>
               <Badge variant="outline" className="text-xs">
-                Cannot be changed
+                {t("common.cannotBeChanged")}
               </Badge>
             </div>
             <Input value={user.email} disabled className="bg-gray-50" />
@@ -161,12 +164,12 @@ export function EditUserModal({
 
           {/* Name */}
           <div className="space-y-2">
-            <Label htmlFor="name">Display Name</Label>
+            <Label htmlFor="name">{t("admin.displayName")}</Label>
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Enter display name"
+              placeholder={t("admin.enterDisplayName")}
               maxLength={100}
             />
           </div>
@@ -174,10 +177,10 @@ export function EditUserModal({
           {/* Role */}
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <Label>Role</Label>
+              <Label>{t("admin.role")}</Label>
               {!canChangeRole && (
                 <Badge variant="outline" className="text-xs">
-                  Cannot be changed
+                  {t("common.cannotBeChanged")}
                 </Badge>
               )}
             </div>
@@ -192,10 +195,10 @@ export function EditUserModal({
                 </SelectTrigger>
                 <SelectContent>
                   {canAssignAdmin && (
-                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="admin">{t("roles.admin")}</SelectItem>
                   )}
-                  <SelectItem value="member">Member</SelectItem>
-                  <SelectItem value="viewer">Viewer</SelectItem>
+                  <SelectItem value="member">{t("roles.member")}</SelectItem>
+                  <SelectItem value="viewer">{t("roles.viewer")}</SelectItem>
                 </SelectContent>
               </Select>
             ) : (
@@ -222,8 +225,7 @@ export function EditUserModal({
           {role !== user.role && (
             <Alert>
               <AlertDescription>
-                Changing this user&apos;s role will immediately update their
-                permissions on the board.
+                {t("admin.roleChangeWarning")}
               </AlertDescription>
             </Alert>
           )}
@@ -236,18 +238,18 @@ export function EditUserModal({
               disabled={loading}
             >
               <X className="w-4 h-4 mr-2" />
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button type="submit" disabled={loading}>
               {loading ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Saving...
+                  {t("common.saving")}
                 </>
               ) : (
                 <>
                   <Save className="w-4 h-4 mr-2" />
-                  Save Changes
+                  {t("common.saveChanges")}
                 </>
               )}
             </Button>

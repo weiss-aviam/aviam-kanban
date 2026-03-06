@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from "../ui/dialog";
 import { Edit, Loader2 } from "lucide-react";
+import { t } from "@/lib/i18n";
 // import { BoardWithDetails } from '@/types/database';
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -35,7 +36,7 @@ export function EditBoardDialog({
   const [error, setError] = useState("");
 
   const schema = z.object({
-    name: z.string().min(1, "Board name is required"),
+    name: z.string().min(1, t("editBoard.nameRequired")),
   });
   type FormValues = z.infer<typeof schema>;
   const {
@@ -68,7 +69,7 @@ export function EditBoardDialog({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to update board");
+        throw new Error(errorData.error || t("editBoard.updateError"));
       }
 
       const { board: updatedBoard } = await response.json();
@@ -82,7 +83,7 @@ export function EditBoardDialog({
       }
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "An unexpected error occurred",
+        err instanceof Error ? err.message : t("common.unexpectedError"),
       );
     } finally {
       setIsLoading(false);
@@ -107,11 +108,11 @@ export function EditBoardDialog({
 
           <div className="space-y-3">
             <Label htmlFor="name" className="text-base font-medium">
-              Board Name
+              {t("editBoard.nameLabel")}
             </Label>
             <Input
               id="name"
-              placeholder="Enter board name..."
+              placeholder={t("editBoard.namePlaceholder")}
               disabled={isLoading}
               autoFocus
               className="h-11"

@@ -109,11 +109,15 @@ describe("useUserManagement", () => {
         });
       });
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining(
-          "search=john&role=admin&sortBy=email&sortOrder=desc",
-        ),
-      );
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+
+      const requestedUrl = mockFetch.mock.calls[0]?.[0];
+      expect(requestedUrl).toEqual(expect.any(String));
+      expect(requestedUrl).toContain("boardId=board-123");
+      expect(requestedUrl).toContain("sortBy=email");
+      expect(requestedUrl).toContain("sortOrder=desc");
+      expect(requestedUrl).toContain("search=john");
+      expect(requestedUrl).toContain("role=admin");
     });
   });
 

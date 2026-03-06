@@ -7,17 +7,13 @@
  * Since direct connection has IPv6 issues, we use the pooler connection.
  */
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 const fs = require("fs");
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 const path = require("path");
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 const postgres = require("postgres");
 
 // Load environment variables
 // Try .env first (production), then .env.local (development)
 const envFile = fs.existsSync(".env") ? ".env" : ".env.local";
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 require("dotenv").config({ path: envFile });
 
 const DATABASE_URL = process.env.DATABASE_URL;

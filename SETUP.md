@@ -1,201 +1,131 @@
 # Aviam Kanban Setup Guide
 
-This guide will help you set up the Aviam Kanban application from scratch.
+This project now uses a **flat repo structure**. There is no nested `kanban-app/` directory.
 
-## 🚀 Quick Setup
+## Prerequisites
 
-### 1. Prerequisites
+- Node.js 18+
+- `pnpm`
+- a Supabase project
 
-- Node.js 18+ installed
-- pnpm installed (`npm install -g pnpm`)
-- A Supabase account (free tier available)
-
-### 2. Clone and Install
+Install `pnpm` if needed:
 
 ```bash
-# Navigate to the kanban app directory
-cd kanban-app
+npm install -g pnpm
+```
 
-# Install dependencies
+## 1. Install dependencies
+
+From the repository root:
+
+```bash
 pnpm install
 ```
 
-### 3. Set Up Supabase Project
+## 2. Configure environment variables
 
-1. **Create a new Supabase project:**
-   - Go to [supabase.com](https://supabase.com)
-   - Click "New Project"
-   - Choose your organization
-   - Enter project name: "aviam-kanban"
-   - Enter a secure database password
-   - Select a region close to your users
-   - Click "Create new project"
-
-2. **Get your project credentials:**
-   - Go to Settings > API
-   - Copy the Project URL
-   - Copy the `anon` `public` key
-   - Copy the `service_role` `secret` key (keep this secure!)
-
-3. **Get your database URL:**
-   - Go to Settings > Database
-   - Copy the Connection string (URI format)
-   - Replace `[YOUR-PASSWORD]` with your database password
-
-### 4. Configure Environment Variables
-
-Create a `.env.local` file in the `kanban-app` directory:
+Create `.env.local` in the **repository root**:
 
 ```env
-# Supabase Configuration
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here
-
-# Database Configuration
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 DATABASE_URL=postgresql://postgres:[YOUR-PASSWORD]@db.your-project-id.supabase.co:5432/postgres
-
-# Application Configuration (optional)
 APP_URL=http://localhost:3000
 ```
 
-### 5. Set Up Database Schema
+`drizzle.config.ts` and the migration scripts read `DATABASE_URL` from the environment.
 
-Run the database migrations to create all necessary tables:
+## 3. Database setup
+
+The repo contains two relevant database sources:
+
+- Drizzle schema: `src/db/schema/index.ts`
+- SQL migrations: `src/db/migrations/*.sql`
+
+Useful commands:
 
 ```bash
-# Push the schema to your Supabase database
 pnpm run db:push
+pnpm run db:generate
+pnpm run db:check
+pnpm run db:migrate:apply
 ```
 
-### 6. Configure Row Level Security (RLS)
+Notes:
 
-In your Supabase dashboard, go to the SQL Editor and run these scripts in order:
+- `pnpm run db:push` syncs the current Drizzle schema to the database.
+- `pnpm run db:migrate:apply` runs the SQL files in `src/db/migrations/` using `scripts/apply-migrations.js`.
+- The user-management/invitation additions for update-1 live in `src/db/migrations/add_user_management_tables.sql`.
+- `schema.sql` also contains broader SQL/RLS reference material used by this project.
 
-1. **Enable RLS on all tables:**
-   ```sql
-   -- Copy and paste the contents of src/db/rls/01_enable_rls.sql
-   ```
+## 4. Supabase auth settings
 
-2. **Create security policies:**
-   ```sql
-   -- Copy and paste the contents of src/db/rls/02_create_policies.sql
-   ```
+In the Supabase dashboard:
 
-3. **Enable Realtime:**
-   ```sql
-   -- Copy and paste the contents of src/db/rls/03_enable_realtime.sql
-   ```
-
-### 7. Configure Authentication
-
-In your Supabase dashboard:
-
-1. Go to Authentication > Settings
-2. Set **Site URL** to: `http://localhost:3000` (for development)
-3. Add **Redirect URLs**:
+1. set **Site URL** to `http://localhost:3000`
+2. add redirect URLs such as:
    - `http://localhost:3000/auth/callback`
    - `http://localhost:3000/dashboard`
-4. Configure **Email Templates** if desired
-5. Enable **Email confirmations** (recommended)
 
-### 8. Seed Demo Data (Optional)
-
-Add some demo data to test the application:
+## 5. Optional seed/reset commands
 
 ```bash
 pnpm run db:seed
+pnpm run db:reset
 ```
 
-### 9. Start Development Server
+Use these only when appropriate for your environment.
+
+## 6. Start the app
 
 ```bash
 pnpm run dev
 ```
 
-Visit [http://localhost:3000](http://localhost:3000) to see your Kanban board!
+Open `http://localhost:3000`.
 
-## 🔧 Troubleshooting
+## 7. Verification commands
 
-### Database Connection Issues
+Before committing or after significant changes, run:
 
-If you see `ENOTFOUND` errors:
+```bash
+pnpm run type-check
+pnpm run lint
+pnpm run build
+```
 
-1. **Check your DATABASE_URL:**
-   - Ensure the URL is correct
-   - Verify your password is properly encoded
-   - Make sure there are no extra spaces
+For the focused update-1 regression suite, see `docs/TESTING.md`.
 
-2. **Verify Supabase project status:**
-   - Check if your project is active in the Supabase dashboard
-   - Ensure you're using the correct region
+## Troubleshooting
 
-3. **Test connection:**
-   ```bash
-   # Test if you can connect to the database
-   psql "postgresql://postgres:[YOUR-PASSWORD]@db.your-project-id.supabase.co:5432/postgres"
-   ```
+### Database connection problems
 
-### Authentication Issues
+- verify `DATABASE_URL`
+- make sure `.env.local` is in the repo root
+- restart commands after changing env vars
 
-If authentication isn't working:
+### Auth problems
 
-1. **Check environment variables:**
-   - Verify `NEXT_PUBLIC_SUPABASE_URL` is correct
-   - Verify `NEXT_PUBLIC_SUPABASE_ANON_KEY` is correct
-   - Restart your development server after changing env vars
+- verify `NEXT_PUBLIC_SUPABASE_URL`
+- verify `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- re-check Supabase Site URL and redirect URLs
 
-2. **Check Supabase Auth settings:**
-   - Verify Site URL is set correctly
-   - Check redirect URLs are configured
-   - Ensure email confirmations are working
+### Migration problems
 
-### RLS Policy Issues
+- check that `DATABASE_URL` is available to Drizzle/migration commands
+- review `src/db/migrations/` for pending SQL files
+- if using the SQL migration runner, check `.migrations-applied.json`
 
-If you can't access data after authentication:
+## Production deployment
 
-1. **Verify RLS is enabled:**
-   ```sql
-   SELECT schemaname, tablename, rowsecurity 
-   FROM pg_tables 
-   WHERE schemaname = 'public' AND rowsecurity = true;
-   ```
+### Vercel
 
-2. **Check policies exist:**
-   ```sql
-   SELECT schemaname, tablename, policyname, permissive, roles, cmd, qual 
-   FROM pg_policies 
-   WHERE schemaname = 'public';
-   ```
+- set the Vercel project root to the **repository root**
+- add the same environment variables used locally
+- update Supabase Site URL / redirects for the production domain
 
-3. **Test policies manually:**
-   - Try creating a board through the UI
-   - Check the browser console for errors
-   - Verify the user is properly authenticated
-
-## 🚀 Production Deployment
-
-### Vercel Deployment
-
-1. **Push to GitHub:**
-   ```bash
-   git add .
-   git commit -m "Initial commit"
-   git push origin main
-   ```
-
-2. **Deploy to Vercel:**
-   - Connect your GitHub repository to Vercel
-   - Set the root directory to `kanban-app`
-   - Add all environment variables
-   - Deploy
-
-3. **Update Supabase settings:**
-   - Add your production URL to Site URL
-   - Add production redirect URLs
-   - Update CORS settings if needed
-
-### Environment Variables for Production
+Example production env values:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
@@ -204,32 +134,3 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 DATABASE_URL=your-database-url
 APP_URL=https://your-domain.vercel.app
 ```
-
-## 📚 Additional Resources
-
-- [Supabase Documentation](https://supabase.com/docs)
-- [Next.js Documentation](https://nextjs.org/docs)
-- [Drizzle ORM Documentation](https://orm.drizzle.team)
-- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
-
-## 🆘 Getting Help
-
-If you encounter issues:
-
-1. Check the browser console for errors
-2. Check the Supabase logs in your dashboard
-3. Verify all environment variables are set correctly
-4. Ensure your Supabase project is active and properly configured
-
-## 🎉 Success!
-
-Once everything is set up, you should be able to:
-
-- ✅ Visit the landing page at `/`
-- ✅ Sign up for a new account at `/auth/signup`
-- ✅ Sign in at `/auth/login`
-- ✅ Access the dashboard at `/dashboard`
-- ✅ Create and manage Kanban boards
-- ✅ Add cards, move them around, and collaborate in real-time
-
-Enjoy your new Kanban board application! 🎊

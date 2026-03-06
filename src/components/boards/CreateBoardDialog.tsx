@@ -13,13 +13,19 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../ui/dialog";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, Users } from "lucide-react";
+import { t } from "@/lib/i18n";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Board } from "@/types/database";
 
 import { TemplateSelector } from "../templates/TemplateSelector";
+import { InviteUserForm } from "../admin/InviteUserForm";
+import {
+  createCreateBoardSchema,
+  getCreateBoardErrorMessage,
+  type CreateBoardFormValues,
+} from "./create-board-dialog.utils";
 
 interface CreateBoardDialogProps {
   onBoardCreated?: (board: Board) => void;
@@ -36,21 +42,20 @@ export function CreateBoardDialog({
   >();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [createdBoard, setCreatedBoard] = useState<Board | null>(null);
+  const [showInvitePrompt, setShowInvitePrompt] = useState(false);
 
-  const schema = z.object({
-    name: z.string().min(1, "Board name is required"),
-  });
-  type FormValues = z.infer<typeof schema>;
+  const schema = createCreateBoardSchema();
   const {
     register,
     handleSubmit: rhfHandleSubmit,
     reset,
-  } = useForm<FormValues>({
+  } = useForm<CreateBoardFormValues>({
     resolver: zodResolver(schema),
     defaultValues: { name: "" },
   });
 
-  const onSubmit = async ({ name }: FormValues) => {
+  const onSubmit = async ({ name }: CreateBoardFormValues) => {
     setIsLoading(true);
     setError("");
 
@@ -67,8 +72,8 @@ export function CreateBoardDialog({
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to create board");
+        const errorData: unknown = await response.json().catch(() => null);
+        throw new Error(getCreateBoardErrorMessage(errorData));
       }
 
       const { board } = await response.json();
@@ -76,7 +81,10 @@ export function CreateBoardDialog({
       // Reset form
       reset({ name: "" });
       setSelectedTemplateId(undefined);
-      setOpen(false);
+
+      // Store created board and show invite prompt
+      setCreatedBoard(board);
+      setShowInvitePrompt(true);
 
       // Notify parent component
       if (onBoardCreated) {
@@ -84,89 +92,129 @@ export function CreateBoardDialog({
       }
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "An unexpected error occurred",
+        err instanceof Error ? err.message : t("common.unexpectedError"),
       );
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleInviteClose = () => {
+    setShowInvitePrompt(false);
+    setCreatedBoard(null);
+    setOpen(false);
+  };
+
   const defaultTrigger = (
     <Button>
       <Plus className="w-4 h-4 mr-2" />
-      Create Board
+      {t("createBoard.submit")}
     </Button>
   );
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{trigger || defaultTrigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-2xl w-[90vw] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Create New Board</DialogTitle>
-          <DialogDescription>
-            Create a new Kanban board to organize your project tasks.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={rhfHandleSubmit(onSubmit)} className="space-y-6">
-          {error && (
-            <div className="text-sm text-red-600 bg-red-50 p-4 rounded-md border border-red-200">
-              {error}
-            </div>
-          )}
+    <>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>{trigger || defaultTrigger}</DialogTrigger>
+        <DialogContent className="sm:max-w-2xl w-[90vw] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{t("createBoard.title")}</DialogTitle>
+            <DialogDescription>
+              {t("createBoard.description")}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={rhfHandleSubmit(onSubmit)} className="space-y-6">
+            {error && (
+              <div className="text-sm text-red-600 bg-red-50 p-4 rounded-md border border-red-200">
+                {error}
+              </div>
+            )}
 
-          <div className="space-y-6">
-            <div className="space-y-3">
-              <Label htmlFor="name" className="text-base font-medium">
-                Board Name
-              </Label>
-              <Input
-                id="name"
-                placeholder="Enter board name..."
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <Label htmlFor="name" className="text-base font-medium">
+                  {t("createBoard.nameLabel")}
+                </Label>
+                <Input
+                  id="name"
+                  placeholder={t("createBoard.namePlaceholder")}
+                  disabled={isLoading}
+                  autoFocus
+                  className="h-11"
+                  {...register("name")}
+                />
+              </div>
+
+              <div className="space-y-3">
+                <Label className="text-base font-medium">
+                  {t("createBoard.templateLabel")}
+                </Label>
+                <TemplateSelector
+                  selectedTemplateId={selectedTemplateId}
+                  onTemplateSelect={setSelectedTemplateId}
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+
+            <DialogFooter className="pt-6 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpen(false)}
                 disabled={isLoading}
-                autoFocus
-                className="h-11"
-                {...register("name")}
-              />
-            </div>
+              >
+                {t("common.cancel")}
+              </Button>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    {t("createBoard.creating")}
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4 mr-2" />
+                    {t("createBoard.submit")}
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
-            <div className="space-y-3">
-              <Label className="text-base font-medium">
-                Template (Optional)
-              </Label>
-              <TemplateSelector
-                selectedTemplateId={selectedTemplateId}
-                onTemplateSelect={setSelectedTemplateId}
-                disabled={isLoading}
-              />
-            </div>
-          </div>
+      {/* Invite Members prompt — shown after board is created */}
+      {createdBoard && (
+        <Dialog open={showInvitePrompt} onOpenChange={handleInviteClose}>
+          <DialogContent className="sm:max-w-2xl w-[90vw] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                {t("inviteMembers.title")}
+              </DialogTitle>
+              <DialogDescription>
+                {t("inviteMembers.description")}
+              </DialogDescription>
+            </DialogHeader>
 
-          <DialogFooter className="pt-6 border-t">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-              disabled={isLoading}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                <>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Board
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+            <InviteUserForm
+              boardId={String(createdBoard.id)}
+              currentUserRole="owner"
+              onInviteSent={() => {}}
+            />
+
+            <DialogFooter className="pt-4 border-t">
+              <Button variant="outline" onClick={handleInviteClose}>
+                {t("inviteMembers.skipForNow")}
+              </Button>
+              <Button onClick={handleInviteClose}>
+                {t("inviteMembers.done")}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
   );
 }

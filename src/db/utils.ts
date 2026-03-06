@@ -73,9 +73,7 @@ export async function checkBoardAccess(
  * @deprecated This function is not currently used and has type issues
  */
 export async function getNextPosition(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   table: any,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   whereCondition: any,
 ): Promise<number> {
   try {

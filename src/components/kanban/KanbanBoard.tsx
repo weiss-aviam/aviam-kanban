@@ -34,6 +34,7 @@ import type {
 import { BoardFilters } from "./BoardFilters";
 import { useBoardFilters } from "@/hooks/useBoardFilters";
 import { useAppActions, type StoreCard } from "@/store";
+import { t } from "@/lib/i18n";
 
 interface KanbanBoardProps {
   boardData: BoardWithDetails;
@@ -448,12 +449,17 @@ export function KanbanBoard({
           filters={filters}
           onFiltersChange={setFilters}
           availableAssignees={availableAssignees}
+          currentUserId={currentUser?.id}
           className="mb-2"
         />
         {hasActiveFilters && (
           <div className="text-sm text-gray-600">
-            Showing {stats.filtered} of {stats.total} cards
-            {stats.hidden > 0 && ` (${stats.hidden} hidden)`}
+            {t("board.showingCards", {
+              filtered: stats.filtered,
+              total: stats.total,
+            })}
+            {stats.hidden > 0 &&
+              ` (${t("board.hiddenCards", { count: stats.hidden })})`}
           </div>
         )}
       </div>
@@ -465,8 +471,13 @@ export function KanbanBoard({
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex-1 overflow-x-auto overflow-y-hidden">
-          <div className="flex h-full gap-6 p-6 min-w-max">
+        <div className="flex-1 overflow-auto">
+          <div
+            className="grid gap-6 p-6"
+            style={{
+              gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+            }}
+          >
             {/* Column Sorting Context */}
             <SortableContext
               items={boardData.columns.map((col) => `column-${col.id}`)}

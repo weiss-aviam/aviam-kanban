@@ -14,6 +14,7 @@ import {
 import { Users, TrendingUp, Activity } from "lucide-react";
 import { getRoleBadgeClasses, getRoleLabel } from "@/lib/role-colors";
 import { formatDistanceToNow } from "date-fns";
+import { t } from "@/lib/i18n";
 
 interface MembershipSummary {
   totalMembers: number;
@@ -63,14 +64,14 @@ export function MembershipTable({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to fetch memberships");
+        throw new Error(errorData.error || t("admin.failedToFetchMemberships"));
       }
 
       const data = await response.json();
       setMemberships(data.memberships);
       setSummary(data.summary);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      setError(err instanceof Error ? err.message : t("admin.anErrorOccurred"));
     } finally {
       setLoading(false);
     }
@@ -99,12 +100,12 @@ export function MembershipTable({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to update role");
+        throw new Error(errorData.error || t("admin.failedToUpdateRole"));
       }
 
       onMembershipAction();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to update role");
+      alert(err instanceof Error ? err.message : t("admin.failedToUpdateRole"));
     }
   };
 
@@ -120,7 +121,7 @@ export function MembershipTable({
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading memberships...</p>
+          <p className="mt-2 text-gray-600">{t("admin.loadingMemberships")}</p>
         </div>
       </div>
     );
@@ -132,7 +133,7 @@ export function MembershipTable({
         <div className="text-center">
           <p className="text-red-600 mb-2">{error}</p>
           <Button onClick={fetchMemberships} variant="outline" size="sm">
-            Try Again
+            {t("common.tryAgain")}
           </Button>
         </div>
       </div>
@@ -149,7 +150,9 @@ export function MembershipTable({
               <div className="flex items-center space-x-2">
                 <Users className="w-4 h-4 text-blue-600" />
                 <div>
-                  <p className="text-sm font-medium">Total Members</p>
+                  <p className="text-sm font-medium">
+                    {t("admin.membershipSummary.totalMembers")}
+                  </p>
                   <p className="text-2xl font-bold">{summary.totalMembers}</p>
                 </div>
               </div>
@@ -161,7 +164,9 @@ export function MembershipTable({
               <div className="flex items-center space-x-2">
                 <TrendingUp className="w-4 h-4 text-green-600" />
                 <div>
-                  <p className="text-sm font-medium">Admins</p>
+                  <p className="text-sm font-medium">
+                    {t("admin.membershipSummary.admins")}
+                  </p>
                   <p className="text-2xl font-bold">
                     {summary.roleDistribution.admin}
                   </p>
@@ -175,7 +180,9 @@ export function MembershipTable({
               <div className="flex items-center space-x-2">
                 <Activity className="w-4 h-4 text-purple-600" />
                 <div>
-                  <p className="text-sm font-medium">Members</p>
+                  <p className="text-sm font-medium">
+                    {t("admin.membershipSummary.members")}
+                  </p>
                   <p className="text-2xl font-bold">
                     {summary.roleDistribution.member}
                   </p>
@@ -189,7 +196,9 @@ export function MembershipTable({
               <div className="flex items-center space-x-2">
                 <Users className="w-4 h-4 text-gray-600" />
                 <div>
-                  <p className="text-sm font-medium">Viewers</p>
+                  <p className="text-sm font-medium">
+                    {t("admin.membershipSummary.viewers")}
+                  </p>
                   <p className="text-2xl font-bold">
                     {summary.roleDistribution.viewer}
                   </p>
@@ -203,7 +212,7 @@ export function MembershipTable({
       {/* Memberships Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Board Memberships</CardTitle>
+          <CardTitle>{t("admin.boardMembershipsTitle")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -216,7 +225,7 @@ export function MembershipTable({
                   <div>
                     <div className="flex items-center space-x-2">
                       <h4 className="font-medium">
-                        {membership.name || "No name"}
+                        {membership.name || t("common.noName")}
                       </h4>
                       <Badge
                         className={getRoleBadgeClasses(membership.role)}
@@ -228,15 +237,24 @@ export function MembershipTable({
                     <p className="text-sm text-gray-600">{membership.email}</p>
                     <div className="flex items-center space-x-4 text-xs text-gray-500 mt-1">
                       <span>
-                        Joined{" "}
-                        {formatDistanceToNow(new Date(membership.joinedAt))} ago
+                        {t("admin.joinedAgo", {
+                          time: formatDistanceToNow(
+                            new Date(membership.joinedAt),
+                          ),
+                        })}
                       </span>
                       <span>•</span>
                       <span>
-                        {membership.activity.assignedCards} cards assigned
+                        {t("admin.cardsAssigned", {
+                          count: String(membership.activity.assignedCards),
+                        })}
                       </span>
                       <span>•</span>
-                      <span>{membership.activity.comments} comments</span>
+                      <span>
+                        {t("admin.comments", {
+                          count: String(membership.activity.comments),
+                        })}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -254,10 +272,16 @@ export function MembershipTable({
                       </SelectTrigger>
                       <SelectContent>
                         {currentUserRole === "owner" && (
-                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="admin">
+                            {t("roles.admin")}
+                          </SelectItem>
                         )}
-                        <SelectItem value="member">Member</SelectItem>
-                        <SelectItem value="viewer">Viewer</SelectItem>
+                        <SelectItem value="member">
+                          {t("roles.member")}
+                        </SelectItem>
+                        <SelectItem value="viewer">
+                          {t("roles.viewer")}
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   ) : (

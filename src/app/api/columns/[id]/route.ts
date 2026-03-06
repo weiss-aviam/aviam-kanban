@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "../../../../lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
+import {
+  getBoardMutationAuthorization,
+  getBoardRoleForUser,
+} from "@/lib/board-access";
 import { z } from "zod";
+
+type BoardAccessClient = Parameters<typeof getBoardMutationAuthorization>[0];
 
 const updateColumnSchema = z.object({
   title: z
@@ -15,12 +21,18 @@ const updateColumnSchema = z.object({
     .optional(),
 });
 
+type ColumnUpdateData = {
+  title?: string;
+  position?: number;
+};
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const supabase = await createClient();
+    const boardAccessClient = supabase as unknown as BoardAccessClient;
 
     // Get the current user
     const {
@@ -66,8 +78,21 @@ export async function PATCH(
       );
     }
 
+    const authorization = await getBoardMutationAuthorization(
+      boardAccessClient,
+      existingColumn.board_id,
+      user.id,
+    );
+
+    if (!authorization.ok) {
+      return NextResponse.json(
+        { error: authorization.error },
+        { status: authorization.status },
+      );
+    }
+
     // Prepare update data
-    const updateData: Record<string, unknown> = {};
+    const updateData: ColumnUpdateData = {};
     if (title !== undefined) updateData.title = title;
     if (position !== undefined) updateData.position = position;
 
@@ -107,11 +132,12 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const supabase = await createClient();
+    const boardAccessClient = supabase as unknown as BoardAccessClient;
 
     // Get the current user
     const {
@@ -144,22 +170,18 @@ export async function DELETE(
       );
     }
 
-    // Check if user has permission to delete columns (admin or owner)
-    const { data: memberData, error: memberError } = await supabase
-      .from("board_members")
-      .select("role")
-      .eq("board_id", existingColumn.board_id)
-      .eq("user_id", user.id)
-      .single();
+    const userRole = await getBoardRoleForUser(
+      boardAccessClient,
+      existingColumn.board_id,
+      user.id,
+    );
 
-    if (memberError || !memberData) {
+    if (!userRole) {
       return NextResponse.json(
         { error: "Board not found or access denied" },
         { status: 404 },
       );
     }
-
-    const userRole = memberData.role;
 
     // For now, allow owners and admins to delete columns
     // TODO: Consider if members should also be allowed to delete columns

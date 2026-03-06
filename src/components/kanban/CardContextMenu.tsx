@@ -29,6 +29,7 @@ import type {
   CardPriority,
 } from "@/types/database";
 import { getPriorityConfig } from "@/lib/priority-colors";
+import { t } from "@/lib/i18n";
 
 interface CardContextMenuProps {
   card: Card;
@@ -73,9 +74,9 @@ export function CardContextMenu({
 
   // Priority options
   const priorities: { value: CardPriority; label: string }[] = [
-    { value: "high", label: "High Priority" },
-    { value: "medium", label: "Medium Priority" },
-    { value: "low", label: "Low Priority" },
+    { value: "high", label: t("priority.high") },
+    { value: "medium", label: t("priority.medium") },
+    { value: "low", label: t("priority.low") },
   ];
 
   if (disabled) {
@@ -90,7 +91,7 @@ export function CardContextMenu({
         {canEdit && (
           <ContextMenuItem onClick={() => onEdit(card)}>
             <Edit className="mr-2 h-4 w-4" />
-            Edit Card
+            {t("cardMenu.edit")}
             <ContextMenuShortcut>⌘E</ContextMenuShortcut>
           </ContextMenuItem>
         )}
@@ -100,7 +101,7 @@ export function CardContextMenu({
           <ContextMenuSub>
             <ContextMenuSubTrigger>
               <Flag className="mr-2 h-4 w-4" />
-              Change Priority
+              {t("cardMenu.changePriority")}
             </ContextMenuSubTrigger>
             <ContextMenuSubContent className="w-48">
               {priorities.map(({ value, label }) => {
@@ -120,7 +121,9 @@ export function CardContextMenu({
                     />
                     {label}
                     {isCurrentPriority && (
-                      <ContextMenuShortcut>Current</ContextMenuShortcut>
+                      <ContextMenuShortcut>
+                        {t("cardMenu.current")}
+                      </ContextMenuShortcut>
                     )}
                   </ContextMenuItem>
                 );
@@ -134,7 +137,7 @@ export function CardContextMenu({
           <ContextMenuSub>
             <ContextMenuSubTrigger>
               <ArrowRight className="mr-2 h-4 w-4" />
-              Move to Column
+              {t("cardMenu.moveToColumn")}
             </ContextMenuSubTrigger>
             <ContextMenuSubContent className="w-48">
               {otherColumns.map((column) => (
@@ -155,7 +158,7 @@ export function CardContextMenu({
         {canEdit && (
           <ContextMenuItem onClick={() => onDuplicate(card)}>
             <Copy className="mr-2 h-4 w-4" />
-            Duplicate Card
+            {t("cardMenu.duplicate")}
             <ContextMenuShortcut>⌘D</ContextMenuShortcut>
           </ContextMenuItem>
         )}
@@ -164,7 +167,7 @@ export function CardContextMenu({
         {canArchive && (
           <ContextMenuItem onClick={() => onArchive(card)}>
             <Archive className="mr-2 h-4 w-4" />
-            Archive Card
+            {t("cardMenu.archive")}
           </ContextMenuItem>
         )}
 
@@ -177,7 +180,7 @@ export function CardContextMenu({
             className="text-red-600 focus:text-red-600 focus:bg-red-50"
           >
             <Trash2 className="mr-2 h-4 w-4" />
-            Delete Card
+            {t("cardMenu.delete")}
             <ContextMenuShortcut>⌘⌫</ContextMenuShortcut>
           </ContextMenuItem>
         )}
@@ -200,7 +203,7 @@ export function ReadOnlyCardContextMenu({
       <ContextMenuContent className="w-56">
         <ContextMenuItem disabled>
           <Edit className="mr-2 h-4 w-4" />
-          View Only
+          {t("cardMenu.viewOnly")}
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>

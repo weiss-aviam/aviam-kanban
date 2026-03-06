@@ -22,6 +22,7 @@ import {
   Kanban,
 } from "lucide-react";
 import { getRoleBadgeClasses, getRoleLabel } from "../../lib/role-colors";
+import { t } from "@/lib/i18n";
 
 interface BoardCardProps {
   board: {
@@ -62,7 +63,7 @@ export function BoardCard({
   onDelete,
 }: BoardCardProps) {
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+    return new Date(dateString).toLocaleDateString("de-DE", {
       month: "short",
       day: "numeric",
       year: "numeric",
@@ -101,7 +102,9 @@ export function BoardCard({
               Admin
             </Badge>
           )}
-          {board.isArchived && <Badge variant="secondary">Archived</Badge>}
+          {board.isArchived && (
+            <Badge variant="secondary">{t("board.archived")}</Badge>
+          )}
           {(canEdit || canDelete) && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -121,7 +124,7 @@ export function BoardCard({
                       }
                     >
                       <Edit className="mr-2 h-4 w-4" />
-                      Edit Board
+                      {t("board.editBoard")}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() =>
@@ -132,7 +135,9 @@ export function BoardCard({
                       }
                     >
                       <Archive className="mr-2 h-4 w-4" />
-                      {board.isArchived ? "Unarchive" : "Archive"}
+                      {board.isArchived
+                        ? t("board.unarchive")
+                        : t("board.archive")}
                     </DropdownMenuItem>
                   </>
                 )}
@@ -149,7 +154,7 @@ export function BoardCard({
                       className="text-red-600"
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
-                      Delete Board
+                      {t("board.deleteBoard")}
                     </DropdownMenuItem>
                   </>
                 )}
@@ -163,11 +168,13 @@ export function BoardCard({
           <div className="flex items-center space-x-4">
             <div className="flex items-center">
               <Users className="mr-1 h-3 w-3" />
-              <span>Team</span>
+              <span>{t("board.team")}</span>
             </div>
             <div className="flex items-center">
               <Calendar className="mr-1 h-3 w-3" />
-              <span>Created {formatDate(board.createdAt)}</span>
+              <span>
+                {t("board.created", { date: formatDate(board.createdAt) })}
+              </span>
             </div>
           </div>
         </div>

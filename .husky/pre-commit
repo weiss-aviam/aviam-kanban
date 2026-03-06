@@ -1,8 +1,14 @@
+set -e
+
 echo "🔍 Running pre-commit checks..."
 
 # Run lint-staged (linting, type checking, and formatting on staged files)
 echo "📝 Linting, type checking, and formatting staged files..."
 pnpm lint-staged
+
+# Run a full production build to prevent committing unstable code
+echo "🏗️ Running production build validation..."
+pnpm run build
 
 echo "✅ Pre-commit checks passed!"
 

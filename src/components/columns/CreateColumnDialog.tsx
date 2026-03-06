@@ -15,9 +15,14 @@ import {
 } from "../ui/dialog";
 import { Plus, Loader2 } from "lucide-react";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Column } from "@/types/database";
+import { t } from "@/lib/i18n";
+import {
+  createColumnSchema,
+  getColumnMutationErrorMessage,
+  type ColumnFormValues,
+} from "./column-dialog.utils";
 
 interface CreateColumnDialogProps {
   boardId: string;
@@ -38,15 +43,12 @@ export function CreateColumnDialog({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const schema = z.object({
-    title: z.string().min(1, "Column title is required"),
-  });
-  type FormValues = { title: string };
+  const schema = createColumnSchema();
   const {
     register,
     handleSubmit: rhfHandleSubmit,
     reset,
-  } = useForm<FormValues>({
+  } = useForm<ColumnFormValues>({
     resolver: zodResolver(schema),
     defaultValues: { title: "" },
   });
@@ -55,7 +57,7 @@ export function CreateColumnDialog({
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
   const setOpen = controlledOnOpenChange || setInternalOpen;
 
-  const onSubmit = async ({ title }: FormValues) => {
+  const onSubmit = async ({ title }: ColumnFormValues) => {
     setIsLoading(true);
     setError("");
 
@@ -72,8 +74,10 @@ export function CreateColumnDialog({
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to create column");
+        const errorData: unknown = await response.json().catch(() => null);
+        throw new Error(
+          getColumnMutationErrorMessage(errorData, "failedToCreate"),
+        );
       }
 
       const column = await response.json();
@@ -88,7 +92,7 @@ export function CreateColumnDialog({
       }
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "An unexpected error occurred",
+        err instanceof Error ? err.message : t("common.unexpectedError"),
       );
     } finally {
       setIsLoading(false);
@@ -101,7 +105,7 @@ export function CreateColumnDialog({
       className="border-dashed border-2 hover:border-solid"
     >
       <Plus className="w-4 h-4 mr-2" />
-      Add Column
+      {t("columns.addColumn")}
     </Button>
   );
 
@@ -113,18 +117,18 @@ export function CreateColumnDialog({
       )}
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add New Column</DialogTitle>
+          <DialogTitle>{t("columns.addNewColumn")}</DialogTitle>
           <DialogDescription>
-            Create a new column to organize your tasks.
+            {t("columns.addNewColumnDescription")}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={rhfHandleSubmit(onSubmit)}>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="title">Column Title</Label>
+              <Label htmlFor="title">{t("columns.columnTitle")}</Label>
               <Input
                 id="title"
-                placeholder="Enter column title..."
+                placeholder={t("columns.enterColumnTitle")}
                 disabled={isLoading}
                 autoFocus
                 {...register("title")}
@@ -139,18 +143,18 @@ export function CreateColumnDialog({
               onClick={() => setOpen(false)}
               disabled={isLoading}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button type="submit" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Creating...
+                  {t("columns.creating")}
                 </>
               ) : (
                 <>
                   <Plus className="w-4 h-4 mr-2" />
-                  Add Column
+                  {t("columns.addColumn")}
                 </>
               )}
             </Button>

@@ -3,11 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build --turbopack",
+    "dev": "node scripts/run-with-baseline-env.cjs next dev --turbopack",
+    "build": "node scripts/run-with-baseline-env.cjs next build --turbopack",
     "start": "next start",
-    "lint": "eslint",
-    "lint:fix": "eslint --fix",
+    "lint": "node scripts/run-with-baseline-env.cjs eslint",
+    "lint:fix": "node scripts/run-with-baseline-env.cjs eslint --fix",
     "type-check": "tsc --noEmit",
     "prepare": "husky || true",
     "db:generate": "drizzle-kit generate",
@@ -74,11 +74,12 @@
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^5.1.2",
+    "@vitejs/plugin-react": "^5.1.4",
+    "baseline-browser-mapping": "^2.10.0",
     "eslint": "^9.39.1",
     "eslint-config-next": "16.0.7",
     "husky": "^9.1.7",
-    "jsdom": "^27.3.0",
+    "jsdom": "^26.1.0",
     "lint-staged": "^16.2.7",
     "prettier": "^3.7.4",
     "tailwindcss": "^4.1.17",
@@ -89,7 +90,7 @@
   },
   "lint-staged": {
     "*.{ts,tsx}": [
-      "eslint --fix",
+      "node scripts/run-with-baseline-env.cjs eslint --fix",
       "bash -c 'npx tsc --noEmit'"
     ],
     "*.{js,jsx,ts,tsx,json,css,md}": [

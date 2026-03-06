@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "../../../../lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
+import { getBoardMutationAuthorization } from "@/lib/board-access";
 import { z } from "zod";
+
+type BoardAccessClient = Parameters<typeof getBoardMutationAuthorization>[0];
 
 const updateCardSchema = z.object({
   title: z
@@ -24,6 +27,16 @@ const updateCardSchema = z.object({
     .optional(),
 });
 
+type CardUpdateData = {
+  title?: string;
+  description?: string;
+  assignee_id?: string | null;
+  due_date?: string | null;
+  priority?: "high" | "medium" | "low";
+  column_id?: number;
+  position?: number;
+};
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -31,6 +44,7 @@ export async function PATCH(
   const { id } = await params;
   try {
     const supabase = await createClient();
+    const boardAccessClient = supabase as unknown as BoardAccessClient;
 
     // Get the current user
     const {
@@ -89,6 +103,19 @@ export async function PATCH(
       );
     }
 
+    const authorization = await getBoardMutationAuthorization(
+      boardAccessClient,
+      existingCard.board_id,
+      user.id,
+    );
+
+    if (!authorization.ok) {
+      return NextResponse.json(
+        { error: authorization.error },
+        { status: authorization.status },
+      );
+    }
+
     // If changing column, verify the new column belongs to the same board
     if (columnId && columnId !== existingCard.column_id) {
       const { data: newColumn, error: columnError } = await supabase
@@ -107,7 +134,7 @@ export async function PATCH(
     }
 
     // Prepare update data
-    const updateData: Record<string, unknown> = {};
+    const updateData: CardUpdateData = {};
     if (title !== undefined) updateData.title = title;
     if (description !== undefined) updateData.description = description;
     if (assigneeId !== undefined) updateData.assignee_id = assigneeId;
@@ -158,12 +185,13 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
   try {
     const supabase = await createClient();
+    const boardAccessClient = supabase as unknown as BoardAccessClient;
 
     // Get the current user
     const {
@@ -184,6 +212,32 @@ export async function DELETE(
       return NextResponse.json(
         { error: "Invalid card ID format" },
         { status: 400 },
+      );
+    }
+
+    const { data: existingCard, error: cardError } = await supabase
+      .from("cards")
+      .select("id, board_id")
+      .eq("id", cardId)
+      .single();
+
+    if (cardError || !existingCard) {
+      return NextResponse.json(
+        { error: "Card not found or access denied" },
+        { status: 404 },
+      );
+    }
+
+    const authorization = await getBoardMutationAuthorization(
+      boardAccessClient,
+      existingCard.board_id,
+      user.id,
+    );
+
+    if (!authorization.ok) {
+      return NextResponse.json(
+        { error: authorization.error },
+        { status: authorization.status },
       );
     }
 

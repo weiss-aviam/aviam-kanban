@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "../ui/button";
 // Removed unused Card imports
 import { Badge } from "../ui/badge";
+import Image from "next/image";
 import {
   ArrowLeft,
   Plus,
@@ -26,6 +27,7 @@ import { SaveBoardAsTemplateDialog } from "../templates/SaveBoardAsTemplateDialo
 import { KanbanBoard } from "../kanban/KanbanBoard";
 import { HeaderMenu } from "../layout/HeaderMenu";
 import { DeleteBoardDialog } from "./DeleteBoardDialog";
+import { UserManagementModal } from "../admin/UserManagementModal";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,6 +38,7 @@ import {
 
 import type { BoardWithDetails, Column } from "../../types/database";
 import { getRoleBadgeClasses, getRoleLabel } from "../../lib/role-colors";
+import { t } from "@/lib/i18n";
 
 interface BoardDetailPageProps {
   boardId: string;
@@ -54,6 +57,7 @@ export function BoardDetailPage({
   const [showCreateColumn, setShowCreateColumn] = useState(false);
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
   const [showDeleteBoard, setShowDeleteBoard] = useState(false);
+  const [showMembersModal, setShowMembersModal] = useState(false);
 
   const router = useRouter();
 
@@ -112,8 +116,8 @@ export function BoardDetailPage({
       if (!response.ok) {
         const errorMessage =
           response.status === 404
-            ? "Board not found or you do not have access to it."
-            : "Failed to load board.";
+            ? t("boardDetail.notFoundError")
+            : t("boardDetail.loadError");
         setError(errorMessage);
         return;
       }
@@ -139,7 +143,7 @@ export function BoardDetailPage({
         setUserRole(m.role);
       }
     } catch (_err) {
-      setError("Failed to load board.");
+      setError(t("boardDetail.loadError"));
     } finally {
       setLoading(false);
     }
@@ -186,7 +190,7 @@ export function BoardDetailPage({
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading board...</p>
+          <p className="mt-2 text-gray-600">{t("boardDetail.loading")}</p>
         </div>
       </div>
     );
@@ -197,14 +201,14 @@ export function BoardDetailPage({
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Board Not Found
+            {t("boardDetail.notFoundTitle")}
           </h1>
           <p className="text-gray-600 mb-4">
-            {error || "The board you are looking for does not exist."}
+            {error || t("boardDetail.notFoundMessage")}
           </p>
           <Button onClick={() => router.push("/boards")} variant="outline">
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Boards
+            {t("boardDetail.backToBoards")}
           </Button>
         </div>
       </div>
@@ -218,13 +222,22 @@ export function BoardDetailPage({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center space-x-4">
+              <Image
+                src="/aviam_logo.svg"
+                alt="Aviam"
+                width={90}
+                height={26}
+                priority
+                className="hidden md:block"
+              />
+              <div className="hidden md:block h-6 w-px bg-gray-300"></div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => router.push("/boards")}
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Boards
+                {t("boardDetail.backToBoards")}
               </Button>
               <div className="hidden md:block h-6 w-px bg-gray-300"></div>
               <div>
@@ -239,11 +252,16 @@ export function BoardDetailPage({
                     {getRoleLabel(board.role)}
                   </Badge>
                   {board.isArchived && (
-                    <Badge variant="secondary">Archived</Badge>
+                    <Badge variant="secondary">{t("board.archived")}</Badge>
                   )}
                   <span className="text-sm text-gray-500">
-                    {board.columns?.length || 0} columns • {getTotalCards()}{" "}
-                    cards • {board.members?.length || 0} members
+                    {t("boardDetail.columnCount", {
+                      count: board.columns?.length || 0,
+                    })}{" "}
+                    • {t("boardDetail.cardCount", { count: getTotalCards() })} •{" "}
+                    {t("boardDetail.memberCount", {
+                      count: board.members?.length || 0,
+                    })}
                   </span>
                 </div>
               </div>
@@ -257,7 +275,7 @@ export function BoardDetailPage({
                   onClick={() => setShowCreateColumn(true)}
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  Add Column
+                  {t("boardDetail.addColumn")}
                 </Button>
               )}
 
@@ -268,7 +286,7 @@ export function BoardDetailPage({
                   onClick={() => setShowSaveTemplate(true)}
                 >
                   <Save className="w-4 h-4 mr-2" />
-                  Save as Template
+                  {t("boardDetail.saveAsTemplate")}
                 </Button>
               )}
 
@@ -276,10 +294,10 @@ export function BoardDetailPage({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => router.push(`/admin/users?boardId=${boardId}`)}
+                  onClick={() => setShowMembersModal(true)}
                 >
                   <Users className="w-4 h-4 mr-2" />
-                  Manage Users
+                  {t("boardDetail.manageUsers")}
                 </Button>
               )}
 
@@ -298,7 +316,7 @@ export function BoardDetailPage({
                         className="text-red-600 focus:text-red-600"
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
-                        Delete Board
+                        {t("board.deleteBoard")}
                       </DropdownMenuItem>
                     )}
                   </DropdownMenuContent>
@@ -347,6 +365,14 @@ export function BoardDetailPage({
         open={showDeleteBoard}
         onOpenChange={setShowDeleteBoard}
         board={board}
+      />
+
+      <UserManagementModal
+        open={showMembersModal}
+        onOpenChange={setShowMembersModal}
+        boardId={boardId}
+        boardName={board.name}
+        currentUserRole={userRole as "owner" | "admin" | "member" | "viewer"}
       />
     </div>
   );

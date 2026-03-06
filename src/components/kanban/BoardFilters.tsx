@@ -19,10 +19,12 @@ import {
   AlertTriangle,
   Flag,
   Minus,
+  User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CardPriority } from "@/types/database";
 import { getPriorityConfig, getAllPriorities } from "@/lib/priority-colors";
+import { t } from "@/lib/i18n";
 
 export interface BoardFilters {
   priorities: CardPriority[];
@@ -35,6 +37,7 @@ interface BoardFiltersProps {
   filters: BoardFilters;
   onFiltersChange: (filters: BoardFilters) => void;
   availableAssignees: { id: string; name: string; email: string }[];
+  currentUserId?: string | undefined;
   className?: string;
 }
 
@@ -45,22 +48,37 @@ const PRIORITY_ICONS = {
 };
 
 const SORT_OPTIONS = [
-  { value: "priority", label: "Priority" },
-  { value: "dueDate", label: "Due Date" },
-  { value: "title", label: "Title" },
-  { value: "created", label: "Created" },
-  { value: "updated", label: "Updated" },
+  { value: "priority", labelKey: "filters.sortPriority" },
+  { value: "dueDate", labelKey: "filters.sortDueDate" },
+  { value: "title", labelKey: "filters.sortTitle" },
+  { value: "created", labelKey: "filters.sortCreated" },
+  { value: "updated", labelKey: "filters.sortUpdated" },
 ] as const;
 
 export function BoardFilters({
   filters,
   onFiltersChange,
   availableAssignees,
+  currentUserId,
   className,
 }: BoardFiltersProps) {
   const priorities = getAllPriorities();
   const hasActiveFilters =
     filters.priorities.length > 0 || filters.assignees.length > 0;
+
+  const isMyCardsActive =
+    !!currentUserId && filters.assignees.includes(currentUserId);
+
+  const handleMyCardsToggle = () => {
+    if (!currentUserId) return;
+    const newAssignees = isMyCardsActive
+      ? filters.assignees.filter((id) => id !== currentUserId)
+      : [
+          ...filters.assignees.filter((id) => id !== currentUserId),
+          currentUserId,
+        ];
+    onFiltersChange({ ...filters, assignees: newAssignees });
+  };
 
   const handlePriorityToggle = (priority: CardPriority) => {
     const newPriorities = filters.priorities.includes(priority)
@@ -123,6 +141,19 @@ export function BoardFilters({
 
   return (
     <div className={cn("flex items-center gap-2 flex-wrap", className)}>
+      {/* My Cards Toggle */}
+      {currentUserId && (
+        <Button
+          variant={isMyCardsActive ? "default" : "outline"}
+          size="sm"
+          className="h-8"
+          onClick={handleMyCardsToggle}
+        >
+          <User className="w-4 h-4 mr-1" />
+          {t("filters.myCards")}
+        </Button>
+      )}
+
       {/* Priority Filter */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -135,7 +166,7 @@ export function BoardFilters({
             )}
           >
             <Filter className="w-4 h-4 mr-1" />
-            Priority
+            {t("filters.priority")}
             {filters.priorities.length > 0 && (
               <Badge variant="secondary" className="ml-1 h-4 px-1 text-xs">
                 {filters.priorities.length}
@@ -167,7 +198,7 @@ export function BoardFilters({
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={clearPriorityFilters}>
                 <X className="w-4 h-4 mr-2" />
-                Clear Priority Filters
+                {t("filters.clearPriorityFilters")}
               </DropdownMenuItem>
             </>
           )}
@@ -187,7 +218,7 @@ export function BoardFilters({
               )}
             >
               <Filter className="w-4 h-4 mr-1" />
-              Assignee
+              {t("filters.assignee")}
               {filters.assignees.length > 0 && (
                 <Badge variant="secondary" className="ml-1 h-4 px-1 text-xs">
                   {filters.assignees.length}
@@ -200,7 +231,7 @@ export function BoardFilters({
               checked={filters.assignees.includes("unassigned")}
               onCheckedChange={() => handleAssigneeToggle("unassigned")}
             >
-              Unassigned
+              {t("filters.unassigned")}
             </DropdownMenuCheckboxItem>
             {availableAssignees.map((assignee) => (
               <DropdownMenuCheckboxItem
@@ -216,7 +247,7 @@ export function BoardFilters({
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={clearAssigneeFilters}>
                   <X className="w-4 h-4 mr-2" />
-                  Clear Assignee Filters
+                  {t("filters.clearAssigneeFilters")}
                 </DropdownMenuItem>
               </>
             )}
@@ -233,8 +264,11 @@ export function BoardFilters({
             ) : (
               <SortDesc className="w-4 h-4 mr-1" />
             )}
-            Sort:{" "}
-            {SORT_OPTIONS.find((opt) => opt.value === filters.sortBy)?.label}
+            {t("filters.sortLabel")}:{" "}
+            {(() => {
+              const opt = SORT_OPTIONS.find((o) => o.value === filters.sortBy);
+              return opt ? t(opt.labelKey) : "";
+            })()}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-40">
@@ -244,7 +278,7 @@ export function BoardFilters({
               onClick={() => handleSortChange(option.value)}
               className={cn(filters.sortBy === option.value && "bg-gray-100")}
             >
-              {option.label}
+              {t(option.labelKey)}
             </DropdownMenuItem>
           ))}
           <DropdownMenuSeparator />
@@ -252,12 +286,12 @@ export function BoardFilters({
             {filters.sortOrder === "asc" ? (
               <>
                 <SortDesc className="w-4 h-4 mr-2" />
-                Sort Descending
+                {t("filters.sortDescending")}
               </>
             ) : (
               <>
                 <SortAsc className="w-4 h-4 mr-2" />
-                Sort Ascending
+                {t("filters.sortAscending")}
               </>
             )}
           </DropdownMenuItem>
@@ -273,7 +307,7 @@ export function BoardFilters({
           className="h-8 text-gray-500 hover:text-gray-700"
         >
           <X className="w-4 h-4 mr-1" />
-          Clear All
+          {t("filters.clearAll")}
         </Button>
       )}
 

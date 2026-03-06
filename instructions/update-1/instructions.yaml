@@ -1,0 +1,344 @@
+agent:
+  name: kanban-board-enhancements
+  context:
+    summary: >
+      A Kanban board already exists (Next.js + Supabase). Implement incremental adjustments/improvements only.
+      Do NOT build a new board or rewrite architecture. Make localized, minimal changes aligned with the
+      project’s existing UI tech and patterns.
+      NEW: Add per-board access control with user assignment + role management (owner/admin/viewer).
+    hard_rules:
+      - Do not re-architect the board.
+      - Do not replace the existing drag-and-drop library or approach.
+      - Do not introduce a new UI framework; reuse existing UI components/utilities.
+      - TypeScript only.
+      - Use pnpm for any dependency changes.
+      - Keep DB migrations minimal and additive.
+      - Ensure drag & drop remains fully functional after modal/click interactions.
+      - Security: enforce board access via Supabase RLS, not only client-side filtering.
+
+assumptions_to_validate_in_repo:
+  - Board view is implemented in a route like app/(...)/board/[id] or pages/board/[id]
+  - Cards and columns are stored in Supabase tables (e.g. cards, columns)
+  - Boards exist in a boards table (or equivalent)
+  - There is an existing auth/session hook for current user (Supabase auth)
+  - There is an existing Card component and Column component used on the board
+  - There is a board creation flow (modal/page)
+  - There is a central Tailwind config and root layout for global font injection
+  - UI primitives exist (likely shadcn/ui) under components/ui/*
+
+domain_model_additions:
+  board_access_control:
+    goal: >
+      Boards are assignable to users with role management.
+      Each board has a list of users that can access it.
+      The board owner is default admin. Users can be viewer or admin.
+      On board creation, prompt creator to add users (skippable).
+    roles:
+      owner:
+        semantics:
+          - The board creator; stored as boards.owner_id.
+          - Has admin privileges implicitly.
+      admin:
+        semantics:
+          - Can manage board settings, add/remove users, change roles.
+          - Can create/edit columns and cards (unless existing permissions already differ).
+      viewer:
+        semantics:
+          - Can view board and cards.
+          - Default: cannot create/edit/move/delete (unless product already allows; if so, implement read-only mode for viewer).
+          - Must never be able to manage users/roles.
+    recommended_tables:
+      - boards:
+          required_columns:
+            - owner_id: uuid (FK auth.users)
+          note: "If owner_id exists already, reuse it; otherwise add it."
+      - board_members:
+          columns:
+            - board_id: uuid (FK boards.id) not null
+            - user_id: uuid (FK auth.users.id) not null
+            - role: text enum-like ('admin'|'viewer') not null
+            - created_at: timestamptz default now()
+          constraints:
+            - primary_key: (board_id, user_id)
+            - role_check: role in ('admin','viewer')
+    access_rules_high_level:
+      - A user may access a board iff:
+          - boards.owner_id == auth.uid()
+          - OR a row exists in board_members for (board_id, auth.uid()).
+      - Admin privileges iff:
+          - boards.owner_id == auth.uid()
+          - OR board_members.role == 'admin'
+      - Viewer iff:
+          - board_members.role == 'viewer' (and not owner)
+    rls_required: true
+
+workplan:
+  - step: repo_scan
+    goal: Identify exact files to modify (minimal surface area).
+    actions:
+      - Locate:
+          - board page/component (main board render + DnD context)
+          - board creation flow
+          - board settings UI (if exists) or choose minimal location to add "Members" management
+          - supabase client + auth user retrieval
+          - existing filtering UI (if any)
+          - styling tokens / global layout
+      - Output a short list of touched files and why (as comments in PR / commit message).
+
+  - step: access_control_db_migration_and_rls
+    goal: Add board membership + roles with proper Supabase RLS enforcement.
+    actions:
+      - Create migration SQL (single file if possible):
+          - Add boards.owner_id if missing
+          - Create board_members table (if missing) with role constraint
+          - Add indexes:
+              - board_members(board_id)
+              - board_members(user_id)
+      - Enable RLS and policies:
+          - boards:
+              - SELECT allowed for owner or member
+              - UPDATE allowed for owner or admin (if board settings editable)
+              - DELETE allowed for owner (optional, follow existing behavior)
+              - INSERT allowed for authenticated users (if board creation exists)
+          - board_members:
+              - SELECT allowed for owner or admin (and optionally the user themselves for self visibility)
+              - INSERT/UPDATE/DELETE allowed for owner or admin only
+          - columns/cards:
+              - Ensure existing policies require access through board membership/ownership:
+                  - SELECT allowed if user can access board
+                  - INSERT/UPDATE/DELETE allowed if user is owner/admin (viewer read-only)
+      - Add a helper SQL function/view if needed for readability (optional):
+          - e.g. has_board_access(board_id), is_board_admin(board_id)
+    acceptance_criteria:
+      - Unauthorized users cannot read board/cards via API (RLS verified).
+      - Viewer cannot mutate cards/columns via API.
+      - Admin/owner can.
+
+  - step: board_creation_prompt_add_users
+    goal: On board creation, prompt creator to add users and assign roles (skippable).
+    actions:
+      - UI:
+          - After "Create board" submit succeeds, open a members-prompt dialog/step:
+              - Title: "Invite members" (or similar)
+              - Skippable: "Skip for now"
+              - Inputs:
+                  - Add by email (recommended) OR user search if you already have directory
+                  - Role selector per invite: viewer/admin (default viewer)
+              - "Add" button to queue entries; "Save" to persist
+      - Backend flow:
+          - If you can map email -> user_id:
+              - Preferred: create an app-side API route that:
+                  - Looks up user_id by email in a safe table you control (recommended: profiles with email)
+                  - Inserts into board_members with role
+              - If you do NOT have email mapping (common with Supabase):
+                  - Add/ensure a public/profiles table that stores user_id + email (populated on signup via trigger)
+                  - Then look up by email against profiles
+          - Always ensure creator is owner; do not require inserting owner into board_members
+      - UX:
+          - If user enters an email not found, show inline error and keep draft list
+    acceptance_criteria:
+      - Creating a board works as before.
+      - Prompt appears immediately after creation (unless user dismisses/skip).
+      - Invited users show up in board_members with correct role.
+
+  - step: board_members_management_ui
+    goal: Provide a minimal "Members" management UI for admins/owner.
+    actions:
+      - Add "Members" section in board header menu or settings modal (reuse existing pattern).
+      - Capabilities:
+          - List members (including owner shown as "Owner (Admin)")
+          - Change role (admin <-> viewer) for members (owner only or admin; choose policy and match RLS)
+          - Remove member
+          - Add member by email (same component as creation prompt)
+      - Read-only behavior:
+          - If current user is viewer, hide management controls and show list only (optional).
+    acceptance_criteria:
+      - Owner/admin can manage members.
+      - Viewer cannot see role-change/remove controls.
+
+  - step: viewer_read_only_mode
+    goal: Prevent viewers from editing or moving cards/columns in UI (in addition to RLS).
+    actions:
+      - Determine current user role for the board at runtime:
+          - Fetch membership for auth.uid() OR compute via board.owner_id
+      - Disable mutating UI when role == viewer:
+          - Disable DnD interactions (or make drops no-op)
+          - Hide "Add card/column" buttons
+          - In modal detail, disable editing controls
+      - Ensure DnD library does not crash if disabled
+    acceptance_criteria:
+      - Viewer sees the board but cannot modify it through UI.
+      - Admin/owner behavior unchanged.
+
+  - step: branding_barlow_logo
+    goal: Add CI branding with logo + Barlow font using existing layout conventions.
+    actions:
+      - Add logo asset:
+          - Place logo at: public/brand/logo.svg (or follow existing convention)
+      - Add Barlow font:
+          - If app router: use next/font/google in app/layout.tsx
+          - If pages router: add in _app.tsx via next/font/google or link in _document.tsx
+      - Tailwind font:
+          - Extend tailwind.config.* to set fontFamily.sans to Barlow CSS variable
+      - Header branding:
+          - If board already has header: insert logo left, keep spacing consistent
+          - If no header exists: add a minimal header only within board page (do not redesign entire app)
+    acceptance_criteria:
+      - Font across board uses Barlow (or project’s sans is updated to Barlow)
+      - Logo visible in board header area without layout shift
+
+  - step: priority_more_prominent
+    goal: Make card priority visually prominent using color + badge styling, without changing data model unless needed.
+    actions:
+      - Identify current priority field:
+          - If exists (e.g. low|medium|high|urgent), reuse it
+          - If absent, add enum/text field in Supabase (minimal migration)
+      - Update Card tile UI:
+          - Add a left border OR top strip whose color depends on priority
+          - Add a Priority badge (small) near title
+      - Ensure accessible contrast:
+          - Use existing design tokens/classes; avoid custom inline colors if you have a palette
+    acceptance_criteria:
+      - Priority is noticeable at a glance on board view
+      - No regression to card sizing or DnD hitbox
+
+  - step: deadline_field_and_picker
+    goal: Add deadline to each card with a calendar picker; deadline visible on board card tile.
+    actions:
+      - DB migration (Supabase):
+          - Add nullable column: cards.deadline_at (timestamptz) OR deadline_date (date)
+          - Prefer date if you only need day-level; prefer timestamptz if time matters
+      - Types:
+          - Update Card type/interface and any zod schema used
+      - UI:
+          - In card create/edit UI (or modal detail editor): add date picker
+          - Display deadline on card tile as a small line (e.g. "Due: 2026-03-10")
+          - If overdue: apply subtle warning styling (existing utility classes)
+      - Persistence:
+          - Update Supabase update/insert to write the deadline field
+    acceptance_criteria:
+      - Deadline can be set/changed
+      - Deadline is visible on board view for every card with a deadline
+      - Overdue cards are visually indicated (subtle)
+
+  - step: columns_fill_space_with_min_width
+    goal: Columns use full available width; with 3 columns each ~33%, with min width 300px; supports horizontal scroll for 5+ columns.
+    actions:
+      - Update board columns container CSS:
+          - Use CSS grid or flex with responsive sizing:
+              - Recommended: grid with auto-flow column
+                - grid-auto-flow: column
+                - grid-auto-columns: minmax(300px, 1fr)
+                - width: 100%
+                - overflow-x: auto when needed
+          - Ensure gap/padding matches existing layout
+      - Confirm behavior:
+          - 3 columns -> distribute evenly
+          - 5+ columns -> each at least 300px, horizontal scroll appears
+    acceptance_criteria:
+      - With 1–4 columns, they expand to fill width evenly
+      - With 5+ columns, min 300px maintained and board scrolls horizontally (no squished columns)
+
+  - step: card_detail_modal_on_click_no_dnd_break
+    goal: Clicking a card opens a detail modal; drag & drop still works.
+    actions:
+      - Use existing modal/dialog component (e.g. components/ui/dialog)
+      - Implement click-vs-drag strategy:
+          - Prefer a dedicated drag handle inside the card (e.g. grip icon area)
+          - Only attach DnD listeners to the handle, not the entire card container
+          - Make the rest of the card clickable to open modal
+      - Modal content:
+          - Show full card details (title, description, priority, deadline, assignees, activity if exists)
+          - Provide inline edit for deadline/priority if consistent with existing flows
+      - State management:
+          - Keep selectedCardId in board-level state (or URL query param if you already use it)
+          - Fetch details from existing store/cache; avoid extra queries if card data already present
+    acceptance_criteria:
+      - Click opens modal reliably
+      - Dragging works reliably (no accidental modal open during drag)
+      - Keyboard accessible modal (focus trap, ESC close) via existing UI primitive
+
+  - step: filter_assigned_to_me
+    goal: Add a filter toggle to hide cards that are not assigned to current user.
+    actions:
+      - Identify existing assignee model:
+          - If cards has assignee_id (single) -> filter by that
+          - If many-to-many via card_assignees -> filter by membership
+      - UI:
+          - Add a toggle/switch in board toolbar: "Assigned to me"
+          - Persist preference optionally in localStorage (optional; only if you already store UI prefs)
+      - Data:
+          - Prefer client-side filter if dataset is small and already loaded
+          - Prefer server-side query filter if board loads large datasets
+      - Ensure it does not interfere with DnD:
+          - When filter is ON, dragging a card that becomes hidden after reassignment should close modal and update lists cleanly
+    acceptance_criteria:
+      - Toggle hides non-assigned cards instantly
+      - When OFF, all cards appear
+      - No crashes when current user is null (logged out) -> toggle disabled or prompts login
+
+  - step: testing_and_regression
+    goal: Add targeted tests and sanity checks without overbuilding.
+    actions:
+      - Add unit tests (vitest) for:
+          - priority -> className mapping helper
+          - deadline formatting + overdue detection helper
+          - "assigned to me" filter predicate helper
+          - role predicate helpers:
+              - canViewBoard(board, membership)
+              - canEditBoard(board, membership)
+      - Manual QA checklist (document in PR description):
+          - RLS: non-member cannot fetch board/cards
+          - Viewer cannot write via UI and via API (attempted mutation rejected)
+          - DnD works for admin/owner across columns
+          - Modal open/close while DnD still works
+          - Deadline set persists and renders
+          - Column sizing behaves for 3 columns and 6 columns
+          - Filter behaves with different users
+          - Board creation prompt is skippable and can be revisited in Members UI
+    acceptance_criteria:
+      - Tests pass
+      - No TypeScript errors
+      - No breaking changes to existing routes/components
+
+deliverables:
+  - code_changes:
+      - Minimal set of touched files focused on board, card, column layout, membership/roles, and shared UI helpers
+      - Supabase migration SQL:
+          - boards.owner_id (if missing)
+          - board_members table
+          - cards.deadline field (and priority only if missing)
+          - RLS policies for boards/board_members/columns/cards
+  - documentation:
+      - /docs/kanban-enhancements.md describing:
+          - new DB fields and tables
+          - RLS policy summary
+          - roles and permissions
+          - how click-vs-drag is implemented
+          - how to invite/manage members
+  - commit_hygiene:
+      - Prefer separate commits:
+          - access control migration + RLS
+          - board creation invite prompt
+          - members management UI
+          - viewer read-only enforcement
+          - branding
+          - priority styling
+          - deadline + picker
+          - column layout
+          - modal detail
+          - assigned-to-me filter
+          - tests
+
+notes_for_agent:
+  - If shadcn/ui exists, use:
+      - Dialog for modal + invite prompt
+      - Popover + Calendar for date picking (or existing date picker)
+      - Badge for priority
+      - Switch for "Assigned to me"
+      - DropdownMenu for Members actions
+  - If shadcn/ui does NOT exist, reuse the project’s existing modal/date-picker patterns; avoid heavy deps.
+  - Email->user_id mapping:
+      - Prefer a profiles table storing email and user_id (populated by trigger) to support member lookup.
+      - Avoid requiring Supabase admin API from the client.
+  - RLS would be nice but if they create problems better skip them for now; This is a intranet app.

@@ -1,23 +1,20 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Barlow } from "next/font/google";
+import { de } from "@/lib/locales/de";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const barlow = Barlow({
+  variable: "--font-barlow",
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
   title: {
-    template: "Aviam Kanban Board - %s",
-    default: "Aviam Kanban Board",
+    template: de.metadata.titleTemplate,
+    default: de.metadata.title,
   },
-  description: "Project management and task tracking with Kanban boards",
+  description: de.metadata.description,
 };
 
 export default function RootLayout({
@@ -26,12 +23,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
-      </body>
+    <html lang={de.metadata_html.lang}>
+      <body className={`${barlow.variable} antialiased`}>{children}</body>
     </html>
   );
 }

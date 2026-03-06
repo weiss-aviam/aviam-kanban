@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "../../../lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
+import { getBoardMutationAuthorization } from "@/lib/board-access";
 import { z } from "zod";
+
+type BoardAccessClient = Parameters<typeof getBoardMutationAuthorization>[0];
 
 const createColumnSchema = z.object({
   boardId: z.string().uuid("Board ID must be a valid UUID"),
@@ -14,6 +17,7 @@ const createColumnSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
+    const boardAccessClient = supabase as unknown as BoardAccessClient;
 
     // Get the current user
     const {
@@ -49,6 +53,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Board not found or insufficient permissions" },
         { status: 404 },
+      );
+    }
+
+    const authorization = await getBoardMutationAuthorization(
+      boardAccessClient,
+      boardId,
+      user.id,
+    );
+
+    if (!authorization.ok) {
+      return NextResponse.json(
+        { error: authorization.error },
+        { status: authorization.status },
       );
     }
 

@@ -193,11 +193,8 @@ export async function applyAdminRateLimit(
 /**
  * Rate limit middleware for Next.js API routes
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ExpressRequest = any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ExpressResponse = any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ExpressHandler = any;
 
 export function withRateLimit(

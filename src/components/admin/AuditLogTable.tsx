@@ -23,6 +23,7 @@ import {
   Activity,
 } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
+import { t } from "@/lib/i18n";
 
 interface AuditLogDetails {
   email?: string;
@@ -102,7 +103,7 @@ export function AuditLogTable({ boardId, refreshTrigger }: AuditLogTableProps) {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to fetch audit logs");
+        throw new Error(errorData.error || t("admin.failedToFetchAuditLogs"));
       }
 
       const data = await response.json();
@@ -110,7 +111,7 @@ export function AuditLogTable({ boardId, refreshTrigger }: AuditLogTableProps) {
       setPagination(data.pagination);
       setSummary(data.summary);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      setError(err instanceof Error ? err.message : t("admin.anErrorOccurred"));
     } finally {
       setLoading(false);
     }
@@ -124,27 +125,27 @@ export function AuditLogTable({ boardId, refreshTrigger }: AuditLogTableProps) {
   const getActionBadge = (action: string) => {
     const actionConfig = {
       invite_user: {
-        label: "User Invited",
+        label: t("admin.auditLog.actions.invite_user"),
         color: "bg-blue-50 text-blue-700 border-blue-200",
       },
       update_user: {
-        label: "User Updated",
+        label: t("admin.auditLog.actions.update_user"),
         color: "bg-yellow-50 text-yellow-700 border-yellow-200",
       },
       remove_user: {
-        label: "User Removed",
+        label: t("admin.auditLog.actions.remove_user"),
         color: "bg-red-50 text-red-700 border-red-200",
       },
       reset_password: {
-        label: "Password Reset",
+        label: t("admin.auditLog.actions.reset_password"),
         color: "bg-purple-50 text-purple-700 border-purple-200",
       },
       update_role: {
-        label: "Role Changed",
+        label: t("admin.auditLog.actions.update_role"),
         color: "bg-green-50 text-green-700 border-green-200",
       },
       bulk_update_roles: {
-        label: "Bulk Role Update",
+        label: t("admin.auditLog.actions.bulk_update_roles"),
         color: "bg-orange-50 text-orange-700 border-orange-200",
       },
     };
@@ -166,26 +167,45 @@ export function AuditLogTable({ boardId, refreshTrigger }: AuditLogTableProps) {
 
     switch (action) {
       case "invite_user":
-        return `Invited ${details.email || ""} as ${details.role || ""}`;
-      case "update_user":
+        return t("admin.auditLog.actionDetails.invite_user", {
+          email: details.email || "",
+          role: details.role || "",
+        });
+      case "update_user": {
         const changes = [];
         if (details.nameChanged) {
           changes.push(
-            `name: "${details.nameChanged.from}" → "${details.nameChanged.to}"`,
+            t("admin.auditLog.actionDetails.update_user_name", {
+              from: details.nameChanged.from,
+              to: details.nameChanged.to,
+            }),
           );
         }
         if (details.roleChanged) {
           changes.push(
-            `role: ${details.roleChanged.from} → ${details.roleChanged.to}`,
+            t("admin.auditLog.actionDetails.update_user_role", {
+              from: details.roleChanged.from,
+              to: details.roleChanged.to,
+            }),
           );
         }
         return changes.join(", ");
+      }
       case "remove_user":
-        return `Removed ${details.removedUser?.name || details.removedUser?.email} (${details.removedUser?.role})`;
+        return t("admin.auditLog.actionDetails.remove_user", {
+          name: details.removedUser?.name || details.removedUser?.email || "",
+          role: details.removedUser?.role || "",
+        });
       case "reset_password":
-        return `Reset password for ${details.targetUser?.name || details.targetUser?.email}`;
+        return t("admin.auditLog.actionDetails.reset_password", {
+          name: details.targetUser?.name || details.targetUser?.email || "",
+        });
       case "update_role":
-        return `Changed ${details.targetUser?.name || details.targetUser?.email} role: ${details.roleChanged?.from} → ${details.roleChanged?.to}`;
+        return t("admin.auditLog.actionDetails.update_role", {
+          name: details.targetUser?.name || details.targetUser?.email || "",
+          from: details.roleChanged?.from || "",
+          to: details.roleChanged?.to || "",
+        });
       default:
         return JSON.stringify(details);
     }
@@ -196,7 +216,7 @@ export function AuditLogTable({ boardId, refreshTrigger }: AuditLogTableProps) {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading audit logs...</p>
+          <p className="mt-2 text-gray-600">{t("admin.loadingAuditLogs")}</p>
         </div>
       </div>
     );
@@ -208,7 +228,7 @@ export function AuditLogTable({ boardId, refreshTrigger }: AuditLogTableProps) {
         <div className="text-center">
           <p className="text-red-600 mb-2">{error}</p>
           <Button onClick={fetchAuditLogs} variant="outline" size="sm">
-            Try Again
+            {t("common.tryAgain")}
           </Button>
         </div>
       </div>
@@ -222,13 +242,15 @@ export function AuditLogTable({ boardId, refreshTrigger }: AuditLogTableProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Filter className="w-5 h-5" />
-            Filters
+            {t("admin.auditLog.filters")}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <Label htmlFor="action-filter">Action Type</Label>
+              <Label htmlFor="action-filter">
+                {t("admin.auditLog.actionType")}
+              </Label>
               <Select
                 value={filters.action}
                 onValueChange={(value) => {
@@ -237,21 +259,35 @@ export function AuditLogTable({ boardId, refreshTrigger }: AuditLogTableProps) {
                 }}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="All actions" />
+                  <SelectValue placeholder={t("admin.auditLog.allActions")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Actions</SelectItem>
-                  <SelectItem value="invite_user">User Invited</SelectItem>
-                  <SelectItem value="update_user">User Updated</SelectItem>
-                  <SelectItem value="remove_user">User Removed</SelectItem>
-                  <SelectItem value="reset_password">Password Reset</SelectItem>
-                  <SelectItem value="update_role">Role Changed</SelectItem>
+                  <SelectItem value="">
+                    {t("admin.auditLog.allActions")}
+                  </SelectItem>
+                  <SelectItem value="invite_user">
+                    {t("admin.auditLog.actions.invite_user")}
+                  </SelectItem>
+                  <SelectItem value="update_user">
+                    {t("admin.auditLog.actions.update_user")}
+                  </SelectItem>
+                  <SelectItem value="remove_user">
+                    {t("admin.auditLog.actions.remove_user")}
+                  </SelectItem>
+                  <SelectItem value="reset_password">
+                    {t("admin.auditLog.actions.reset_password")}
+                  </SelectItem>
+                  <SelectItem value="update_role">
+                    {t("admin.auditLog.actions.update_role")}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div>
-              <Label htmlFor="start-date">Start Date</Label>
+              <Label htmlFor="start-date">
+                {t("admin.auditLog.startDate")}
+              </Label>
               <Input
                 id="start-date"
                 type="date"
@@ -264,7 +300,7 @@ export function AuditLogTable({ boardId, refreshTrigger }: AuditLogTableProps) {
             </div>
 
             <div>
-              <Label htmlFor="end-date">End Date</Label>
+              <Label htmlFor="end-date">{t("admin.auditLog.endDate")}</Label>
               <Input
                 id="end-date"
                 type="date"
@@ -287,7 +323,9 @@ export function AuditLogTable({ boardId, refreshTrigger }: AuditLogTableProps) {
               <div className="flex items-center space-x-2">
                 <Activity className="w-4 h-4 text-blue-600" />
                 <div>
-                  <p className="text-sm font-medium">Total Actions</p>
+                  <p className="text-sm font-medium">
+                    {t("admin.auditLog.totalActions")}
+                  </p>
                   <p className="text-2xl font-bold">{summary.totalActions}</p>
                 </div>
               </div>
@@ -299,10 +337,12 @@ export function AuditLogTable({ boardId, refreshTrigger }: AuditLogTableProps) {
               <div className="flex items-center space-x-2">
                 <Calendar className="w-4 h-4 text-green-600" />
                 <div>
-                  <p className="text-sm font-medium">Date Range</p>
+                  <p className="text-sm font-medium">
+                    {t("admin.auditLog.dateRange")}
+                  </p>
                   <p className="text-sm text-gray-600">
-                    {filters.startDate || "All time"} -{" "}
-                    {filters.endDate || "Now"}
+                    {filters.startDate || t("common.allTime")} -{" "}
+                    {filters.endDate || t("common.now")}
                   </p>
                 </div>
               </div>
@@ -314,13 +354,15 @@ export function AuditLogTable({ boardId, refreshTrigger }: AuditLogTableProps) {
               <div className="flex items-center space-x-2">
                 <User className="w-4 h-4 text-purple-600" />
                 <div>
-                  <p className="text-sm font-medium">Most Common</p>
+                  <p className="text-sm font-medium">
+                    {t("admin.auditLog.mostCommon")}
+                  </p>
                   <p className="text-sm text-gray-600">
                     {Object.entries(summary.actionCounts || {})
                       .sort(
                         ([, a], [, b]) => (b as number) - (a as number),
                       )[0]?.[0]
-                      ?.replace(/_/g, " ") || "None"}
+                      ?.replace(/_/g, " ") || t("common.none")}
                   </p>
                 </div>
               </div>
@@ -334,7 +376,7 @@ export function AuditLogTable({ boardId, refreshTrigger }: AuditLogTableProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <History className="w-5 h-5" />
-            Audit Log
+            {t("admin.auditLog.title")}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -346,7 +388,9 @@ export function AuditLogTable({ boardId, refreshTrigger }: AuditLogTableProps) {
                     <div className="flex items-center space-x-2">
                       {getActionBadge(log.action)}
                       <span className="text-sm text-gray-500">
-                        {formatDistanceToNow(new Date(log.createdAt))} ago
+                        {t("common.timeAgo", {
+                          time: formatDistanceToNow(new Date(log.createdAt)),
+                        })}
                       </span>
                     </div>
 
@@ -354,7 +398,7 @@ export function AuditLogTable({ boardId, refreshTrigger }: AuditLogTableProps) {
                       <p className="font-medium">
                         {log.adminUser?.name ||
                           log.adminUser?.email ||
-                          "Unknown admin"}
+                          t("admin.auditLog.unknownAdmin")}
                       </p>
                       <p className="text-sm text-gray-600">
                         {formatDetails(log.action, log.details)}
@@ -375,7 +419,10 @@ export function AuditLogTable({ boardId, refreshTrigger }: AuditLogTableProps) {
           {pagination.totalPages > 1 && (
             <div className="flex items-center justify-between mt-6">
               <p className="text-sm text-gray-600">
-                Showing {auditLogs.length} of {pagination.total} logs
+                {t("admin.auditLog.showingLogs", {
+                  count: String(auditLogs.length),
+                  total: String(pagination.total),
+                })}
               </p>
               <div className="flex items-center space-x-2">
                 <Button
@@ -385,10 +432,13 @@ export function AuditLogTable({ boardId, refreshTrigger }: AuditLogTableProps) {
                   disabled={!pagination.hasPrev}
                 >
                   <ChevronLeft className="w-4 h-4" />
-                  Previous
+                  {t("common.previous")}
                 </Button>
                 <span className="text-sm">
-                  Page {page} of {pagination.totalPages}
+                  {t("admin.auditLog.page", {
+                    page: String(page),
+                    total: String(pagination.totalPages),
+                  })}
                 </span>
                 <Button
                   variant="outline"
@@ -396,7 +446,7 @@ export function AuditLogTable({ boardId, refreshTrigger }: AuditLogTableProps) {
                   onClick={() => setPage(page + 1)}
                   disabled={!pagination.hasNext}
                 >
-                  Next
+                  {t("common.next")}
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>

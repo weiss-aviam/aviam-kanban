@@ -1,5 +1,37 @@
-import "@testing-library/jest-dom";
+import "@testing-library/jest-dom/vitest";
+import React from "react";
 import { vi } from "vitest";
+
+// ---------------------------------------------------------------------------
+// Mock ESM-only markdown packages BEFORE any test module loads them
+// ---------------------------------------------------------------------------
+vi.mock("@uiw/react-md-editor", () => {
+  const MarkdownPreview = ({ source }: { source?: string }) =>
+    React.createElement("div", { "data-testid": "md-preview" }, source);
+
+  const MDEditor = ({
+    value,
+    onChange,
+  }: {
+    value?: string;
+    onChange?: (v?: string) => void;
+  }) =>
+    React.createElement("textarea", {
+      "data-testid": "md-editor",
+      value: value ?? "",
+      onChange: (event: { target: { value: string } }) =>
+        onChange?.(event.target.value),
+    });
+
+  MarkdownPreview.displayName = "MarkdownPreview";
+  MDEditor.displayName = "MDEditor";
+  MDEditor.Markdown = MarkdownPreview;
+
+  return { default: MDEditor };
+});
+
+vi.mock("remark-gfm", () => ({ default: () => {} }));
+vi.mock("rehype-sanitize", () => ({ default: () => {} }));
 
 // Mock environment variables
 Object.assign(process.env, {
@@ -72,22 +104,30 @@ vi.mock("date-fns", () => ({
   format: vi.fn(() => "2023-01-01 12:00:00"),
 }));
 
-// Mock lucide-react icons
+// Mock lucide-react icons — return a real React element so components render without errors
 vi.mock("lucide-react", () => {
   const MockIcon = ({
     className,
-    ...props
+    title,
   }: {
     className?: string;
+    title?: string;
     [key: string]: unknown;
-  }) => {
-    return { className, "data-testid": "mock-icon", ...props };
-  };
+  }) =>
+    React.createElement("svg", {
+      className,
+      "data-testid": "mock-icon",
+      role: "img",
+      title,
+    });
 
   return new Proxy(
     {},
     {
-      get: () => MockIcon,
+      get: (_target, prop) => {
+        if (prop === "__esModule") return true;
+        return MockIcon;
+      },
     },
   );
 });
@@ -220,13 +260,11 @@ import { render, RenderOptions } from "@testing-library/react";
 import { ReactElement } from "react";
 
 const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
-  return children as React.ReactElement;
+  return React.createElement(React.Fragment, null, children);
 };
 
-export const customRender = (
-  ui: ReactElement,
-  options?: Omit<RenderOptions, "wrapper">,
-) => render(ui, { wrapper: AllTheProviders, ...options });
+export const customRender = (ui: ReactElement, options?: RenderOptions) =>
+  render(ui, { wrapper: AllTheProviders, ...options });
 
 // Re-export specific items from testing library (excluding renderHook and act to avoid conflicts)
 export { screen, waitFor, within, fireEvent } from "@testing-library/react";

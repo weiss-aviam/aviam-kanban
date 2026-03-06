@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "../../../../lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
+import { getBoardMutationAuthorization } from "@/lib/board-access";
 import { z } from "zod";
+
+type BoardAccessClient = Parameters<typeof getBoardMutationAuthorization>[0];
 
 const bulkReorderSchema = z.object({
   updates: z
@@ -23,6 +26,7 @@ const bulkReorderSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
+    const boardAccessClient = supabase as unknown as BoardAccessClient;
 
     // Get the current user
     const {
@@ -80,6 +84,19 @@ export async function POST(request: NextRequest) {
     }
 
     const boardId = boardIds[0];
+
+    const authorization = await getBoardMutationAuthorization(
+      boardAccessClient,
+      boardId,
+      user.id,
+    );
+
+    if (!authorization.ok) {
+      return NextResponse.json(
+        { error: authorization.error },
+        { status: authorization.status },
+      );
+    }
 
     // Get all column IDs to verify they belong to the same board
     const columnIds = [...new Set(updates.map((update) => update.columnId))];

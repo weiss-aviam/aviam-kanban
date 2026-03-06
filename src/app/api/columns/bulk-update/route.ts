@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "../../../../lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
+import { getBoardMutationAuthorization } from "@/lib/board-access";
 import { z } from "zod";
+
+type BoardAccessClient = Parameters<typeof getBoardMutationAuthorization>[0];
 
 const bulkUpdateSchema = z.object({
   updates: z.array(
@@ -17,6 +20,7 @@ const bulkUpdateSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
+    const boardAccessClient = supabase as unknown as BoardAccessClient;
 
     // Get the current user
     const {
@@ -43,6 +47,50 @@ export async function POST(request: NextRequest) {
 
     if (updates.length === 0) {
       return NextResponse.json({ success: true });
+    }
+
+    const columnIds = updates.map((update) => update.id);
+
+    const { data: columns, error: columnsError } = await supabase
+      .from("columns")
+      .select("id, board_id")
+      .in("id", columnIds);
+
+    if (columnsError) {
+      console.error("Error fetching columns for bulk update:", columnsError);
+      return NextResponse.json(
+        { error: "Failed to verify columns" },
+        { status: 500 },
+      );
+    }
+
+    if (columns.length !== columnIds.length) {
+      return NextResponse.json(
+        { error: "Some columns not found or access denied" },
+        { status: 404 },
+      );
+    }
+
+    const boardIds = [...new Set(columns.map((column) => column.board_id))];
+
+    if (boardIds.length !== 1) {
+      return NextResponse.json(
+        { error: "All columns must belong to the same board" },
+        { status: 400 },
+      );
+    }
+
+    const authorization = await getBoardMutationAuthorization(
+      boardAccessClient,
+      boardIds[0],
+      user.id,
+    );
+
+    if (!authorization.ok) {
+      return NextResponse.json(
+        { error: authorization.error },
+        { status: authorization.status },
+      );
     }
 
     // Perform bulk update using Supabase

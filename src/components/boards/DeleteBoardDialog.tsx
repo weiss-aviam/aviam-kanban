@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { DeleteConfirmationDialog } from "../ui/delete-confirmation-dialog";
 import { useAppActions } from "@/store";
 import type { BoardWithDetails } from "@/types/database";
+import { t } from "@/lib/i18n";
 
 interface DeleteBoardDialogProps {
   open: boolean;
@@ -39,7 +40,7 @@ export function DeleteBoardDialog({
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error || "Failed to delete board");
+          throw new Error(errorData.error || t("boards.deleteBoard"));
         }
 
         // Update the store
@@ -53,7 +54,7 @@ export function DeleteBoardDialog({
     } catch (error) {
       console.error("Error deleting board:", error);
       setError(
-        error instanceof Error ? error.message : "Failed to delete board",
+        error instanceof Error ? error.message : t("boards.deleteBoard"),
       );
     } finally {
       setIsLoading(false);
@@ -73,10 +74,14 @@ export function DeleteBoardDialog({
     <DeleteConfirmationDialog
       open={open}
       onOpenChange={onOpenChange}
-      title="Delete Board"
-      description={`This will permanently delete the board "${board.name}" along with all ${columnCount} column${columnCount === 1 ? "" : "s"} and ${totalCards} card${totalCards === 1 ? "" : "s"}. This action cannot be undone.`}
+      title={t("boards.deleteBoard")}
+      description={t("boards.deleteBoardDescription", {
+        name: board.name,
+        columns: String(columnCount),
+        cards: String(totalCards),
+      })}
       confirmationText={board.name}
-      destructiveAction="Delete Board"
+      destructiveAction={t("boards.deleteBoard")}
       onConfirm={handleDelete}
       isLoading={isLoading}
     />

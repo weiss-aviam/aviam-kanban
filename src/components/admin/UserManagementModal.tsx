@@ -11,10 +11,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Users, UserPlus, History, Settings } from "lucide-react";
+import { t } from "@/lib/i18n";
 import { UserList } from "./UserList";
 import { InviteUserForm } from "./InviteUserForm";
 import { MembershipTable } from "./MembershipTable";
 import { AuditLogTable } from "./AuditLogTable";
+import {
+  DEFAULT_USER_MANAGEMENT_TAB,
+  canAccessUserManagement,
+  getUserManagementRoleLabelKey,
+  nextRefreshTrigger,
+  shouldShowRefreshButton,
+  type UserManagementTab,
+} from "./user-management-modal.utils";
 
 interface UserManagementModalProps {
   open: boolean;
@@ -31,22 +40,32 @@ export function UserManagementModal({
   boardName,
   currentUserRole,
 }: UserManagementModalProps) {
-  const [activeTab, setActiveTab] = useState("users");
+  const [activeTab, setActiveTab] = useState<UserManagementTab>(
+    DEFAULT_USER_MANAGEMENT_TAB,
+  );
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  const isAdmin = currentUserRole === "owner" || currentUserRole === "admin";
-
-  if (!isAdmin) {
+  if (!canAccessUserManagement(currentUserRole)) {
     return null;
   }
 
   const handleRefresh = () => {
-    setRefreshTrigger((prev) => prev + 1);
+    setRefreshTrigger((prev) => nextRefreshTrigger(prev));
   };
 
   const handleUserAction = () => {
     handleRefresh();
   };
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value as UserManagementTab);
+  };
+
+  const refreshButton = shouldShowRefreshButton(activeTab) ? (
+    <Button variant="outline" size="sm" onClick={handleRefresh}>
+      {t("common.refresh")}
+    </Button>
+  ) : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -54,37 +73,37 @@ export function UserManagementModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Users className="w-5 h-5" />
-            User Management - {boardName}
+            {t("admin.userManagementTitle", { boardName })}
             <Badge variant="outline" className="ml-2">
-              {currentUserRole === "owner" ? "Owner" : "Admin"}
+              {t(getUserManagementRoleLabelKey(currentUserRole))}
             </Badge>
           </DialogTitle>
         </DialogHeader>
 
         <Tabs
           value={activeTab}
-          onValueChange={setActiveTab}
+          onValueChange={handleTabChange}
           className="flex-1 flex flex-col"
         >
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
-              Users
+              {t("admin.tabs.users")}
             </TabsTrigger>
             <TabsTrigger value="invite" className="flex items-center gap-2">
               <UserPlus className="w-4 h-4" />
-              Invite
+              {t("admin.tabs.invite")}
             </TabsTrigger>
             <TabsTrigger
               value="memberships"
               className="flex items-center gap-2"
             >
               <Settings className="w-4 h-4" />
-              Memberships
+              {t("admin.tabs.memberships")}
             </TabsTrigger>
             <TabsTrigger value="audit" className="flex items-center gap-2">
               <History className="w-4 h-4" />
-              Audit Log
+              {t("admin.tabs.auditLog")}
             </TabsTrigger>
           </TabsList>
 
@@ -92,10 +111,10 @@ export function UserManagementModal({
             <TabsContent value="users" className="h-full">
               <div className="space-y-6 h-full">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">Board Users</h3>
-                  <Button variant="outline" size="sm" onClick={handleRefresh}>
-                    Refresh
-                  </Button>
+                  <h3 className="text-lg font-semibold">
+                    {t("admin.boardUsers")}
+                  </h3>
+                  {refreshButton}
                 </div>
                 <UserList
                   boardId={boardId}
@@ -109,7 +128,9 @@ export function UserManagementModal({
             <TabsContent value="invite" className="h-full">
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">Invite New Users</h3>
+                  <h3 className="text-lg font-semibold">
+                    {t("admin.inviteNewUsers")}
+                  </h3>
                 </div>
                 <InviteUserForm
                   boardId={boardId}
@@ -122,10 +143,10 @@ export function UserManagementModal({
             <TabsContent value="memberships" className="h-full">
               <div className="space-y-6 h-full">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">Board Memberships</h3>
-                  <Button variant="outline" size="sm" onClick={handleRefresh}>
-                    Refresh
-                  </Button>
+                  <h3 className="text-lg font-semibold">
+                    {t("admin.boardMemberships")}
+                  </h3>
+                  {refreshButton}
                 </div>
                 <MembershipTable
                   boardId={boardId}
@@ -140,11 +161,9 @@ export function UserManagementModal({
               <div className="space-y-6 h-full">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold">
-                    Admin Actions Audit Log
+                    {t("admin.adminActionsAuditLog")}
                   </h3>
-                  <Button variant="outline" size="sm" onClick={handleRefresh}>
-                    Refresh
-                  </Button>
+                  {refreshButton}
                 </div>
                 <AuditLogTable
                   boardId={boardId}

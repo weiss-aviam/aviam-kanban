@@ -13,6 +13,7 @@ import { EditCardDialog } from "./EditCardDialog";
 import { EmptyColumn } from "./EmptyStates";
 import { Button } from "@/components/ui/button";
 import { Plus, MoreHorizontal, GripVertical, Edit, Trash2 } from "lucide-react";
+import { t } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
 import {
   DropdownMenu,
@@ -66,6 +67,8 @@ export function KanbanColumn({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
 
+  const isViewer = userRole === "viewer";
+
   // Make columns sortable for drag & drop reordering
   const {
     attributes: sortableAttributes,
@@ -76,6 +79,7 @@ export function KanbanColumn({
     isDragging: isColumnDragging,
   } = useSortable({
     id: `column-${column.id}`,
+    disabled: isViewer,
   });
 
   // Make columns droppable for cards
@@ -110,49 +114,54 @@ export function KanbanColumn({
     <div
       ref={setSortableNodeRef}
       style={sortableStyle}
-      className={`flex flex-col w-80 flex-shrink-0 ${
-        isColumnDragging ? "opacity-50 rotate-1 shadow-lg" : ""
-      }`}
+      className={`flex flex-col min-w-0 ${isColumnDragging ? "opacity-50 rotate-1 shadow-lg" : ""}`}
     >
       {/* Column Header */}
       <div className="flex items-center justify-between p-4 bg-gray-50 rounded-t-lg border border-b-0">
         <div className="flex items-center space-x-2">
-          {/* Drag Handle for Column */}
-          <div
-            {...sortableAttributes}
-            {...sortableListeners}
-            className="cursor-grab active:cursor-grabbing p-1 hover:bg-gray-200 rounded transition-colors"
-          >
-            <GripVertical className="w-4 h-4 text-gray-400" />
-          </div>
+          {/* Drag Handle for Column — hidden for viewers */}
+          {!isViewer && (
+            <div
+              {...sortableAttributes}
+              {...sortableListeners}
+              className="cursor-grab active:cursor-grabbing p-1 hover:bg-gray-200 rounded transition-colors"
+            >
+              <GripVertical className="w-4 h-4 text-gray-400" />
+            </div>
+          )}
           <h3 className="font-semibold text-gray-900">{column.title}</h3>
           <span className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full">
             {cards.length}
           </span>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-              <MoreHorizontal className="w-4 h-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem onClick={handleEditColumn}>
-              <Edit className="mr-2 h-4 w-4" />
-              Edit Column
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={handleDeleteColumn}
-              disabled={!canDeleteColumn}
-              className="text-red-600 focus:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete Column
-              {hasCards && <span className="ml-2 text-xs">(has cards)</span>}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {/* Column actions — hidden for viewers */}
+        {!isViewer && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <MoreHorizontal className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={handleEditColumn}>
+                <Edit className="mr-2 h-4 w-4" />
+                {t("column.edit")}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={handleDeleteColumn}
+                disabled={!canDeleteColumn}
+                className="text-red-600 focus:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                {t("column.delete")}
+                {hasCards && (
+                  <span className="ml-2 text-xs">{t("column.hasCards")}</span>
+                )}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
 
       {/* Cards Container */}
@@ -186,22 +195,24 @@ export function KanbanColumn({
                     />
                   ))}
 
-                {/* Add Card Button */}
-                <Button
-                  variant="ghost"
-                  onClick={handleAddCard}
-                  className="w-full justify-start text-gray-500 hover:text-gray-700 border-dashed border-2 border-gray-200 hover:border-gray-300"
-                  disabled={isLoading}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add A Card
-                </Button>
+                {/* Add Card Button — hidden for viewers */}
+                {!isViewer && (
+                  <Button
+                    variant="ghost"
+                    onClick={handleAddCard}
+                    className="w-full justify-start text-gray-500 hover:text-gray-700 border-dashed border-2 border-gray-200 hover:border-gray-300"
+                    disabled={isLoading}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    {t("column.addCard")}
+                  </Button>
+                )}
               </>
             ) : (
               /* Empty Column State */
               <EmptyColumn
                 columnTitle={column.title}
-                onCreateCard={handleAddCard}
+                onCreateCard={isViewer ? undefined : handleAddCard}
               />
             )}
           </div>

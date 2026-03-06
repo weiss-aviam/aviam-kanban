@@ -2,11 +2,12 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import type { CSSProperties } from "react";
 import { Card } from "@/components/ui/card";
 // import { Badge } from '@/components/ui/badge'; // Removed for now since labels aren't implemented
 import { Avatar } from "@/components/ui/avatar";
-import { Calendar } from "lucide-react";
-import { format } from "date-fns";
+import { Calendar, GripVertical } from "lucide-react";
+import { t } from "@/lib/i18n";
 import type {
   Card as CardType,
   Column,
@@ -17,6 +18,7 @@ import type {
 } from "@/types/database";
 import { getUserAvatarColor, getUserInitials } from "../../lib/role-colors";
 import { getPriorityBorderColor } from "@/lib/priority-colors";
+import { formatDueDate, isOverdue, isDueSoon } from "@/lib/board-permissions";
 import { CompactMarkdownViewer } from "@/components/ui/markdown-viewer";
 import { PriorityBadge } from "@/components/ui/priority-selector";
 import { AutoCardContextMenu } from "./CardContextMenu";
@@ -49,6 +51,8 @@ export function KanbanCard({
   onCardDeleted: _onCardDeleted,
   onCardCreated: _onCardCreated,
 }: KanbanCardProps) {
+  const isViewer = userRole === "viewer";
+
   const {
     attributes,
     listeners,
@@ -58,6 +62,7 @@ export function KanbanCard({
     isDragging: sortableIsDragging,
   } = useSortable({
     id: card.id,
+    disabled: isViewer,
   });
 
   // Card actions hook with Zustand store integration
@@ -120,12 +125,12 @@ export function KanbanCard({
   // Determine if currently dragging
   const isCurrentlyDragging = sortableIsDragging;
 
-  const style = {
+  const style: CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
     borderLeftColor: priorityBorderColor,
     borderLeftWidth: "3px",
-    borderLeftStyle: "solid" as const,
+    borderLeftStyle: "solid",
   };
 
   const handleCardClick = () => {
@@ -144,11 +149,9 @@ export function KanbanCard({
     onEdit?.(card);
   };
 
-  const isOverdue = card.dueDate && new Date(card.dueDate) < new Date();
-  const isDueSoon =
-    card.dueDate &&
-    new Date(card.dueDate) > new Date() &&
-    new Date(card.dueDate) <= new Date(Date.now() + 24 * 60 * 60 * 1000); // Due within 24 hours
+  const cardIsOverdue = isOverdue(card.dueDate);
+  const cardIsDueSoon = isDueSoon(card.dueDate);
+  const formattedDueDate = formatDueDate(card.dueDate);
 
   // Find assignee from board members
   const assignee = boardMembers.find((member) => member.id === card.assigneeId);
@@ -170,17 +173,21 @@ export function KanbanCard({
         ref={setNodeRef}
         style={style}
         {...attributes}
-        {...listeners}
-        className={`p-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow border-l-4 ${
-          isCurrentlyDragging
-            ? "opacity-50 rotate-3 shadow-lg cursor-grabbing"
-            : ""
-        }`}
+        className={`p-3 cursor-default hover:shadow-md transition-shadow border-l-4 ${isCurrentlyDragging ? "opacity-50 rotate-3 shadow-lg" : ""}`}
         onClick={handleCardClick}
         onDoubleClick={handleCardDoubleClick}
       >
-        {/* Card Header with Title and Priority */}
+        {/* Card Header with Title, Drag Handle, and Priority */}
         <div className="flex items-start justify-between mb-2">
+          {!isViewer && (
+            <div
+              {...listeners}
+              className="cursor-grab active:cursor-grabbing p-0.5 -ml-1 mr-1 mt-0.5 text-gray-300 hover:text-gray-500 flex-shrink-0"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <GripVertical className="w-4 h-4" />
+            </div>
+          )}
           <h4 className="font-medium text-gray-900 line-clamp-2 flex-1 mr-2">
             {card.title}
           </h4>
@@ -204,19 +211,13 @@ export function KanbanCard({
         {/* Due Date */}
         {card.dueDate && (
           <div
-            className={`flex items-center space-x-1 mb-2 text-xs ${
-              isOverdue
-                ? "text-red-600"
-                : isDueSoon
-                  ? "text-orange-600"
-                  : "text-gray-500"
-            }`}
+            className={`flex items-center space-x-1 mb-2 text-xs ${cardIsOverdue ? "text-red-600" : cardIsDueSoon ? "text-orange-600" : "text-gray-500"}`}
           >
             <Calendar className="w-3 h-3" />
             <span>
-              {format(new Date(card.dueDate), "MMM d")}
-              {isOverdue && " (Overdue)"}
-              {isDueSoon && " (Due Soon)"}
+              {formattedDueDate}
+              {cardIsOverdue && ` (${t("card.overdue")})`}
+              {cardIsDueSoon && ` (${t("card.dueSoon")})`}
             </span>
           </div>
         )}
@@ -228,16 +229,10 @@ export function KanbanCard({
             {/* Due date */}
             {card.dueDate && (
               <div
-                className={`flex items-center space-x-1 text-xs ${
-                  isOverdue
-                    ? "text-red-600"
-                    : isDueSoon
-                      ? "text-orange-600"
-                      : ""
-                }`}
+                className={`flex items-center space-x-1 text-xs ${cardIsOverdue ? "text-red-600" : cardIsDueSoon ? "text-orange-600" : ""}`}
               >
                 <Calendar className="w-3 h-3" />
-                <span>{format(new Date(card.dueDate), "MMM d")}</span>
+                <span>{formattedDueDate}</span>
               </div>
             )}
 

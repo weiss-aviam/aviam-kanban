@@ -32,6 +32,7 @@ import {
 import { EditUserModal } from "./EditUserModal";
 import { getRoleBadgeClasses, getRoleLabel } from "@/lib/role-colors";
 import { formatDistanceToNow } from "date-fns";
+import { t } from "@/lib/i18n";
 
 interface User {
   id: string;
@@ -94,14 +95,14 @@ export function UserList({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to fetch users");
+        throw new Error(errorData.error || t("admin.failedToFetchUsers"));
       }
 
       const data = await response.json();
       setUsers(data.users);
       setPagination(data.pagination);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      setError(err instanceof Error ? err.message : t("admin.anErrorOccurred"));
     } finally {
       setLoading(false);
     }
@@ -113,7 +114,7 @@ export function UserList({
   }, [boardId, page, search, roleFilter, sortBy, sortOrder, refreshTrigger]);
 
   const handleRemoveUser = async (userId: string) => {
-    if (!confirm("Are you sure you want to remove this user from the board?")) {
+    if (!confirm(t("admin.confirmRemoveUser"))) {
       return;
     }
 
@@ -127,21 +128,17 @@ export function UserList({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to remove user");
+        throw new Error(errorData.error || t("admin.failedToRemoveUser"));
       }
 
       onUserAction();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to remove user");
+      alert(err instanceof Error ? err.message : t("admin.failedToRemoveUser"));
     }
   };
 
   const handleResetPassword = async (userId: string) => {
-    if (
-      !confirm(
-        "Are you sure you want to send a password reset email to this user?",
-      )
-    ) {
+    if (!confirm(t("admin.confirmResetPassword"))) {
       return;
     }
 
@@ -155,12 +152,14 @@ export function UserList({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to reset password");
+        throw new Error(errorData.error || t("admin.failedToResetPassword"));
       }
 
-      alert("Password reset email sent successfully");
+      alert(t("admin.passwordResetSent"));
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to reset password");
+      alert(
+        err instanceof Error ? err.message : t("admin.failedToResetPassword"),
+      );
     }
   };
 
@@ -185,7 +184,7 @@ export function UserList({
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading users...</p>
+          <p className="mt-2 text-gray-600">{t("admin.loadingUsers")}</p>
         </div>
       </div>
     );
@@ -197,7 +196,7 @@ export function UserList({
         <div className="text-center">
           <p className="text-red-600 mb-2">{error}</p>
           <Button onClick={fetchUsers} variant="outline" size="sm">
-            Try Again
+            {t("common.tryAgain")}
           </Button>
         </div>
       </div>
@@ -211,7 +210,7 @@ export function UserList({
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <Input
-            placeholder="Search users by name or email..."
+            placeholder={t("admin.searchUsers")}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -228,14 +227,14 @@ export function UserList({
           }}
         >
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filter by role" />
+            <SelectValue placeholder={t("admin.filterByRole")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Roles</SelectItem>
-            <SelectItem value="owner">Owner</SelectItem>
-            <SelectItem value="admin">Admin</SelectItem>
-            <SelectItem value="member">Member</SelectItem>
-            <SelectItem value="viewer">Viewer</SelectItem>
+            <SelectItem value="all">{t("admin.allRoles")}</SelectItem>
+            <SelectItem value="owner">{t("roles.owner")}</SelectItem>
+            <SelectItem value="admin">{t("roles.admin")}</SelectItem>
+            <SelectItem value="member">{t("roles.member")}</SelectItem>
+            <SelectItem value="viewer">{t("roles.viewer")}</SelectItem>
           </SelectContent>
         </Select>
         <Select
@@ -248,17 +247,33 @@ export function UserList({
           }}
         >
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Sort by" />
+            <SelectValue placeholder={t("admin.sortBy")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="name-asc">Name A-Z</SelectItem>
-            <SelectItem value="name-desc">Name Z-A</SelectItem>
-            <SelectItem value="email-asc">Email A-Z</SelectItem>
-            <SelectItem value="email-desc">Email Z-A</SelectItem>
-            <SelectItem value="role-asc">Role A-Z</SelectItem>
-            <SelectItem value="role-desc">Role Z-A</SelectItem>
-            <SelectItem value="joinedAt-desc">Recently Joined</SelectItem>
-            <SelectItem value="joinedAt-asc">Oldest Members</SelectItem>
+            <SelectItem value="name-asc">
+              {t("admin.sortOptions.nameAZ")}
+            </SelectItem>
+            <SelectItem value="name-desc">
+              {t("admin.sortOptions.nameZA")}
+            </SelectItem>
+            <SelectItem value="email-asc">
+              {t("admin.sortOptions.emailAZ")}
+            </SelectItem>
+            <SelectItem value="email-desc">
+              {t("admin.sortOptions.emailZA")}
+            </SelectItem>
+            <SelectItem value="role-asc">
+              {t("admin.sortOptions.roleAZ")}
+            </SelectItem>
+            <SelectItem value="role-desc">
+              {t("admin.sortOptions.roleZA")}
+            </SelectItem>
+            <SelectItem value="joinedAt-desc">
+              {t("admin.sortOptions.recentlyJoined")}
+            </SelectItem>
+            <SelectItem value="joinedAt-asc">
+              {t("admin.sortOptions.oldestMembers")}
+            </SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -279,7 +294,9 @@ export function UserList({
                   </Avatar>
                   <div>
                     <div className="flex items-center space-x-2">
-                      <h4 className="font-medium">{user.name || "No name"}</h4>
+                      <h4 className="font-medium">
+                        {user.name || t("common.noName")}
+                      </h4>
                       <Badge
                         className={getRoleBadgeClasses(user.role)}
                         variant="outline"
@@ -292,8 +309,9 @@ export function UserList({
                       <span className="flex items-center space-x-1">
                         <Calendar className="w-3 h-3" />
                         <span>
-                          Joined {formatDistanceToNow(new Date(user.joinedAt))}{" "}
-                          ago
+                          {t("admin.joinedAgo", {
+                            time: formatDistanceToNow(new Date(user.joinedAt)),
+                          })}
                         </span>
                       </span>
                     </div>
@@ -310,7 +328,7 @@ export function UserList({
                     {canEditUser(user) && (
                       <DropdownMenuItem onClick={() => setEditingUser(user)}>
                         <Edit className="w-4 h-4 mr-2" />
-                        Edit User
+                        {t("admin.editUser")}
                       </DropdownMenuItem>
                     )}
                     {canEditUser(user) && (
@@ -318,7 +336,7 @@ export function UserList({
                         onClick={() => handleResetPassword(user.id)}
                       >
                         <RotateCcw className="w-4 h-4 mr-2" />
-                        Reset Password
+                        {t("admin.resetPassword")}
                       </DropdownMenuItem>
                     )}
                     {canRemoveUser(user) && (
@@ -327,7 +345,7 @@ export function UserList({
                         className="text-red-600"
                       >
                         <Trash2 className="w-4 h-4 mr-2" />
-                        Remove from Board
+                        {t("admin.removeFromBoard")}
                       </DropdownMenuItem>
                     )}
                   </DropdownMenuContent>
@@ -342,7 +360,10 @@ export function UserList({
       {pagination.totalPages > 1 && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t">
           <p className="text-sm text-gray-600 order-2 sm:order-1">
-            Showing {users.length} of {pagination.total} users
+            {t("admin.showingUsers", {
+              count: String(users.length),
+              total: String(pagination.total),
+            })}
           </p>
           <div className="flex items-center space-x-2 order-1 sm:order-2">
             <Button
@@ -353,7 +374,7 @@ export function UserList({
               className="flex items-center gap-1"
             >
               <ChevronLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">Previous</span>
+              <span className="hidden sm:inline">{t("common.previous")}</span>
             </Button>
             <span className="text-sm font-medium px-2">
               {page} / {pagination.totalPages}
@@ -365,7 +386,7 @@ export function UserList({
               disabled={!pagination.hasNext}
               className="flex items-center gap-1"
             >
-              <span className="hidden sm:inline">Next</span>
+              <span className="hidden sm:inline">{t("common.next")}</span>
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>

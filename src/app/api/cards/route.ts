@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "../../../lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
+import { getBoardMutationAuthorization } from "@/lib/board-access";
 import { z } from "zod";
+
+type BoardAccessClient = Parameters<typeof getBoardMutationAuthorization>[0];
 
 const createCardSchema = z.object({
   boardId: z.string().uuid("Board ID must be a valid UUID"),
@@ -51,6 +54,20 @@ export async function POST(request: NextRequest) {
       priority,
       position,
     } = validation.data;
+
+    const boardAccessClient = supabase as unknown as BoardAccessClient;
+    const authorization = await getBoardMutationAuthorization(
+      boardAccessClient,
+      boardId,
+      user.id,
+    );
+
+    if (!authorization.ok) {
+      return NextResponse.json(
+        { error: authorization.error },
+        { status: authorization.status },
+      );
+    }
 
     // Verify the column belongs to the board and user has access (using Supabase RLS)
     const { data: column, error: columnError } = await supabase
