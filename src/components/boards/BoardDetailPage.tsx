@@ -253,7 +253,7 @@ export function BoardDetailPage({
             </span>
             {presenceMembers.length > 0 ? (
               <BoardPresenceSummary
-                currentUserId={currentUser?.id}
+                currentUserId={currentUser?.id ?? null}
                 members={presenceMembers}
               />
             ) : null}

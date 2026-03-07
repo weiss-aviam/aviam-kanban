@@ -2,6 +2,15 @@ import "@testing-library/jest-dom/vitest";
 import React from "react";
 import { vi } from "vitest";
 
+const globalWithOriginalConsole = globalThis as typeof globalThis & {
+  __TEST_ORIGINAL_CONSOLE__?: Console;
+};
+
+const originalConsole =
+  globalWithOriginalConsole.__TEST_ORIGINAL_CONSOLE__ ?? globalThis.console;
+
+globalWithOriginalConsole.__TEST_ORIGINAL_CONSOLE__ = originalConsole;
+
 // ---------------------------------------------------------------------------
 // Mock ESM-only markdown packages BEFORE any test module loads them
 // ---------------------------------------------------------------------------
@@ -169,7 +178,7 @@ Object.defineProperty(window, "scrollTo", {
 
 // Mock console methods to reduce noise in tests
 global.console = {
-  ...console,
+  ...originalConsole,
   log: vi.fn(),
   warn: vi.fn(),
   error: vi.fn(),

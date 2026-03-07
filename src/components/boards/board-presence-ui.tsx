@@ -20,7 +20,9 @@ const getPresenceMemberName = (
   return member.name || member.email || t("common.unknown");
 };
 
-const getPresenceActivityLabel = (activity: BoardPresenceMember["activity"]) => {
+const getPresenceActivityLabel = (
+  activity: BoardPresenceMember["activity"],
+) => {
   if (activity.type === "editing-card") {
     return t("boardDetail.editingCardActivity", {
       title: activity.cardTitle || t("common.current"),
@@ -77,7 +79,8 @@ export function getCardEditingMembers(
 ) {
   return members.filter(
     (member) =>
-      member.activity.type === "editing-card" && member.activity.cardId === cardId,
+      member.activity.type === "editing-card" &&
+      member.activity.cardId === cardId,
   );
 }
 
@@ -109,7 +112,10 @@ export function BoardPresenceSummary({
       <Badge className="bg-emerald-600 text-white hover:bg-emerald-600">
         {t("boardDetail.livePresenceLabel")}
       </Badge>
-      <PresenceAvatarStack currentUserId={currentUserId} members={members} />
+      <PresenceAvatarStack
+        currentUserId={currentUserId ?? null}
+        members={members}
+      />
       <span className="font-medium">
         {t("boardDetail.onlineCount", { count: members.length })}
       </span>
@@ -135,7 +141,9 @@ export function CardEditorsIndicator({
 
   return (
     <div
-      aria-label={members.map((member) => getPresenceMemberLabel(member, currentUserId)).join(", ")}
+      aria-label={members
+        .map((member) => getPresenceMemberLabel(member, currentUserId))
+        .join(", ")}
       aria-live="polite"
       className={cn(
         "mb-3 inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800",
@@ -144,7 +152,7 @@ export function CardEditorsIndicator({
       role="status"
     >
       <PresenceAvatarStack
-        currentUserId={currentUserId}
+        currentUserId={currentUserId ?? null}
         members={members}
         maxVisible={2}
       />

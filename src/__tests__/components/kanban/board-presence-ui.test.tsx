@@ -37,19 +37,19 @@ const members: BoardPresenceMember[] = [
 
 describe("board presence UI", () => {
   it("renders a board-scoped live presence summary with editing counts", () => {
-    render(
-      <BoardPresenceSummary currentUserId="user-2" members={members} />,
-    );
+    render(<BoardPresenceSummary currentUserId="user-2" members={members} />);
 
-    expect(
-      screen.getByRole("status", { name: t("boardDetail.livePresenceLabel") }),
-    ).toBeInTheDocument();
+    const status = screen.getByRole("status", {
+      name: t("boardDetail.livePresenceLabel"),
+    });
+
+    expect(status).toBeInTheDocument();
     expect(
       screen.getByText(t("boardDetail.onlineCount", { count: 2 })),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(t("boardDetail.editingCount", { count: 1 })),
-    ).toBeInTheDocument();
+    expect(status).toHaveTextContent(
+      t("boardDetail.editingCount", { count: 1 }),
+    );
     expect(
       screen.getByLabelText(
         `${t("boardDetail.you")}: ${t("boardDetail.editingCardActivity", { title: "Ship live presence" })}`,
@@ -65,7 +65,9 @@ describe("board presence UI", () => {
       />,
     );
 
-    expect(screen.getByText(t("boardDetail.editingThisCard"))).toBeInTheDocument();
+    expect(
+      screen.getByText(t("boardDetail.editingThisCard")),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("status", {
         name: `${t("boardDetail.you")}: ${t("boardDetail.editingCardActivity", { title: "Ship live presence" })}`,

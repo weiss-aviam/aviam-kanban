@@ -38,7 +38,11 @@ export interface BoardPresenceEditingTarget {
 
 interface UseBoardPresenceOptions {
   boardId: string;
-  currentUser: { id: string; name?: string | null; email?: string | null } | null;
+  currentUser: {
+    id: string;
+    name?: string | null;
+    email?: string | null;
+  } | null;
   currentUserRole?: BoardMemberRole | null;
 }
 
@@ -48,7 +52,10 @@ type RawPresenceState = Record<string, BoardPresencePayload[]>;
 const VIEWING_BOARD_ACTIVITY: BoardPresenceActivity = { type: "viewing-board" };
 
 function createPresenceSessionId() {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
     return crypto.randomUUID();
   }
 
@@ -108,7 +115,9 @@ export function normalizeBoardPresenceState(state: RawPresenceState) {
             ? existing.connectedAt
             : entry.connectedAt,
         updatedAt:
-          existingUpdatedAt >= nextUpdatedAt ? existing.updatedAt : entry.updatedAt,
+          existingUpdatedAt >= nextUpdatedAt
+            ? existing.updatedAt
+            : entry.updatedAt,
         connections: existing.connections + 1,
       });
     }
@@ -122,7 +131,9 @@ export function normalizeBoardPresenceState(state: RawPresenceState) {
       return priorityDiff;
     }
 
-    return getPresenceSortLabel(left).localeCompare(getPresenceSortLabel(right));
+    return getPresenceSortLabel(left).localeCompare(
+      getPresenceSortLabel(right),
+    );
   });
 }
 
@@ -132,9 +143,14 @@ export function useBoardPresence({
   currentUserRole = null,
 }: UseBoardPresenceOptions) {
   const supabase = useMemo(() => createClient(), []);
+  const currentUserId = currentUser?.id ?? null;
+  const currentUserName = currentUser?.name ?? null;
+  const currentUserEmail = currentUser?.email ?? null;
   const sessionIdRef = useRef(createPresenceSessionId());
   const connectedAtRef = useRef(new Date().toISOString());
-  const activeActivityRef = useRef<BoardPresenceActivity>(VIEWING_BOARD_ACTIVITY);
+  const activeActivityRef = useRef<BoardPresenceActivity>(
+    VIEWING_BOARD_ACTIVITY,
+  );
   const channelRef = useRef<RealtimeChannel | null>(null);
   const isSubscribedRef = useRef(false);
 
@@ -143,22 +159,22 @@ export function useBoardPresence({
 
   const buildPresencePayload = useCallback(
     (activity: BoardPresenceActivity): BoardPresencePayload | null => {
-      if (!currentUser) {
+      if (!currentUserId) {
         return null;
       }
 
       return {
         sessionId: sessionIdRef.current,
-        userId: currentUser.id,
-        name: currentUser.name ?? null,
-        email: currentUser.email ?? null,
+        userId: currentUserId,
+        name: currentUserName,
+        email: currentUserEmail,
         role: currentUserRole,
         activity,
         connectedAt: connectedAtRef.current,
         updatedAt: new Date().toISOString(),
       };
     },
-    [currentUser, currentUserRole],
+    [currentUserEmail, currentUserId, currentUserName, currentUserRole],
   );
 
   const cleanupChannel = useCallback(
@@ -220,7 +236,7 @@ export function useBoardPresence({
   );
 
   useEffect(() => {
-    if (!boardId || !currentUser) {
+    if (!boardId || !currentUserId) {
       setStatus("idle");
       void cleanupChannel();
       return;
@@ -248,7 +264,9 @@ export function useBoardPresence({
       }
 
       setMembers(
-        normalizeBoardPresenceState(channel.presenceState() as RawPresenceState),
+        normalizeBoardPresenceState(
+          channel.presenceState() as RawPresenceState,
+        ),
       );
     };
 
@@ -294,7 +312,7 @@ export function useBoardPresence({
       subscription.unsubscribe();
       void cleanupChannel(channel);
     };
-  }, [boardId, cleanupChannel, currentUser, supabase, trackActivity]);
+  }, [boardId, cleanupChannel, currentUserId, supabase, trackActivity]);
 
   return {
     channelName: getBoardPresenceChannelName(boardId),

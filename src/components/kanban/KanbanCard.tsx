@@ -217,7 +217,7 @@ export function KanbanCard({
         {/* For now, we'll skip labels since they're not in the basic Card type */}
 
         <CardEditorsIndicator
-          currentUserId={currentUser?.id}
+          currentUserId={currentUser?.id ?? null}
           members={editingMembers}
         />
 
