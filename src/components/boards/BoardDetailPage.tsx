@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "../ui/button";
 // Removed unused Card imports
@@ -15,10 +15,15 @@ import {
   useIsLoading,
   useError,
 } from "@/store";
+import {
+  useBoardPresence,
+  type BoardPresenceEditingTarget,
+} from "@/hooks/useBoardPresence";
 import { KanbanBoard } from "../kanban/KanbanBoard";
 import { HeaderMenu } from "../layout/HeaderMenu";
 import { DeleteBoardDialog } from "./DeleteBoardDialog";
 import { UserManagementModal } from "../admin/UserManagementModal";
+import { BoardPresenceSummary } from "./board-presence-ui";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -70,6 +75,27 @@ export function BoardDetailPage({
   const isLoading = storeIsLoading;
   const error = storeError || "";
   const userRole = storeUserRole || "member";
+  const {
+    members: presenceMembers,
+    setViewingBoardActivity,
+    setEditingCardActivity,
+  } = useBoardPresence({
+    boardId,
+    currentUser: currentUser || null,
+    currentUserRole: board?.role ?? null,
+  });
+
+  const handleEditingCardChange = useCallback(
+    (card: BoardPresenceEditingTarget | null) => {
+      if (card) {
+        void setEditingCardActivity(card);
+        return;
+      }
+
+      void setViewingBoardActivity();
+    },
+    [setEditingCardActivity, setViewingBoardActivity],
+  );
 
   useEffect(() => {
     if (!initialBoard) {
@@ -225,6 +251,12 @@ export function BoardDetailPage({
                 count: board.members?.length || 0,
               })}
             </span>
+            {presenceMembers.length > 0 ? (
+              <BoardPresenceSummary
+                currentUserId={currentUser?.id ?? null}
+                members={presenceMembers}
+              />
+            ) : null}
           </>
         }
         actions={
@@ -295,6 +327,8 @@ export function BoardDetailPage({
             setCurrentBoard(updatedBoard);
           }}
           currentUser={currentUser || null}
+          presenceMembers={presenceMembers}
+          onEditingCardChange={handleEditingCardChange}
           userRole={userRole}
         />
       </main>
