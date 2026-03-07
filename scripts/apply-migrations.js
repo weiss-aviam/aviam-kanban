@@ -10,6 +10,11 @@
 const fs = require("fs");
 const path = require("path");
 const postgres = require("postgres");
+const {
+  listMigrationFiles,
+  readMigrationTracker,
+  writeMigrationTracker,
+} = require("./migration-tracker");
 
 // Load environment variables
 // Try .env first (production), then .env.local (development)
@@ -30,10 +35,16 @@ const MIGRATION_TRACKER_FILE = path.join(
 );
 
 function getAppliedMigrations() {
-  if (fs.existsSync(MIGRATION_TRACKER_FILE)) {
-    return JSON.parse(fs.readFileSync(MIGRATION_TRACKER_FILE, "utf8"));
+  const { tracker, recovered } = readMigrationTracker(MIGRATION_TRACKER_FILE);
+
+  if (recovered) {
+    writeMigrationTracker(MIGRATION_TRACKER_FILE, tracker);
+    console.warn(
+      "⚠️  Rewrote a malformed migration tracker file using recovered migration entries.",
+    );
   }
-  return { migrations: [] };
+
+  return tracker;
 }
 
 function markMigrationApplied(filename) {
@@ -57,10 +68,7 @@ async function applyMigrations() {
   }
 
   const appliedMigrations = getAppliedMigrations();
-  const migrationFiles = fs
-    .readdirSync(migrationsDir)
-    .filter((file) => file.endsWith(".sql"))
-    .sort(); // Apply in alphabetical order
+  const migrationFiles = listMigrationFiles(migrationsDir);
 
   const pendingMigrations = migrationFiles.filter(
     (file) => !appliedMigrations.migrations.includes(file),

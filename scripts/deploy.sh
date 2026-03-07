@@ -59,7 +59,7 @@ print_success "Dependencies installed"
 # Step 2: Apply database migrations
 print_info "Checking for database migrations..."
 
-# Check if migration tracker exists, if not initialize it
+# Check if migration tracker exists and is valid before generating new migrations
 if [ ! -f ".migrations-applied.json" ]; then
     print_info "Migration tracker not found, initializing..."
     bash scripts/init-migrations.sh
@@ -67,6 +67,19 @@ if [ ! -f ".migrations-applied.json" ]; then
         print_success "Migration tracker initialized - all existing migrations marked as applied"
     else
         print_error "Failed to initialize migration tracker"
+        exit 1
+    fi
+elif ! node scripts/check-migration-tracker.js >/dev/null 2>&1; then
+    TRACKER_BACKUP=".migrations-applied.json.bak.$(date -u +"%Y%m%dT%H%M%SZ")"
+    print_info "Migration tracker is invalid, backing it up to $TRACKER_BACKUP"
+    mv .migrations-applied.json "$TRACKER_BACKUP"
+
+    print_info "Reinitializing migration tracker from current migration files..."
+    bash scripts/init-migrations.sh
+    if [ $? -eq 0 ]; then
+        print_success "Migration tracker reinitialized successfully"
+    else
+        print_error "Failed to reinitialize migration tracker"
         exit 1
     fi
 fi

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euo pipefail
+
 # Initialize Migration Tracker
 # This script marks all existing migrations as applied
 # Use this when setting up the deployment system on an existing database
@@ -15,8 +17,7 @@ if [ ! -d "$MIGRATIONS_DIR" ]; then
     exit 1
 fi
 
-# Get all SQL migration files
-MIGRATION_FILES=$(ls -1 "$MIGRATIONS_DIR"/*.sql 2>/dev/null | xargs -n 1 basename)
+MIGRATION_FILES=$(find "$MIGRATIONS_DIR" -maxdepth 1 -type f -name "*.sql" -exec basename {} \; | sort)
 
 if [ -z "$MIGRATION_FILES" ]; then
     echo "ℹ️  No migration files found"
@@ -27,16 +28,17 @@ echo "📋 Found migrations:"
 echo "$MIGRATION_FILES" | sed 's/^/   - /'
 echo ""
 
-# Create JSON array
-JSON_MIGRATIONS=$(echo "$MIGRATION_FILES" | jq -R -s -c 'split("\n") | map(select(length > 0))')
+node <<'NODE'
+const path = require("path");
+const { initializeMigrationTracker } = require("./scripts/migration-tracker");
 
-# Create tracker file
-cat > "$TRACKER_FILE" <<EOF
-{
-  "migrations": $JSON_MIGRATIONS,
-  "lastApplied": "$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")"
-}
-EOF
+const tracker = initializeMigrationTracker(
+  path.join(process.cwd(), ".migrations-applied.json"),
+  path.join(process.cwd(), "src/db/migrations"),
+);
+
+console.log(`✅ Migration tracker initialized with ${tracker.migrations.length} migration(s)`);
+NODE
 
 echo "✅ Migration tracker initialized: $TRACKER_FILE"
 echo ""
