@@ -23,6 +23,8 @@ import { CompactMarkdownViewer } from "@/components/ui/markdown-viewer";
 import { PriorityBadge } from "@/components/ui/priority-selector";
 import { AutoCardContextMenu } from "./CardContextMenu";
 import { useCardActionsWithStore } from "@/hooks/useCardActionsWithStore";
+import type { BoardPresenceMember } from "@/hooks/useBoardPresence";
+import { CardEditorsIndicator } from "@/components/boards/board-presence-ui";
 
 interface KanbanCardProps {
   card: CardType;
@@ -30,6 +32,7 @@ interface KanbanCardProps {
   boardLabels?: Label[];
   allColumns?: Column[];
   currentUser: { id: string; name?: string | null; email?: string } | null;
+  editingMembers?: BoardPresenceMember[];
   userRole?: BoardMemberRole;
   onClick?: () => void;
   onEdit?: (card: CardType) => void;
@@ -43,7 +46,8 @@ export function KanbanCard({
   boardMembers = [],
   boardLabels: _boardLabels = [], // Unused for now
   allColumns = [],
-  currentUser: _currentUser, // Unused for now
+  currentUser,
+  editingMembers = [],
   userRole = "member",
   onClick,
   onEdit,
@@ -211,6 +215,11 @@ export function KanbanCard({
 
         {/* Labels - Note: Labels would need to be fetched separately or passed as props */}
         {/* For now, we'll skip labels since they're not in the basic Card type */}
+
+        <CardEditorsIndicator
+          currentUserId={currentUser?.id}
+          members={editingMembers}
+        />
 
         {/* Due Date */}
         {card.dueDate && (

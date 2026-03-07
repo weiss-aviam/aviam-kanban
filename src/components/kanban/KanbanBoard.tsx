@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -34,6 +34,11 @@ import type {
 import { BoardFilters } from "./BoardFilters";
 import { getKanbanColumnsLayoutStyle } from "./kanban-layout.utils";
 import { useBoardFilters } from "@/hooks/useBoardFilters";
+import type {
+  BoardPresenceEditingTarget,
+  BoardPresenceMember,
+} from "@/hooks/useBoardPresence";
+import { getCardEditingMembers } from "@/components/boards/board-presence-ui";
 import { useAppActions, type StoreCard } from "@/store";
 import { t } from "@/lib/i18n";
 
@@ -41,6 +46,8 @@ interface KanbanBoardProps {
   boardData: BoardWithDetails;
   onBoardDataChange?: (data: BoardWithDetails) => void;
   currentUser: { id: string; name?: string | null; email?: string } | null;
+  presenceMembers?: BoardPresenceMember[];
+  onEditingCardChange?: (card: BoardPresenceEditingTarget | null) => void;
   userRole?: BoardMemberRole;
 }
 
@@ -48,6 +55,8 @@ export function KanbanBoard({
   boardData,
   onBoardDataChange,
   currentUser,
+  presenceMembers = [],
+  onEditingCardChange,
   userRole = "member",
 }: KanbanBoardProps) {
   const [activeCard, setActiveCard] = useState<CardType | null>(null);
@@ -339,6 +348,14 @@ export function KanbanBoard({
     setShowEditDialog(true);
   };
 
+  useEffect(() => {
+    onEditingCardChange?.(
+      showEditDialog && editingCard
+        ? { id: editingCard.id, title: editingCard.title }
+        : null,
+    );
+  }, [editingCard, onEditingCardChange, showEditDialog]);
+
   const handleCardUpdated = (updatedCard: CardType) => {
     console.log("KanbanBoard - handleCardUpdated called with:", updatedCard);
 
@@ -491,6 +508,9 @@ export function KanbanBoard({
                   boardMembers={boardData.members?.map((m) => m.user) || []}
                   boardLabels={boardData.labels}
                   allColumns={boardData.columns}
+                  getEditingMembersForCard={(cardId) =>
+                    getCardEditingMembers(presenceMembers, cardId)
+                  }
                   isLoading={isLoading}
                   onCardCreated={handleCardCreated}
                   onCardClick={handleCardClick}
@@ -514,6 +534,10 @@ export function KanbanBoard({
                 boardLabels={boardData.labels}
                 allColumns={boardData.columns}
                 currentUser={currentUser || null}
+                editingMembers={getCardEditingMembers(
+                  presenceMembers,
+                  activeCard.id,
+                )}
                 userRole={userRole}
               />
             </div>
