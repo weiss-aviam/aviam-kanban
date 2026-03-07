@@ -24,8 +24,8 @@ import { createClient } from "../../lib/supabase/client";
 import { CreateBoardDialog } from "../../components/boards/CreateBoardDialog";
 import { EditBoardDialog } from "../../components/boards/EditBoardDialog";
 import { BoardCard } from "../../components/boards/BoardCard";
+import { AppHeader } from "../../components/layout/AppHeader";
 import { HeaderMenu } from "../../components/layout/HeaderMenu";
-import type { User as UserType } from "@supabase/supabase-js";
 
 interface Board {
   id: string;
@@ -37,7 +37,6 @@ interface Board {
 }
 
 export default function DashboardPage() {
-  const [user, setUser] = useState<UserType | null>(null);
   const [boards, setBoards] = useState<Board[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isBoardsLoading, setIsBoardsLoading] = useState(false);
@@ -71,7 +70,6 @@ export default function DashboardPage() {
         router.push("/auth/login");
         return;
       }
-      setUser(user);
       setIsLoading(false);
 
       // Fetch boards after user is loaded
@@ -181,25 +179,11 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center space-x-4">
-              <Kanban className="h-8 w-8 text-blue-600" />
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-                <p className="text-gray-600">
-                  Welcome back, {user?.user_metadata?.name || user?.email}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <HeaderMenu />
-            </div>
-          </div>
-        </div>
-      </header>
+      <AppHeader
+        title="Dashboard"
+        subtitle="Track your boards, recent activity, and upcoming work"
+        actions={<HeaderMenu />}
+      />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

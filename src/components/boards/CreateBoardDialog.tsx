@@ -43,7 +43,7 @@ export function CreateBoardDialog({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [createdBoard, setCreatedBoard] = useState<Board | null>(null);
-  const [showInvitePrompt, setShowInvitePrompt] = useState(false);
+  const [showMemberPrompt, setShowMemberPrompt] = useState(false);
 
   const schema = createCreateBoardSchema();
   const {
@@ -82,9 +82,9 @@ export function CreateBoardDialog({
       reset({ name: "" });
       setSelectedTemplateId(undefined);
 
-      // Store created board and show invite prompt
+      // Store created board and show member prompt
       setCreatedBoard(board);
-      setShowInvitePrompt(true);
+      setShowMemberPrompt(true);
 
       // Notify parent component
       if (onBoardCreated) {
@@ -99,8 +99,8 @@ export function CreateBoardDialog({
     }
   };
 
-  const handleInviteClose = () => {
-    setShowInvitePrompt(false);
+  const handleMemberPromptClose = () => {
+    setShowMemberPrompt(false);
     setCreatedBoard(null);
     setOpen(false);
   };
@@ -184,9 +184,9 @@ export function CreateBoardDialog({
         </DialogContent>
       </Dialog>
 
-      {/* Invite Members prompt — shown after board is created */}
+      {/* Add Members prompt — shown after board is created */}
       {createdBoard && (
-        <Dialog open={showInvitePrompt} onOpenChange={handleInviteClose}>
+        <Dialog open={showMemberPrompt} onOpenChange={handleMemberPromptClose}>
           <DialogContent className="sm:max-w-2xl w-[90vw] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
@@ -201,14 +201,14 @@ export function CreateBoardDialog({
             <InviteUserForm
               boardId={String(createdBoard.id)}
               currentUserRole="owner"
-              onInviteSent={() => {}}
+              onMemberAdded={() => {}}
             />
 
             <DialogFooter className="pt-4 border-t">
-              <Button variant="outline" onClick={handleInviteClose}>
+              <Button variant="outline" onClick={handleMemberPromptClose}>
                 {t("inviteMembers.skipForNow")}
               </Button>
-              <Button onClick={handleInviteClose}>
+              <Button onClick={handleMemberPromptClose}>
                 {t("inviteMembers.done")}
               </Button>
             </DialogFooter>

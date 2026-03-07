@@ -1,7 +1,7 @@
 import type { BoardMemberRole } from "@/types/database";
 import { canManageBoardMembers } from "@/lib/board-permissions";
 
-export type UserManagementTab = "users" | "invite" | "memberships" | "audit";
+export type UserManagementTab = "users" | "members" | "memberships" | "audit";
 
 export const DEFAULT_USER_MANAGEMENT_TAB: UserManagementTab = "users";
 
@@ -18,7 +18,7 @@ export function getUserManagementRoleLabelKey(
 }
 
 export function shouldShowRefreshButton(tab: UserManagementTab): boolean {
-  return tab !== "invite";
+  return tab !== "members";
 }
 
 export function nextRefreshTrigger(current: number): number {

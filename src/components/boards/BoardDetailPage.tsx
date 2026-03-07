@@ -5,15 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "../ui/button";
 // Removed unused Card imports
 import { Badge } from "../ui/badge";
-import Image from "next/image";
-import {
-  ArrowLeft,
-  Plus,
-  Save,
-  Users,
-  Trash2,
-  MoreHorizontal,
-} from "lucide-react";
+import { ArrowLeft, Plus, Users, Trash2, MoreHorizontal } from "lucide-react";
 
 import { CreateColumnDialog } from "../columns/CreateColumnDialog";
 import {
@@ -23,7 +15,6 @@ import {
   useIsLoading,
   useError,
 } from "@/store";
-import { SaveBoardAsTemplateDialog } from "../templates/SaveBoardAsTemplateDialog";
 import { KanbanBoard } from "../kanban/KanbanBoard";
 import { HeaderMenu } from "../layout/HeaderMenu";
 import { DeleteBoardDialog } from "./DeleteBoardDialog";
@@ -35,6 +26,7 @@ import {
   // DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
+import { AppHeader } from "../layout/AppHeader";
 
 import type { BoardWithDetails, Column } from "../../types/database";
 import { getRoleBadgeClasses, getRoleLabel } from "../../lib/role-colors";
@@ -55,7 +47,6 @@ export function BoardDetailPage({
     initialBoard || null,
   );
   const [showCreateColumn, setShowCreateColumn] = useState(false);
-  const [showSaveTemplate, setShowSaveTemplate] = useState(false);
   const [showDeleteBoard, setShowDeleteBoard] = useState(false);
   const [showMembersModal, setShowMembersModal] = useState(false);
 
@@ -164,11 +155,6 @@ export function BoardDetailPage({
     }
   };
 
-  const handleTemplateSaved = (template: unknown) => {
-    // Could show a success message or redirect to templates page
-    console.log("Template saved:", template);
-  };
-
   // Removed test function
 
   const canManageBoard = board && ["owner", "admin"].includes(board.role);
@@ -216,132 +202,101 @@ export function BoardDetailPage({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center space-x-4">
-              <Image
-                src="/aviam_logo.svg"
-                alt="Aviam"
-                width={90}
-                height={26}
-                priority
-                className="hidden md:block"
-              />
-              <div className="hidden md:block h-6 w-px bg-gray-300"></div>
+    <div className="flex min-h-screen flex-col bg-gray-50">
+      <AppHeader
+        title={board.name}
+        subtitle={
+          <>
+            <Badge
+              className={getRoleBadgeClasses(board.role)}
+              variant="outline"
+            >
+              {getRoleLabel(board.role)}
+            </Badge>
+            {board.isArchived && (
+              <Badge variant="secondary">{t("board.archived")}</Badge>
+            )}
+            <span>
+              {t("boardDetail.columnCount", {
+                count: board.columns?.length || 0,
+              })}{" "}
+              • {t("boardDetail.cardCount", { count: getTotalCards() })} •{" "}
+              {t("boardDetail.memberCount", {
+                count: board.members?.length || 0,
+              })}
+            </span>
+          </>
+        }
+        actions={
+          <>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push("/boards")}
+            >
+              <ArrowLeft className="w-4 h-4" />
+              {t("boardDetail.backToBoards")}
+            </Button>
+
+            {canAddColumns && (
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                onClick={() => router.push("/boards")}
+                onClick={() => setShowCreateColumn(true)}
               >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                {t("boardDetail.backToBoards")}
+                <Plus className="w-4 h-4" />
+                {t("boardDetail.addColumn")}
               </Button>
-              <div className="hidden md:block h-6 w-px bg-gray-300"></div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  {board.name}
-                </h1>
-                <div className="flex items-center space-x-2 mt-1">
-                  <Badge
-                    className={getRoleBadgeClasses(board.role)}
-                    variant="outline"
-                  >
-                    {getRoleLabel(board.role)}
-                  </Badge>
-                  {board.isArchived && (
-                    <Badge variant="secondary">{t("board.archived")}</Badge>
+            )}
+
+            {canManageBoard && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowMembersModal(true)}
+              >
+                <Users className="w-4 h-4" />
+                {t("boardDetail.manageUsers")}
+              </Button>
+            )}
+
+            {canManageBoard && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <MoreHorizontal className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  {canDeleteBoard && (
+                    <DropdownMenuItem
+                      onClick={() => setShowDeleteBoard(true)}
+                      className="text-red-600 focus:text-red-600"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      {t("board.deleteBoard")}
+                    </DropdownMenuItem>
                   )}
-                  <span className="text-sm text-gray-500">
-                    {t("boardDetail.columnCount", {
-                      count: board.columns?.length || 0,
-                    })}{" "}
-                    • {t("boardDetail.cardCount", { count: getTotalCards() })} •{" "}
-                    {t("boardDetail.memberCount", {
-                      count: board.members?.length || 0,
-                    })}
-                  </span>
-                </div>
-              </div>
-            </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
 
-            <div className="flex items-center space-x-2">
-              {canAddColumns && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowCreateColumn(true)}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  {t("boardDetail.addColumn")}
-                </Button>
-              )}
-
-              {canManageBoard && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowSaveTemplate(true)}
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  {t("boardDetail.saveAsTemplate")}
-                </Button>
-              )}
-
-              {canManageBoard && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowMembersModal(true)}
-                >
-                  <Users className="w-4 h-4 mr-2" />
-                  {t("boardDetail.manageUsers")}
-                </Button>
-              )}
-
-              {/* Board Actions Dropdown */}
-              {canManageBoard && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <MoreHorizontal className="w-4 h-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    {canDeleteBoard && (
-                      <DropdownMenuItem
-                        onClick={() => setShowDeleteBoard(true)}
-                        className="text-red-600 focus:text-red-600"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        {t("board.deleteBoard")}
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-
-              <HeaderMenu />
-            </div>
-          </div>
-        </div>
-      </header>
+            <HeaderMenu />
+          </>
+        }
+      />
 
       {/* Main Content */}
-      <main className="flex-1">
-        <div className="h-[calc(100vh-120px)]">
-          <KanbanBoard
-            boardData={board}
-            onBoardDataChange={(updatedBoard) => {
-              setBoard(updatedBoard);
-              setCurrentBoard(updatedBoard);
-            }}
-            currentUser={currentUser || null}
-            userRole={userRole}
-          />
-        </div>
+      <main className="flex-1 min-h-0">
+        <KanbanBoard
+          boardData={board}
+          onBoardDataChange={(updatedBoard) => {
+            setBoard(updatedBoard);
+            setCurrentBoard(updatedBoard);
+          }}
+          currentUser={currentUser || null}
+          userRole={userRole}
+        />
       </main>
 
       {/* Dialogs */}
@@ -350,15 +305,6 @@ export function BoardDetailPage({
         onOpenChange={setShowCreateColumn}
         boardId={boardId}
         onColumnCreated={handleColumnCreated}
-      />
-
-      <SaveBoardAsTemplateDialog
-        open={showSaveTemplate}
-        onOpenChange={setShowSaveTemplate}
-        boardId={boardId}
-        boardName={board.name}
-        columns={board.columns}
-        onTemplateSaved={handleTemplateSaved}
       />
 
       <DeleteBoardDialog

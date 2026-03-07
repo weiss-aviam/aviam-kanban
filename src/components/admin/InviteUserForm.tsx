@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,137 +12,166 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-// import { Textarea } from '@/components/ui/textarea';
 import { Badge } from "@/components/ui/badge";
-import { UserPlus, Mail, X, Plus } from "lucide-react";
+import { Loader2, Search, UserPlus } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { t } from "@/lib/i18n";
 import {
-  addInvitationRow,
-  canInviteAdmins,
-  createEmptyInvitation,
-  getInvitationResultSummary,
-  getInvitationValidationError,
-  type InvitationData,
-  type InvitationRole,
+  canAssignAdminRole,
+  createDefaultMemberRole,
+  formatAvailableUserLabel,
+  getMemberSelectionValidationError,
+  type AvailableBoardUser,
+  type AddMemberRole,
 } from "./invite-user-form.utils";
 
 interface InviteUserFormProps {
   boardId: string;
   currentUserRole: "owner" | "admin" | "member" | "viewer";
-  onInviteSent: () => void;
+  onMemberAdded: () => void;
 }
 
 export function InviteUserForm({
   boardId,
   currentUserRole,
-  onInviteSent,
+  onMemberAdded,
 }: InviteUserFormProps) {
-  const [invitations, setInvitations] = useState<InvitationData[]>([
-    createEmptyInvitation(),
-  ]);
-  const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [availableUsers, setAvailableUsers] = useState<AvailableBoardUser[]>(
+    [],
+  );
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [role, setRole] = useState<AddMemberRole>(createDefaultMemberRole());
+  const [loadingUsers, setLoadingUsers] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const canInviteAdminRole = canInviteAdmins(currentUserRole);
+  const canAssignAdmin = canAssignAdminRole(currentUserRole);
 
-  const addInvitation = () => {
-    setInvitations((currentInvitations) =>
-      addInvitationRow(currentInvitations),
-    );
-  };
+  useEffect(() => {
+    const controller = new AbortController();
 
-  const removeInvitation = (index: number) => {
-    if (invitations.length > 1) {
-      setInvitations(invitations.filter((_, i) => i !== index));
-    }
-  };
+    const fetchAvailableUsers = async () => {
+      try {
+        setLoadingUsers(true);
 
-  const updateInvitationEmail = (index: number, email: string) => {
-    setInvitations((currentInvitations) =>
-      currentInvitations.map((invitation, currentIndex) =>
-        currentIndex === index ? { ...invitation, email } : invitation,
-      ),
-    );
-  };
+        const params = new URLSearchParams({
+          boardId,
+          available: "true",
+          limit: "10",
+        });
 
-  const updateInvitationRole = (index: number, role: InvitationRole) => {
-    setInvitations((currentInvitations) =>
-      currentInvitations.map((invitation, currentIndex) =>
-        currentIndex === index ? { ...invitation, role } : invitation,
-      ),
-    );
-  };
+        const trimmedSearch = searchTerm.trim();
+        if (trimmedSearch) {
+          params.append("search", trimmedSearch);
+        }
 
-  const resetInvitations = () => {
-    setInvitations([createEmptyInvitation()]);
+        const response = await fetch(`/api/admin/memberships?${params}`, {
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(
+            errorData.error || t("admin.failedToFetchAvailableUsers"),
+          );
+        }
+
+        const data = await response.json();
+        const nextUsers = (data.users || []) as AvailableBoardUser[];
+        setAvailableUsers(nextUsers);
+
+        if (
+          selectedUserId &&
+          !nextUsers.some((user) => user.id === selectedUserId)
+        ) {
+          setSelectedUserId(null);
+        }
+      } catch (err) {
+        if (!controller.signal.aborted) {
+          setAvailableUsers([]);
+          setError(
+            err instanceof Error
+              ? err.message
+              : t("admin.failedToFetchAvailableUsers"),
+          );
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoadingUsers(false);
+        }
+      }
+    };
+
+    void fetchAvailableUsers();
+
+    return () => controller.abort();
+  }, [boardId, searchTerm, selectedUserId]);
+
+  const resetForm = () => {
+    setSearchTerm("");
+    setSelectedUserId(null);
+    setRole(createDefaultMemberRole());
     setError(null);
     setSuccess(null);
   };
+
+  const selectedUser =
+    availableUsers.find((user) => user.id === selectedUserId) || null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
 
-    const validationError = getInvitationValidationError(invitations);
+    const validationError = getMemberSelectionValidationError(selectedUserId);
     if (validationError) {
       setError(t(validationError));
       return;
     }
 
-    const validInvitations = invitations.filter((invitation) =>
-      invitation.email.trim(),
-    );
-
-    setLoading(true);
+    setSubmitting(true);
 
     try {
-      // Send invitations one by one (could be optimized with bulk endpoint)
-      const results = await Promise.allSettled(
-        validInvitations.map(async (invitation) => {
-          const response = await fetch("/api/admin/users", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              email: invitation.email,
-              role: invitation.role,
-              boardId,
-            }),
-          });
-
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(`${invitation.email}: ${errorData.error}`);
-          }
-
-          return response.json();
-        }),
+      const response = await fetch(
+        `/api/admin/memberships?boardId=${boardId}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            userId: selectedUserId,
+            role,
+          }),
+        },
       );
 
-      const { successful, failedMessages } =
-        getInvitationResultSummary(results);
+      const responseData = await response.json();
 
-      if (successful > 0) {
-        setSuccess(t("admin.invitationSuccess", { count: String(successful) }));
-        setInvitations([createEmptyInvitation()]);
-        onInviteSent();
+      if (!response.ok) {
+        throw new Error(responseData.error || t("admin.failedToAddMember"));
       }
 
-      if (failedMessages.length > 0) {
-        setError(
-          t("admin.invitationError", { errors: failedMessages.join("\n") }),
-        );
-      }
+      const addedLabel =
+        responseData.membership?.name ||
+        responseData.membership?.email ||
+        selectedUser?.name ||
+        selectedUser?.email ||
+        t("common.unknown");
+
+      setSuccess(t("admin.memberAddedSuccess", { name: addedLabel }));
+      setSelectedUserId(null);
+      setRole(createDefaultMemberRole());
+      setSearchTerm("");
+      onMemberAdded();
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : t("admin.failedToSendInvitations"),
+        err instanceof Error ? err.message : t("admin.failedToAddMember"),
       );
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
@@ -151,16 +180,14 @@ export function InviteUserForm({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <UserPlus className="w-5 h-5" />
-          {t("admin.inviteUsersToBoard")}
+          {t("admin.addExistingUsersToBoard")}
         </CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
             <Alert variant="destructive">
-              <AlertDescription className="whitespace-pre-line">
-                {error}
-              </AlertDescription>
+              <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
 
@@ -170,83 +197,101 @@ export function InviteUserForm({
             </Alert>
           )}
 
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label className="text-base font-medium">
-                {t("admin.emailInvitations")}
-              </Label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={addInvitation}
-                disabled={invitations.length >= 10}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                {t("admin.addAnother")}
-              </Button>
+          <div className="space-y-3">
+            <Label htmlFor="member-search" className="text-base font-medium">
+              {t("admin.registeredUsers")}
+            </Label>
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                id="member-search"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder={t("admin.searchRegisteredUsers")}
+                className="pl-10"
+              />
+            </div>
+            <p className="text-sm text-gray-600">
+              {t("admin.onlyRegisteredUsersHelp")}
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">
+              {t("admin.availableUsers")}
+            </Label>
+            <div className="max-h-64 space-y-2 overflow-y-auto rounded-lg border p-2">
+              {loadingUsers ? (
+                <div className="flex items-center justify-center py-6 text-sm text-gray-500">
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {t("admin.loadingAvailableUsers")}
+                </div>
+              ) : availableUsers.length === 0 ? (
+                <div className="py-6 text-center text-sm text-gray-500">
+                  {t("admin.noAvailableUsers")}
+                </div>
+              ) : (
+                availableUsers.map((user) => {
+                  const isSelected = user.id === selectedUserId;
+
+                  return (
+                    <button
+                      key={user.id}
+                      type="button"
+                      className={`w-full rounded-md border px-3 py-2 text-left transition ${
+                        isSelected
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-transparent hover:border-gray-200 hover:bg-gray-50"
+                      }`}
+                      onClick={() => {
+                        setSelectedUserId(user.id);
+                        setError(null);
+                        setSuccess(null);
+                      }}
+                    >
+                      <div className="font-medium text-gray-900">
+                        {formatAvailableUserLabel(user)}
+                      </div>
+                      {user.name ? (
+                        <div className="text-sm text-gray-500">
+                          {user.email}
+                        </div>
+                      ) : null}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_10rem] md:items-end">
+            <div className="space-y-2">
+              <Label>{t("admin.selectedUser")}</Label>
+              <div className="rounded-md border bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                {selectedUser
+                  ? formatAvailableUserLabel(selectedUser)
+                  : t("admin.noUserSelected")}
+              </div>
             </div>
 
-            {invitations.map((invitation, index) => (
-              <div
-                key={index}
-                className="flex items-end gap-3 p-4 border rounded-lg"
+            <div className="space-y-2">
+              <Label htmlFor="member-role">{t("admin.role")}</Label>
+              <Select
+                value={role}
+                onValueChange={(value) => setRole(value as AddMemberRole)}
               >
-                <div className="flex-1">
-                  <Label htmlFor={`email-${index}`}>
-                    {t("admin.emailAddress")}
-                  </Label>
-                  <Input
-                    id={`email-${index}`}
-                    type="email"
-                    placeholder={t("admin.emailPlaceholder")}
-                    value={invitation.email}
-                    onChange={(e) =>
-                      updateInvitationEmail(index, e.target.value)
-                    }
-                    required
-                  />
-                </div>
-
-                <div className="w-32">
-                  <Label htmlFor={`role-${index}`}>{t("admin.role")}</Label>
-                  <Select
-                    value={invitation.role}
-                    onValueChange={(value) =>
-                      updateInvitationRole(index, value as InvitationRole)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {canInviteAdminRole && (
-                        <SelectItem value="admin">
-                          {t("roles.admin")}
-                        </SelectItem>
-                      )}
-                      <SelectItem value="member">
-                        {t("roles.member")}
-                      </SelectItem>
-                      <SelectItem value="viewer">
-                        {t("roles.viewer")}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {invitations.length > 1 && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => removeInvitation(index)}
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
-                )}
-              </div>
-            ))}
+                <SelectTrigger id="member-role">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {canAssignAdmin && (
+                    <SelectItem value="admin">{t("roles.admin")}</SelectItem>
+                  )}
+                  <SelectItem value="member">{t("roles.member")}</SelectItem>
+                  <SelectItem value="viewer">{t("roles.viewer")}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="bg-gray-50 p-4 rounded-lg">
@@ -283,19 +328,19 @@ export function InviteUserForm({
           </div>
 
           <div className="flex justify-end space-x-3">
-            <Button type="button" variant="outline" onClick={resetInvitations}>
-              {t("admin.clearAll")}
+            <Button type="button" variant="outline" onClick={resetForm}>
+              {t("admin.clearSelection")}
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? (
+            <Button type="submit" disabled={submitting || loadingUsers}>
+              {submitting ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  {t("common.sending")}
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {t("admin.addingMember")}
                 </>
               ) : (
                 <>
-                  <Mail className="w-4 h-4 mr-2" />
-                  {t("admin.sendInvitations")}
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  {t("admin.addMember")}
                 </>
               )}
             </Button>

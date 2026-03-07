@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { getRoleBadgeClasses, getRoleLabel } from "../../lib/role-colors";
 import { t } from "@/lib/i18n";
+import { formatDisplayDate } from "@/lib/date-format";
 
 interface BoardCardProps {
   board: {
@@ -62,14 +63,6 @@ export function BoardCard({
   onArchive,
   onDelete,
 }: BoardCardProps) {
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("de-DE", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  };
-
   const canEdit = board.role === "owner" || board.role === "admin";
   const canDelete = board.role === "owner";
 
@@ -173,7 +166,9 @@ export function BoardCard({
             <div className="flex items-center">
               <Calendar className="mr-1 h-3 w-3" />
               <span>
-                {t("board.created", { date: formatDate(board.createdAt) })}
+                {t("board.created", {
+                  date: formatDisplayDate(board.createdAt),
+                })}
               </span>
             </div>
           </div>

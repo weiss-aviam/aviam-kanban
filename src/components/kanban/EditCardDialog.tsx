@@ -12,6 +12,12 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 import { Label } from "@/components/ui/label";
 import {
@@ -32,6 +38,8 @@ import {
   FileVideo,
   FileAudio,
   Paperclip,
+  Calendar as CalendarIcon,
+  X,
 } from "lucide-react";
 import type {
   Card,
@@ -45,6 +53,8 @@ import { PrioritySelector } from "@/components/ui/priority-selector";
 import { createClient as createSupabaseClient } from "@/lib/supabase/client";
 
 import { t } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
+import { formatDisplayDate } from "@/lib/date-format";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -68,6 +78,36 @@ interface EditCardDialogProps {
   onCardDeleted?: (cardId: string) => void;
   onCardCreated?: (card: Card) => void;
 }
+
+const parseCalendarDate = (value: string | undefined): Date | undefined => {
+  if (!value) return undefined;
+
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+  if (!match) return undefined;
+
+  const [, yearPart, monthPart, dayPart] = match;
+  const year = Number(yearPart);
+  const month = Number(monthPart);
+  const day = Number(dayPart);
+  const parsed = new Date(year, month - 1, day);
+
+  if (
+    Number.isNaN(parsed.getTime()) ||
+    parsed.getFullYear() !== year ||
+    parsed.getMonth() !== month - 1 ||
+    parsed.getDate() !== day
+  ) {
+    return undefined;
+  }
+
+  return parsed;
+};
+
+const getCalendarFieldValue = (date: Date | undefined): string => {
+  if (!date) return "";
+
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+};
 
 export function EditCardDialog({
   open,
@@ -786,16 +826,70 @@ export function EditCardDialog({
                 <Label htmlFor="dueDate" className="text-base font-medium">
                   {t("editCard.dueDateLabel")}
                 </Label>
-                <Input
-                  id="dueDate"
-                  type="datetime-local"
-                  disabled={isLoading || isDeleting}
-                  className="h-11"
-                  {...register("dueDate")}
+                <Controller
+                  name="dueDate"
+                  control={control}
+                  render={({ field }) => {
+                    const selectedDate = parseCalendarDate(field.value);
+
+                    return (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                id="dueDate"
+                                type="button"
+                                variant="outline"
+                                disabled={isLoading || isDeleting}
+                                className={cn(
+                                  "h-11 flex-1 justify-start text-left font-normal",
+                                  !selectedDate && "text-muted-foreground",
+                                )}
+                              >
+                                <CalendarIcon className="h-4 w-4" />
+                                <span>
+                                  {selectedDate
+                                    ? formatDisplayDate(selectedDate)
+                                    : t("editCard.dueDatePlaceholder")}
+                                </span>
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent
+                              className="w-auto p-0"
+                              align="start"
+                            >
+                              <Calendar
+                                mode="single"
+                                selected={selectedDate}
+                                onSelect={(date) =>
+                                  field.onChange(getCalendarFieldValue(date))
+                                }
+                                disabled={isLoading || isDeleting}
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          {field.value ? (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              disabled={isLoading || isDeleting}
+                              onClick={() => field.onChange("")}
+                              aria-label={t("editCard.clearDueDate")}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          ) : null}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {t("editCard.dueDateHelper")}
+                        </p>
+                      </div>
+                    );
+                  }}
                 />
-                <p className="text-xs text-muted-foreground">
-                  {t("editCard.dueDateHelper")}
-                </p>
               </div>
             </div>
           </div>

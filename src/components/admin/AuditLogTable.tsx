@@ -28,6 +28,7 @@ import { t } from "@/lib/i18n";
 interface AuditLogDetails {
   email?: string;
   role?: string;
+  addedUser?: { name?: string; email?: string; role?: string };
   nameChanged?: { from: string; to: string };
   roleChanged?: { from: string; to: string };
   removedUser?: { name?: string; email?: string; role?: string };
@@ -124,9 +125,13 @@ export function AuditLogTable({ boardId, refreshTrigger }: AuditLogTableProps) {
 
   const getActionBadge = (action: string) => {
     const actionConfig = {
+      add_user: {
+        label: t("admin.auditLog.actions.add_user"),
+        color: "bg-blue-50 text-blue-700 border-blue-200",
+      },
       invite_user: {
         label: t("admin.auditLog.actions.invite_user"),
-        color: "bg-blue-50 text-blue-700 border-blue-200",
+        color: "bg-indigo-50 text-indigo-700 border-indigo-200",
       },
       update_user: {
         label: t("admin.auditLog.actions.update_user"),
@@ -166,6 +171,15 @@ export function AuditLogTable({ boardId, refreshTrigger }: AuditLogTableProps) {
     if (!details) return null;
 
     switch (action) {
+      case "add_user":
+        return t("admin.auditLog.actionDetails.add_user", {
+          name:
+            details.addedUser?.name ||
+            details.addedUser?.email ||
+            details.email ||
+            "",
+          role: details.addedUser?.role || details.role || "",
+        });
       case "invite_user":
         return t("admin.auditLog.actionDetails.invite_user", {
           email: details.email || "",
@@ -264,6 +278,9 @@ export function AuditLogTable({ boardId, refreshTrigger }: AuditLogTableProps) {
                 <SelectContent>
                   <SelectItem value="">
                     {t("admin.auditLog.allActions")}
+                  </SelectItem>
+                  <SelectItem value="add_user">
+                    {t("admin.auditLog.actions.add_user")}
                   </SelectItem>
                   <SelectItem value="invite_user">
                     {t("admin.auditLog.actions.invite_user")}

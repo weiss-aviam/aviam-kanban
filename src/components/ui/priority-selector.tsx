@@ -208,9 +208,9 @@ export function PriorityBadge({
   const Icon = PRIORITY_ICONS[priority];
 
   const sizeClasses = {
-    sm: "text-xs px-1.5 py-0.5",
-    md: "text-xs px-2 py-1",
-    lg: "text-sm px-2.5 py-1",
+    sm: "px-2 py-1 text-[11px]",
+    md: "px-2.5 py-1 text-xs",
+    lg: "px-3 py-1.5 text-sm",
   };
 
   const iconSizes = {
@@ -225,7 +225,7 @@ export function PriorityBadge({
       className={cn(
         config.badgeClass,
         sizeClasses[size],
-        "flex items-center gap-1 font-medium",
+        "inline-flex items-center gap-1.5 rounded-md border font-semibold tracking-[0.08em] shadow-sm",
         className,
       )}
     >

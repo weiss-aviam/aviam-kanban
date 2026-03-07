@@ -37,9 +37,14 @@ describe("edit-card-dialog utils", () => {
     ).toBe("Storage is unavailable");
   });
 
-  it("formats local due dates for datetime-local inputs", () => {
-    expect(getEditCardDueDateInputValue(new Date(2026, 2, 10, 14, 30))).toBe(
-      "2026-03-10T14:30",
+  it("formats stored due dates for date-only inputs without timezone drift", () => {
+    expect(
+      getEditCardDueDateInputValue(
+        new Date(Date.UTC(2026, 2, 10, 23, 59, 59, 999)),
+      ),
+    ).toBe("2026-03-10");
+    expect(getEditCardDueDateInputValue("2026-03-10T23:59:59.999Z")).toBe(
+      "2026-03-10",
     );
   });
 
@@ -48,12 +53,11 @@ describe("edit-card-dialog utils", () => {
     expect(getEditCardDueDateInputValue("not-a-date")).toBe("");
   });
 
-  it("normalizes datetime-local values into ISO strings for the API", () => {
-    const localValue = "2026-03-10T14:30";
-
-    expect(normalizeEditCardDueDateForApi(localValue)).toBe(
-      new Date(localValue).toISOString(),
+  it("normalizes date-only values into end-of-day UTC ISO strings for the API", () => {
+    expect(normalizeEditCardDueDateForApi("2026-03-10")).toBe(
+      "2026-03-10T23:59:59.999Z",
     );
+    expect(normalizeEditCardDueDateForApi("2026-02-30")).toBeNull();
     expect(normalizeEditCardDueDateForApi("")).toBeNull();
   });
 });

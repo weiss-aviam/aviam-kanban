@@ -1,14 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import {
-  createAdminClient,
-  requireAdminAccess,
-  logAdminAction,
-  getClientIP,
-  getUserAgent,
-  generateInvitationToken,
-  getInvitationExpiry,
-} from "@/lib/supabase/admin";
+import { createAdminClient, requireAdminAccess } from "@/lib/supabase/admin";
 import { inviteUserSchema, paginationSchema } from "@/lib/validations/admin";
 
 /**
@@ -182,7 +174,7 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * POST /api/admin/users - Invite a new user to the board
+ * POST /api/admin/users - Legacy invite-by-email endpoint (disabled)
  */
 export async function POST(request: NextRequest) {
   try {
@@ -206,116 +198,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { email, role, boardId } = validation.data;
+    const { boardId } = validation.data;
 
     // Check admin permissions
     const _adminContext = await requireAdminAccess(user.id, boardId);
 
-    const adminClient = createAdminClient();
-
-    // Check if user is already a member of this board
-    const { data: existingMember } = await adminClient
-      .from("board_members")
-      .select("user_id")
-      .eq("board_id", boardId)
-      .eq("users.email", email)
-      .single();
-
-    if (existingMember) {
-      return NextResponse.json(
-        { error: "User is already a member of this board" },
-        { status: 409 },
-      );
-    }
-
-    // Check if there's already a pending invitation
-    const { data: existingInvitation } = await adminClient
-      .from("user_invitations")
-      .select("id")
-      .eq("email", email)
-      .eq("board_id", boardId)
-      .is("accepted_at", null)
-      .gt("expires_at", new Date().toISOString())
-      .single();
-
-    if (existingInvitation) {
-      return NextResponse.json(
-        { error: "User already has a pending invitation" },
-        { status: 409 },
-      );
-    }
-
-    // Generate invitation token and expiry
-    const token = generateInvitationToken();
-    const expiresAt = getInvitationExpiry();
-
-    // Create invitation record
-    const { data: invitation, error: invitationError } = await adminClient
-      .from("user_invitations")
-      .insert({
-        email,
-        board_id: boardId,
-        role,
-        invited_by: user.id,
-        token,
-        expires_at: expiresAt.toISOString(),
-      })
-      .select()
-      .single();
-
-    if (invitationError) {
-      console.error("Error creating invitation:", invitationError);
-      return NextResponse.json(
-        { error: "Failed to create invitation" },
-        { status: 500 },
-      );
-    }
-
-    // Send invitation email using Supabase Auth Admin API
-    const { data: _inviteData, error: inviteError } =
-      await adminClient.auth.admin.inviteUserByEmail(email, {
-        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}${process.env.NEXT_PUBLIC_BASE_PATH || ""}/auth/accept-invitation?token=${token}`,
-        data: {
-          boardId,
-          role,
-          invitationId: invitation.id,
-        },
-      });
-
-    if (inviteError) {
-      console.error("Error sending invitation email:", inviteError);
-      // Clean up the invitation record
-      await adminClient
-        .from("user_invitations")
-        .delete()
-        .eq("id", invitation.id);
-      return NextResponse.json(
-        { error: "Failed to send invitation email" },
-        { status: 500 },
-      );
-    }
-
-    // Log admin action
-    await logAdminAction({
-      adminUserId: user.id,
-      boardId,
-      action: "invite_user",
-      details: { email, role, invitationId: invitation.id },
-      ipAddress: getClientIP(request) || "unknown",
-      userAgent: getUserAgent(request) || "unknown",
-    });
-
     return NextResponse.json(
       {
-        message: "Invitation sent successfully",
-        invitation: {
-          id: invitation.id,
-          email: invitation.email,
-          role: invitation.role,
-          expiresAt: invitation.expires_at,
-        },
+        error:
+          "Inviting users by email is no longer supported. Add existing registered users to the board instead.",
       },
-      { status: 201 },
+      { status: 410 },
     );
   } catch (error) {
     console.error("Error in POST /api/admin/users:", error);

@@ -17,7 +17,7 @@ import type {
   Label,
 } from "@/types/database";
 import { getUserAvatarColor, getUserInitials } from "../../lib/role-colors";
-import { getPriorityBorderColor } from "@/lib/priority-colors";
+import { getPriorityConfig } from "@/lib/priority-colors";
 import { formatDueDate, isOverdue, isDueSoon } from "@/lib/board-permissions";
 import { CompactMarkdownViewer } from "@/components/ui/markdown-viewer";
 import { PriorityBadge } from "@/components/ui/priority-selector";
@@ -85,7 +85,7 @@ export function KanbanCard({
 
   // Get priority configuration
   const priority = (card.priority || "medium") as CardPriority;
-  const priorityBorderColor = getPriorityBorderColor(priority);
+  const priorityConfig = getPriorityConfig(priority);
 
   // Handle context menu actions
   const handleEdit = () => {
@@ -128,9 +128,8 @@ export function KanbanCard({
   const style: CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
-    borderLeftColor: priorityBorderColor,
-    borderLeftWidth: "3px",
-    borderLeftStyle: "solid",
+    borderColor: priorityConfig.borderColor,
+    backgroundColor: priorityConfig.bgColor,
   };
 
   const handleCardClick = () => {
@@ -173,25 +172,30 @@ export function KanbanCard({
         ref={setNodeRef}
         style={style}
         {...attributes}
-        className={`p-3 cursor-default hover:shadow-md transition-shadow border-l-4 ${isCurrentlyDragging ? "opacity-50 rotate-3 shadow-lg" : ""}`}
+        className={`cursor-default border p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${isCurrentlyDragging ? "opacity-50 rotate-3 shadow-lg" : ""}`}
         onClick={handleCardClick}
         onDoubleClick={handleCardDoubleClick}
       >
-        {/* Card Header with Title, Drag Handle, and Priority */}
-        <div className="flex items-start justify-between mb-2">
-          {!isViewer && (
-            <div
-              {...listeners}
-              className="cursor-grab active:cursor-grabbing p-0.5 -ml-1 mr-1 mt-0.5 text-gray-300 hover:text-gray-500 flex-shrink-0"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <GripVertical className="w-4 h-4" />
+        <div className="mb-3 flex items-start justify-between gap-2">
+          <div className="flex min-w-0 flex-1 items-start gap-2">
+            {!isViewer && (
+              <div
+                {...listeners}
+                className="mt-0.5 -ml-1 flex-shrink-0 cursor-grab p-0.5 text-gray-400 hover:text-gray-600 active:cursor-grabbing"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <GripVertical className="h-4 w-4" />
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <PriorityBadge priority={priority} size="md" />
+              </div>
+              <h4 className="line-clamp-2 text-base font-semibold text-gray-900">
+                {card.title}
+              </h4>
             </div>
-          )}
-          <h4 className="font-medium text-gray-900 line-clamp-2 flex-1 mr-2">
-            {card.title}
-          </h4>
-          <PriorityBadge priority={priority} size="sm" />
+          </div>
         </div>
 
         {/* Card Description (if exists) */}
@@ -211,7 +215,7 @@ export function KanbanCard({
         {/* Due Date */}
         {card.dueDate && (
           <div
-            className={`flex items-center space-x-1 mb-2 text-xs ${cardIsOverdue ? "text-red-600" : cardIsDueSoon ? "text-orange-600" : "text-gray-500"}`}
+            className={`mb-3 inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium ${cardIsOverdue ? "border-red-200 bg-red-50 text-red-700" : cardIsDueSoon ? "border-amber-200 bg-amber-50 text-amber-700" : "border-gray-200 bg-white/80 text-gray-600"}`}
           >
             <Calendar className="w-3 h-3" />
             <span>
@@ -223,35 +227,28 @@ export function KanbanCard({
         )}
 
         {/* Card Footer */}
-        <div className="flex items-center justify-between">
-          {/* Card Stats */}
-          <div className="flex items-center space-x-3 text-gray-500">
-            {/* Due date */}
-            {card.dueDate && (
-              <div
-                className={`flex items-center space-x-1 text-xs ${cardIsOverdue ? "text-red-600" : cardIsDueSoon ? "text-orange-600" : ""}`}
-              >
-                <Calendar className="w-3 h-3" />
-                <span>{formattedDueDate}</span>
-              </div>
-            )}
-
-            {/* Attachments count (placeholder for future feature) */}
-            {/* <div className="flex items-center space-x-1 text-xs">
-            <Paperclip className="w-3 h-3" />
-            <span>2</span>
-          </div> */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="text-xs font-medium uppercase tracking-[0.12em] text-gray-500">
+            {t("editCard.assigneeLabel")}
           </div>
 
-          {/* Assignee Avatar */}
-          {assignee && (
-            <Avatar className="w-6 h-6">
-              <div
-                className={`w-full h-full ${getUserAvatarColor()} flex items-center justify-center text-white text-xs font-medium`}
-              >
-                {getUserInitials(assignee.name || "", assignee.email || "")}
-              </div>
-            </Avatar>
+          {assignee ? (
+            <div className="ml-auto flex min-w-0 items-center gap-2 rounded-full border border-white/70 bg-white/90 px-2.5 py-1 shadow-sm">
+              <Avatar className="h-7 w-7 shrink-0">
+                <div
+                  className={`flex h-full w-full items-center justify-center ${getUserAvatarColor()} text-xs font-semibold text-white`}
+                >
+                  {getUserInitials(assignee.name || "", assignee.email || "")}
+                </div>
+              </Avatar>
+              <span className="truncate text-sm font-medium text-gray-700">
+                {assignee.name || assignee.email || t("editCard.noAssignee")}
+              </span>
+            </div>
+          ) : (
+            <div className="ml-auto rounded-full border border-dashed border-gray-300 px-2.5 py-1 text-sm text-gray-500">
+              {t("editCard.noAssignee")}
+            </div>
           )}
         </div>
       </Card>

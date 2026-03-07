@@ -15,6 +15,12 @@ import {
 } from "../../../components/ui/card";
 import { Alert, AlertDescription } from "../../../components/ui/alert";
 import { Kanban, Mail, Lock, User, Loader2 } from "lucide-react";
+import {
+  AVIAM_EMAIL_DOMAIN,
+  getAviamEmailError,
+  isAviamEmail,
+  normalizeEmail,
+} from "../../../lib/auth-email";
 import { createClient } from "../../../lib/supabase/client";
 
 export default function SignUpPage() {
@@ -29,13 +35,22 @@ export default function SignUpPage() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError("");
     setSuccess("");
 
+    const normalizedEmail = normalizeEmail(email);
+    setEmail(normalizedEmail);
+
+    if (!isAviamEmail(normalizedEmail)) {
+      setError(getAviamEmailError());
+      return;
+    }
+
+    setIsLoading(true);
+
     try {
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: normalizedEmail,
         password,
         options: {
           data: {
@@ -62,17 +77,27 @@ export default function SignUpPage() {
   };
 
   const handleMagicLink = async () => {
-    if (!email) {
+    const normalizedEmail = normalizeEmail(email);
+
+    if (!normalizedEmail) {
       setError("Please enter your email address first");
       return;
     }
 
-    setIsLoading(true);
+    setEmail(normalizedEmail);
     setError("");
+    setSuccess("");
+
+    if (!isAviamEmail(normalizedEmail)) {
+      setError(getAviamEmailError());
+      return;
+    }
+
+    setIsLoading(true);
 
     try {
       const { error } = await supabase.auth.signInWithOtp({
-        email,
+        email: normalizedEmail,
         options: {
           shouldCreateUser: true,
           emailRedirectTo: `${window.location.origin}${process.env.NEXT_PUBLIC_BASE_PATH || ""}/auth/callback`,
@@ -118,7 +143,8 @@ export default function SignUpPage() {
           <CardHeader>
             <CardTitle>Sign Up</CardTitle>
             <CardDescription>
-              Create your account to start managing projects with Kanban boards
+              Create your account to start managing projects with Kanban boards.
+              Only @{AVIAM_EMAIL_DOMAIN} email addresses can register.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -155,6 +181,10 @@ export default function SignUpPage() {
                     required
                   />
                 </div>
+                <p className="text-xs text-gray-500">
+                  Only @{AVIAM_EMAIL_DOMAIN} email addresses can create an
+                  account.
+                </p>
               </div>
 
               {/* Password Field */}

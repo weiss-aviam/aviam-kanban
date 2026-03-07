@@ -1,4 +1,5 @@
 import type { BoardMemberRole } from "@/types/database";
+import { formatDisplayDate } from "@/lib/date-format";
 
 type DueDateInput = Date | string | null | undefined;
 
@@ -52,11 +53,6 @@ export function canManageBoardMembers(
 // ---------------------------------------------------------------------------
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-const DEADLINE_FORMATTER = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  timeZone: "UTC",
-});
 
 function parseDueDate(dueDate: DueDateInput): Date | null {
   if (!dueDate) return null;
@@ -72,7 +68,7 @@ export function formatDueDate(dueDate: DueDateInput): string {
   const parsed = parseDueDate(dueDate);
   if (!parsed) return "";
 
-  return DEADLINE_FORMATTER.format(parsed);
+  return formatDisplayDate(parsed, { useUtc: true });
 }
 
 /**

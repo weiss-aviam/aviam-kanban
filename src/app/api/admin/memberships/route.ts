@@ -8,6 +8,7 @@ import {
   getUserAgent,
 } from "@/lib/supabase/admin";
 import {
+  addMembershipSchema,
   updateMembershipSchema,
   bulkUpdateMembershipsSchema,
   paginationSchema,
@@ -17,6 +18,26 @@ import {
   validateRoleAssignment,
   validateOwnerRequirement,
 } from "@/lib/validations/admin";
+
+interface RelatedUser {
+  id: string;
+  email: string;
+  name: string;
+  created_at?: string;
+}
+
+interface MembershipRow {
+  user_id: string;
+  role: string;
+  created_at: string;
+  users: RelatedUser | RelatedUser[];
+}
+
+function getRelatedUser(
+  users: MembershipRow["users"],
+): RelatedUser | undefined {
+  return Array.isArray(users) ? users[0] : users;
+}
 
 /**
  * GET /api/admin/memberships - Get all board memberships
@@ -35,6 +56,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const boardId = searchParams.get("boardId");
+    const availableOnly = searchParams.get("available") === "true";
 
     if (!boardId) {
       return NextResponse.json(
@@ -69,9 +91,67 @@ export async function GET(request: NextRequest) {
       paginationResult.data;
 
     // Check admin permissions
-    const _adminContext = await requireAdminAccess(user.id, boardId);
+    await requireAdminAccess(user.id, boardId);
 
     const adminClient = createAdminClient();
+
+    if (availableOnly) {
+      const { data: existingMemberships, error: existingMembershipsError } =
+        await adminClient
+          .from("board_members")
+          .select("user_id")
+          .eq("board_id", boardId);
+
+      if (existingMembershipsError) {
+        console.error(
+          "Error fetching existing memberships:",
+          existingMembershipsError,
+        );
+        return NextResponse.json(
+          { error: "Failed to fetch available users" },
+          { status: 500 },
+        );
+      }
+
+      const excludedUserIds = new Set(
+        (existingMemberships ?? []).map((membership) => membership.user_id),
+      );
+
+      let usersQuery = adminClient
+        .from("users")
+        .select("id, email, name, created_at")
+        .order("name", { ascending: true })
+        .limit(Math.min(limit * 3, 100));
+
+      if (search) {
+        usersQuery = usersQuery.or(
+          `name.ilike.%${search}%,email.ilike.%${search}%`,
+        );
+      }
+
+      const { data: availableUsers, error: availableUsersError } =
+        await usersQuery;
+
+      if (availableUsersError) {
+        console.error("Error fetching available users:", availableUsersError);
+        return NextResponse.json(
+          { error: "Failed to fetch available users" },
+          { status: 500 },
+        );
+      }
+
+      const users = (availableUsers ?? [])
+        .filter((availableUser) => !excludedUserIds.has(availableUser.id))
+        .slice(0, limit)
+        .map((availableUser) => ({
+          id: availableUser.id,
+          email: availableUser.email,
+          name: availableUser.name,
+          createdAt: availableUser.created_at,
+        }));
+
+      return NextResponse.json({ users });
+    }
 
     // Build query for board memberships with user details and activity stats
     let query = adminClient
@@ -142,16 +222,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get activity stats for each user (optional enhancement)
-    interface MembershipRow {
-      user_id: string;
-      role: string;
-      created_at: string;
-      users:
-        | { id: string; email: string; name: string; created_at?: string }
-        | { id: string; email: string; name: string; created_at?: string }[];
-    }
-
     const userIds = (memberships as MembershipRow[]).map((m) => m.user_id);
     const { data: cardCounts } = await adminClient
       .from("cards")
@@ -195,9 +265,7 @@ export async function GET(request: NextRequest) {
 
     // Transform the response
     const members = (memberships as MembershipRow[]).map((membership) => {
-      const user = Array.isArray(membership.users)
-        ? membership.users[0]
-        : membership.users;
+      const user = getRelatedUser(membership.users);
       return {
         id: user?.id,
         email: user?.email,
@@ -236,6 +304,157 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error in GET /api/admin/memberships:", error);
+
+    if (error instanceof Error && error.message === "Admin access required") {
+      return NextResponse.json(
+        { error: "Admin access required" },
+        { status: 403 },
+      );
+    }
+
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * POST /api/admin/memberships - Add an existing registered user to a board
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const boardId = searchParams.get("boardId");
+
+    if (!boardId) {
+      return NextResponse.json(
+        { error: "Board ID is required" },
+        { status: 400 },
+      );
+    }
+
+    const body = await request.json();
+    const validation = addMembershipSchema.safeParse({ ...body, boardId });
+
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: "Invalid input", details: validation.error.issues },
+        { status: 400 },
+      );
+    }
+
+    const { userId: targetUserId, role } = validation.data;
+    const adminContext = await requireAdminAccess(user.id, boardId);
+
+    const roleAssignmentValidation = validateRoleAssignment(
+      adminContext.role,
+      role,
+    );
+    if (!roleAssignmentValidation.isValid) {
+      return NextResponse.json(
+        { error: roleAssignmentValidation.error },
+        { status: 403 },
+      );
+    }
+
+    const adminClient = createAdminClient();
+
+    const { data: targetUser, error: targetUserError } = await adminClient
+      .from("users")
+      .select("id, email, name")
+      .eq("id", targetUserId)
+      .single();
+
+    if (targetUserError || !targetUser) {
+      return NextResponse.json(
+        { error: "Registered user not found" },
+        { status: 404 },
+      );
+    }
+
+    const { data: existingMembership, error: existingMembershipError } =
+      await adminClient
+        .from("board_members")
+        .select("user_id")
+        .eq("board_id", boardId)
+        .eq("user_id", targetUserId)
+        .maybeSingle();
+
+    if (existingMembershipError) {
+      console.error(
+        "Error checking existing membership:",
+        existingMembershipError,
+      );
+      return NextResponse.json(
+        { error: "Failed to add user to board" },
+        { status: 500 },
+      );
+    }
+
+    if (existingMembership) {
+      return NextResponse.json(
+        { error: "User is already a member of this board" },
+        { status: 409 },
+      );
+    }
+
+    const { error: insertError } = await adminClient
+      .from("board_members")
+      .insert({
+        board_id: boardId,
+        user_id: targetUserId,
+        role,
+      });
+
+    if (insertError) {
+      console.error("Error adding member to board:", insertError);
+      return NextResponse.json(
+        { error: "Failed to add user to board" },
+        { status: 500 },
+      );
+    }
+
+    await logAdminAction({
+      adminUserId: user.id,
+      targetUserId,
+      boardId,
+      action: "add_user",
+      details: {
+        addedUser: {
+          email: targetUser.email,
+          name: targetUser.name,
+          role,
+        },
+      },
+      ipAddress: getClientIP(request) || "unknown",
+      userAgent: getUserAgent(request) || "unknown",
+    });
+
+    return NextResponse.json(
+      {
+        message: "User added to board successfully",
+        membership: {
+          userId: targetUserId,
+          email: targetUser.email,
+          name: targetUser.name,
+          role,
+        },
+      },
+      { status: 201 },
+    );
+  } catch (error) {
+    console.error("Error in POST /api/admin/memberships:", error);
 
     if (error instanceof Error && error.message === "Admin access required") {
       return NextResponse.json(
@@ -310,7 +529,7 @@ export async function PATCH(request: NextRequest) {
       const { userId: targetUserId, role } = validation.data;
 
       // Check admin permissions
-      const _adminContext = await requireAdminAccess(user.id, boardId);
+      const adminContext = await requireAdminAccess(user.id, boardId);
 
       const adminClient = createAdminClient();
 
@@ -340,10 +559,13 @@ export async function PATCH(request: NextRequest) {
       }
 
       const currentRole = currentMembership.role;
+      const targetUser = getRelatedUser(
+        (currentMembership as MembershipRow).users as MembershipRow["users"],
+      );
 
       // Validate role assignment
       const roleAssignmentValidation = validateRoleAssignment(
-        _adminContext.role,
+        adminContext.role,
         role,
       );
       if (!roleAssignmentValidation.isValid) {
@@ -390,8 +612,8 @@ export async function PATCH(request: NextRequest) {
         details: {
           roleChanged: { from: currentRole, to: role },
           targetUser: {
-            email: "Unknown",
-            name: "Unknown",
+            email: targetUser?.email || "Unknown",
+            name: targetUser?.name || "Unknown",
           },
         },
         ipAddress: getClientIP(request) || "unknown",
@@ -402,8 +624,8 @@ export async function PATCH(request: NextRequest) {
         message: "Membership role updated successfully",
         membership: {
           userId: targetUserId,
-          email: "Unknown",
-          name: "Unknown",
+          email: targetUser?.email || "Unknown",
+          name: targetUser?.name || "Unknown",
           role,
           previousRole: currentRole,
         },

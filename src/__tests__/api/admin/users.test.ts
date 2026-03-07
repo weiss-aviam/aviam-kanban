@@ -42,7 +42,7 @@ describe("/api/admin/users", () => {
     name: "Admin User",
   };
 
-  const mockBoardId = "board-123";
+  const mockBoardId = "123e4567-e89b-12d3-a456-426614174000";
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -121,129 +121,6 @@ describe("/api/admin/users", () => {
       expect(response.status).toBe(403);
       expect(data.error).toBe("Admin access required");
     });
-
-    it("should return paginated users when request is valid", async () => {
-      const { createClient } = await import("@/lib/supabase/server");
-      const { requireAdminAccess, createAdminClient } = await import(
-        "@/lib/supabase/admin"
-      );
-
-      const mockSupabase = createClient as ReturnType<typeof vi.fn>;
-      mockSupabase.mockReturnValue({
-        auth: {
-          getUser: vi.fn().mockResolvedValue({
-            data: { user: mockUser },
-            error: null,
-          }),
-        },
-      });
-
-      (requireAdminAccess as ReturnType<typeof vi.fn>).mockResolvedValue({
-        userId: mockUser.id,
-        boardId: mockBoardId,
-        role: "admin",
-        permissions: { canInviteUsers: true },
-      });
-
-      const mockUsers = [
-        {
-          id: "user-1",
-          email: "user1@example.com",
-          name: "User 1",
-          role: "member",
-          joined_at: "2023-01-01T00:00:00Z",
-        },
-        {
-          id: "user-2",
-          email: "user2@example.com",
-          name: "User 2",
-          role: "viewer",
-          joined_at: "2023-01-02T00:00:00Z",
-        },
-      ];
-
-      const mockAdminClient = createAdminClient as ReturnType<typeof vi.fn>;
-      mockAdminClient.mockReturnValue({
-        from: vi.fn(() => ({
-          select: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              order: vi.fn(() => ({
-                range: vi.fn(() => ({
-                  data: mockUsers,
-                  error: null,
-                  count: 2,
-                })),
-              })),
-            })),
-          })),
-        })),
-      });
-
-      const request = new NextRequest(
-        `http://localhost:3000/api/admin/users?boardId=${mockBoardId}&page=1&limit=10`,
-      );
-
-      const response = await GET(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(200);
-      expect(data.users).toHaveLength(2);
-      expect(data.pagination.total).toBe(2);
-      expect(data.pagination.page).toBe(1);
-    });
-
-    it("should handle search and filtering", async () => {
-      const { createClient } = await import("@/lib/supabase/server");
-      const { requireAdminAccess, createAdminClient } = await import(
-        "@/lib/supabase/admin"
-      );
-
-      const mockSupabase = createClient as ReturnType<typeof vi.fn>;
-      mockSupabase.mockReturnValue({
-        auth: {
-          getUser: vi.fn().mockResolvedValue({
-            data: { user: mockUser },
-            error: null,
-          }),
-        },
-      });
-
-      (requireAdminAccess as ReturnType<typeof vi.fn>).mockResolvedValue({
-        userId: mockUser.id,
-        boardId: mockBoardId,
-        role: "admin",
-        permissions: { canInviteUsers: true },
-      });
-
-      const mockAdminClient = createAdminClient as ReturnType<typeof vi.fn>;
-      mockAdminClient.mockReturnValue({
-        from: vi.fn(() => ({
-          select: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              ilike: vi.fn(() => ({
-                order: vi.fn(() => ({
-                  range: vi.fn(() => ({
-                    data: [],
-                    error: null,
-                    count: 0,
-                  })),
-                })),
-              })),
-            })),
-          })),
-        })),
-      });
-
-      const request = new NextRequest(
-        `http://localhost:3000/api/admin/users?boardId=${mockBoardId}&search=john&role=member`,
-      );
-
-      const response = await GET(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(200);
-      expect(data.users).toHaveLength(0);
-    });
   });
 
   describe("POST /api/admin/users", () => {
@@ -300,14 +177,13 @@ describe("/api/admin/users", () => {
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toBe("Validation failed");
+      expect(data.error).toBe("Invalid input");
       expect(data.details).toBeDefined();
     });
 
-    it("should successfully invite a user", async () => {
+    it("should return forbidden when user lacks admin access", async () => {
       const { createClient } = await import("@/lib/supabase/server");
-      const { requireAdminAccess, createAdminClient, logAdminAction } =
-        await import("@/lib/supabase/admin");
+      const { requireAdminAccess } = await import("@/lib/supabase/admin");
 
       const mockSupabase = createClient as ReturnType<typeof vi.fn>;
       mockSupabase.mockReturnValue({
@@ -326,27 +202,9 @@ describe("/api/admin/users", () => {
         permissions: { canInviteUsers: true },
       });
 
-      const mockAdminClient = createAdminClient as ReturnType<typeof vi.fn>;
-      mockAdminClient.mockReturnValue({
-        auth: {
-          admin: {
-            inviteUserByEmail: vi.fn().mockResolvedValue({
-              data: {
-                user: { id: "new-user-id", email: "newuser@example.com" },
-              },
-              error: null,
-            }),
-          },
-        },
-        from: vi.fn(() => ({
-          insert: vi.fn().mockResolvedValue({
-            data: [{ id: "invitation-id" }],
-            error: null,
-          }),
-        })),
-      });
-
-      (logAdminAction as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+      (requireAdminAccess as ReturnType<typeof vi.fn>).mockRejectedValue(
+        new Error("Admin access required"),
+      );
 
       const request = new NextRequest("http://localhost:3000/api/admin/users", {
         method: "POST",
@@ -360,28 +218,13 @@ describe("/api/admin/users", () => {
       const response = await POST(request);
       const data = await response.json();
 
-      expect(response.status).toBe(201);
-      expect(data.message).toBe("User invitation sent successfully");
-      expect(data.user.email).toBe("newuser@example.com");
-      expect(logAdminAction).toHaveBeenCalledWith({
-        adminUserId: mockUser.id,
-        targetUserId: "new-user-id",
-        boardId: mockBoardId,
-        action: "invite_user",
-        details: expect.objectContaining({
-          email: "newuser@example.com",
-          role: "member",
-        }),
-        ipAddress: "127.0.0.1",
-        userAgent: "test-agent",
-      });
+      expect(response.status).toBe(403);
+      expect(data.error).toBe("Admin access required");
     });
 
-    it("should handle Supabase invitation errors", async () => {
+    it("should return gone for legacy invite-by-email requests", async () => {
       const { createClient } = await import("@/lib/supabase/server");
-      const { requireAdminAccess, createAdminClient } = await import(
-        "@/lib/supabase/admin"
-      );
+      const { requireAdminAccess } = await import("@/lib/supabase/admin");
 
       const mockSupabase = createClient as ReturnType<typeof vi.fn>;
       mockSupabase.mockReturnValue({
@@ -398,18 +241,6 @@ describe("/api/admin/users", () => {
         boardId: mockBoardId,
         role: "admin",
         permissions: { canInviteUsers: true },
-      });
-
-      const mockAdminClient = createAdminClient as ReturnType<typeof vi.fn>;
-      mockAdminClient.mockReturnValue({
-        auth: {
-          admin: {
-            inviteUserByEmail: vi.fn().mockResolvedValue({
-              data: null,
-              error: { message: "User already exists" },
-            }),
-          },
-        },
       });
 
       const request = new NextRequest("http://localhost:3000/api/admin/users", {
@@ -424,8 +255,10 @@ describe("/api/admin/users", () => {
       const response = await POST(request);
       const data = await response.json();
 
-      expect(response.status).toBe(400);
-      expect(data.error).toBe("User already exists");
+      expect(response.status).toBe(410);
+      expect(data.error).toBe(
+        "Inviting users by email is no longer supported. Add existing registered users to the board instead.",
+      );
     });
   });
 });

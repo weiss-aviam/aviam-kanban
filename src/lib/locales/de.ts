@@ -294,9 +294,9 @@ export const de = {
   },
 
   inviteMembers: {
-    title: "Mitglieder einladen",
+    title: "Mitglieder hinzufügen",
     description:
-      "Laden Sie Personen zu Ihrem neuen Board ein. Sie können diesen Schritt auch überspringen und später Mitglieder hinzufügen.",
+      "Fügen Sie bereits registrierte Aviam-Benutzer zu Ihrem neuen Board hinzu. Sie können diesen Schritt auch überspringen und später Mitglieder hinzufügen.",
     skipForNow: "Jetzt überspringen",
     done: "Fertig",
   },
@@ -320,7 +320,9 @@ export const de = {
     descriptionPlaceholder: "Beschreibung hinzufügen...",
     priorityLabel: "Priorität",
     dueDateLabel: "Fällig am",
-    dueDateHelper: "Optionales Fälligkeitsdatum und Uhrzeit festlegen",
+    dueDateHelper: "Optionales Fälligkeitsdatum auswählen",
+    dueDatePlaceholder: "Datum auswählen",
+    clearDueDate: "Datum entfernen",
     invalidDueDate: "Bitte ein gültiges Fälligkeitsdatum eingeben",
     columnLabel: "Spalte",
     columnPlaceholder: "Spalte auswählen",
@@ -351,13 +353,14 @@ export const de = {
     userManagementTitle: "Benutzerverwaltung - {boardName}",
     tabs: {
       users: "Benutzer",
+      members: "Mitglieder",
       invite: "Einladen",
       memberships: "Mitgliedschaften",
       auditLog: "Protokoll",
     },
     boardUsers: "Board-Benutzer",
     boardMemberships: "Board-Mitgliedschaften",
-    inviteNewUsers: "Neue Benutzer einladen",
+    inviteNewUsers: "Registrierte Benutzer hinzufügen",
     adminActionsAuditLog: "Administrationsprotokoll",
     loadingUsers: "Benutzer werden geladen...",
     loadingMemberships: "Mitgliedschaften werden geladen...",
@@ -405,6 +408,23 @@ export const de = {
     emailAddress: "E-Mail-Adresse",
     emailPlaceholder: "benutzer@beispiel.de",
     rolePermissions: "Rollenberechtigungen",
+    addExistingUsersToBoard: "Registrierte Benutzer zum Board hinzufügen",
+    registeredUsers: "Registrierte Benutzer",
+    searchRegisteredUsers: "Registrierte Benutzer suchen",
+    onlyRegisteredUsersHelp:
+      "Es können nur bereits registrierte Benutzer zu diesem Board hinzugefügt werden.",
+    availableUsers: "Verfügbare Benutzer",
+    loadingAvailableUsers: "Verfügbare Benutzer werden geladen...",
+    noAvailableUsers: "Keine verfügbaren Benutzer gefunden",
+    selectedUser: "Ausgewählter Benutzer",
+    noUserSelected: "Kein Benutzer ausgewählt",
+    clearSelection: "Auswahl zurücksetzen",
+    addMember: "Mitglied hinzufügen",
+    addingMember: "Mitglied wird hinzugefügt...",
+    failedToFetchAvailableUsers:
+      "Verfügbare Benutzer konnten nicht geladen werden",
+    failedToAddMember: "Mitglied konnte nicht zum Board hinzugefügt werden",
+    memberAddedSuccess: "{name} wurde erfolgreich zum Board hinzugefügt",
     rolePermissionDescriptions: {
       admin:
         "Kann Benutzer verwalten, Board-Einstellungen bearbeiten und alle Aktionen durchführen",
@@ -432,6 +452,8 @@ export const de = {
       noEmail: "Bitte geben Sie mindestens eine E-Mail-Adresse ein",
       invalidEmails: "Bitte geben Sie gültige E-Mail-Adressen ein",
       duplicateEmails: "Doppelte E-Mail-Adressen sind nicht erlaubt",
+      noUserSelected: "Bitte wählen Sie einen Benutzer aus",
+      userAlreadyQueued: "Dieser Benutzer wurde bereits ausgewählt",
     },
     membershipSummary: {
       totalMembers: "Gesamte Mitglieder",
@@ -456,6 +478,7 @@ export const de = {
       page: "Seite {page} von {total}",
       unknownAdmin: "Unbekannter Administrator",
       actions: {
+        add_user: "Benutzer hinzugefügt",
         invite_user: "Benutzer eingeladen",
         update_user: "Benutzer aktualisiert",
         remove_user: "Benutzer entfernt",
@@ -464,6 +487,7 @@ export const de = {
         bulk_update_roles: "Massenaktualisierung der Rollen",
       },
       actionDetails: {
+        add_user: "Hinzugefügt: {name} als {role}",
         invite_user: "Eingeladen: {email} als {role}",
         update_user_name: 'Name: "{from}" → "{to}"',
         update_user_role: "Rolle: {from} → {to}",

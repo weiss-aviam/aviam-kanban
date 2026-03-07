@@ -36,6 +36,7 @@ import type { User as UserType } from "@supabase/supabase-js";
 import type { Board, BoardWithDetails } from "../../types/database";
 import { format } from "date-fns";
 import { getRoleBadgeClasses, getRoleLabel } from "../../lib/role-colors";
+import { AppHeader } from "../../components/layout/AppHeader";
 import { HeaderMenu } from "../../components/layout/HeaderMenu";
 import {
   DropdownMenu,
@@ -229,31 +230,11 @@ export default function BoardsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center space-x-4">
-              <Link href="/dashboard" className="flex items-center space-x-2">
-                <Kanban className="h-8 w-8 text-blue-600" />
-                <span className="text-xl font-bold text-gray-900">
-                  Aviam Kanban
-                </span>
-              </Link>
-              <div className="hidden md:block h-6 w-px bg-gray-300"></div>
-              <div className="hidden md:block">
-                <h1 className="text-2xl font-bold text-gray-900">All Boards</h1>
-                <p className="text-gray-600">
-                  Manage and organize your projects
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <HeaderMenu />
-            </div>
-          </div>
-        </div>
-      </header>
+      <AppHeader
+        title="All Boards"
+        subtitle="Browse, search, and organize all of your boards"
+        actions={<HeaderMenu />}
+      />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

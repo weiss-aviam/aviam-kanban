@@ -7,6 +7,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createClient } from "../../lib/supabase/client";
+import { AppHeader } from "../../components/layout/AppHeader";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
@@ -18,7 +19,7 @@ import {
   CardTitle,
 } from "../../components/ui/card";
 import { Alert, AlertDescription } from "../../components/ui/alert";
-import { Kanban, Loader2, Mail, User as UserIcon, Lock } from "lucide-react";
+import { Loader2, Mail, User as UserIcon, Lock } from "lucide-react";
 
 const schema = z.object({
   name: z.string().min(1, "Name is required").max(255, "Name is too long"),
@@ -137,32 +138,15 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center space-x-3">
-              <Kanban className="h-8 w-8 text-blue-600" />
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  User Settings
-                </h1>
-                <p className="text-gray-600">
-                  Manage your profile and account security
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              <Button asChild variant="outline" size="sm">
-                <Link href="/dashboard">
-                  <Kanban className="w-4 h-4 mr-2" />
-                  Dashboard
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <AppHeader
+        title="User Settings"
+        subtitle="Manage your profile details and account security"
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <Link href="/dashboard">Dashboard</Link>
+          </Button>
+        }
+      />
 
       {/* Content */}
       <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

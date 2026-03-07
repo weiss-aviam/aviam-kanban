@@ -41,6 +41,17 @@ export const inviteUserSchema = z.object({
 export type InviteUserInput = z.infer<typeof inviteUserSchema>;
 
 /**
+ * Schema for adding an existing user to a board
+ */
+export const addMembershipSchema = z.object({
+  userId: userIdSchema,
+  role: roleSchema,
+  boardId: boardIdSchema,
+});
+
+export type AddMembershipInput = z.infer<typeof addMembershipSchema>;
+
+/**
  * Schema for bulk inviting users
  */
 export const bulkInviteUsersSchema = z.object({

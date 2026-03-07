@@ -90,9 +90,9 @@ export function UserManagementModal({
               <Users className="w-4 h-4" />
               {t("admin.tabs.users")}
             </TabsTrigger>
-            <TabsTrigger value="invite" className="flex items-center gap-2">
+            <TabsTrigger value="members" className="flex items-center gap-2">
               <UserPlus className="w-4 h-4" />
-              {t("admin.tabs.invite")}
+              {t("admin.tabs.members")}
             </TabsTrigger>
             <TabsTrigger
               value="memberships"
@@ -125,17 +125,17 @@ export function UserManagementModal({
               </div>
             </TabsContent>
 
-            <TabsContent value="invite" className="h-full">
+            <TabsContent value="members" className="h-full">
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold">
-                    {t("admin.inviteNewUsers")}
+                    {t("admin.addExistingUsersToBoard")}
                   </h3>
                 </div>
                 <InviteUserForm
                   boardId={boardId}
                   currentUserRole={currentUserRole}
-                  onInviteSent={handleUserAction}
+                  onMemberAdded={handleUserAction}
                 />
               </div>
             </TabsContent>

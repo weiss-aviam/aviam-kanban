@@ -1,70 +1,66 @@
 import { describe, expect, it } from "vitest";
 import { t } from "@/lib/i18n";
 import {
-  addInvitationRow,
-  canInviteAdmins,
-  createEmptyInvitation,
-  getInvitationResultSummary,
-  getInvitationValidationError,
+  canAssignAdminRole,
+  createDefaultMemberRole,
+  formatAvailableUserLabel,
+  getAddMemberResultSummary,
+  getMemberSelectionValidationError,
 } from "@/components/admin/invite-user-form.utils";
 
 describe("InviteUserForm helpers", () => {
-  it("creates an empty viewer invitation by default", () => {
-    expect(createEmptyInvitation()).toEqual({ email: "", role: "viewer" });
+  it("returns viewer as the default member role", () => {
+    expect(createDefaultMemberRole()).toBe("viewer");
   });
 
-  it("adds viewer rows until the invitation limit is reached", () => {
-    let invitations = [createEmptyInvitation()];
-
-    for (let index = 0; index < 12; index += 1) {
-      invitations = addInvitationRow(invitations);
-    }
-
-    expect(invitations).toHaveLength(10);
-    expect(invitations.at(-1)).toEqual({ email: "", role: "viewer" });
+  it("only allows owners to assign the admin role", () => {
+    expect(canAssignAdminRole("owner")).toBe(true);
+    expect(canAssignAdminRole("admin")).toBe(false);
+    expect(canAssignAdminRole("member")).toBe(false);
+    expect(canAssignAdminRole("viewer")).toBe(false);
+    expect(canAssignAdminRole(null)).toBe(false);
   });
 
-  it("only allows owners to invite admins", () => {
-    expect(canInviteAdmins("owner")).toBe(true);
-    expect(canInviteAdmins("admin")).toBe(false);
-    expect(canInviteAdmins("member")).toBe(false);
-    expect(canInviteAdmins("viewer")).toBe(false);
+  it("returns the no-user-selected validation key when no user is chosen", () => {
+    const errorKey = getMemberSelectionValidationError(null);
+
+    expect(errorKey).toBe("admin.validationErrors.noUserSelected");
+    expect(t(errorKey!)).toBe(t("admin.validationErrors.noUserSelected"));
   });
 
-  it("returns the no-email validation key when all rows are empty", () => {
-    const errorKey = getInvitationValidationError([createEmptyInvitation()]);
-
-    expect(errorKey).toBe("admin.validationErrors.noEmail");
-    expect(t(errorKey!)).toBe(t("admin.validationErrors.noEmail"));
-  });
-
-  it("returns the invalid-email validation key for malformed emails", () => {
+  it("returns the already-queued validation key when the user is already selected", () => {
     expect(
-      getInvitationValidationError([{ email: "not-an-email", role: "viewer" }]),
-    ).toBe("admin.validationErrors.invalidEmails");
+      getMemberSelectionValidationError("user-1", ["user-1", "user-2"]),
+    ).toBe("admin.validationErrors.userAlreadyQueued");
   });
 
-  it("returns the duplicate-email validation key case-insensitively", () => {
+  it("accepts a unique selected user", () => {
     expect(
-      getInvitationValidationError([
-        { email: "duplicate@example.com", role: "viewer" },
-        { email: "DUPLICATE@example.com", role: "member" },
-      ]),
-    ).toBe("admin.validationErrors.duplicateEmails");
-  });
-
-  it("accepts unique valid invitations", () => {
-    expect(
-      getInvitationValidationError([
-        { email: "viewer@example.com", role: "viewer" },
-        { email: "member@example.com", role: "member" },
-      ]),
+      getMemberSelectionValidationError("user-3", ["user-1", "user-2"]),
     ).toBeNull();
   });
 
-  it("summarizes successful and failed invitation results", () => {
+  it("formats available user labels with name and email when present", () => {
     expect(
-      getInvitationResultSummary([
+      formatAvailableUserLabel({
+        id: "user-1",
+        name: "Ada Lovelace",
+        email: "ada@example.com",
+      }),
+    ).toBe("Ada Lovelace (ada@example.com)");
+
+    expect(
+      formatAvailableUserLabel({
+        id: "user-2",
+        name: "",
+        email: "grace@example.com",
+      }),
+    ).toBe("grace@example.com");
+  });
+
+  it("summarizes successful and failed add-member results", () => {
+    expect(
+      getAddMemberResultSummary([
         { status: "fulfilled", value: { ok: true } },
         { status: "rejected", reason: new Error("first failure") },
         { status: "rejected", reason: new Error("second failure") },

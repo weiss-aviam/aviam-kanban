@@ -1,6 +1,12 @@
 import { createClient } from "./supabase/client";
 import { createClient as createServerClient } from "./supabase/server";
 import type { User } from "@supabase/supabase-js";
+export {
+  AVIAM_EMAIL_DOMAIN,
+  getAviamEmailError,
+  isAviamEmail,
+  normalizeEmail,
+} from "./auth-email";
 
 export type AuthUser = User;
 

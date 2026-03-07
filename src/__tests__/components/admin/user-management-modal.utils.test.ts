@@ -26,11 +26,11 @@ describe("user-management-modal utils", () => {
     expect(t(getUserManagementRoleLabelKey("admin"))).toBe(t("roles.admin"));
   });
 
-  it("shows refresh controls for every tab except invite", () => {
+  it("shows refresh controls for every tab except members", () => {
     expect(shouldShowRefreshButton("users")).toBe(true);
     expect(shouldShowRefreshButton("memberships")).toBe(true);
     expect(shouldShowRefreshButton("audit")).toBe(true);
-    expect(shouldShowRefreshButton("invite")).toBe(false);
+    expect(shouldShowRefreshButton("members")).toBe(false);
   });
 
   it("increments the refresh trigger", () => {

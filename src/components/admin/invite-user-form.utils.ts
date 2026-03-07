@@ -1,70 +1,47 @@
 import type { BoardMemberRole } from "@/types/database";
 
-export interface InvitationData {
+export interface AvailableBoardUser {
+  id: string;
   email: string;
-  role: "admin" | "member" | "viewer";
+  name: string;
 }
 
-export type InvitationRole = InvitationData["role"];
+export type AddMemberRole = "admin" | "member" | "viewer";
 
-export type InvitationValidationErrorKey =
-  | "admin.validationErrors.noEmail"
-  | "admin.validationErrors.invalidEmails"
-  | "admin.validationErrors.duplicateEmails";
+export type MemberSelectionValidationErrorKey =
+  | "admin.validationErrors.noUserSelected"
+  | "admin.validationErrors.userAlreadyQueued";
 
-const MAX_INVITATIONS = 10;
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-export function createEmptyInvitation(): InvitationData {
-  return { email: "", role: "viewer" };
+export function createDefaultMemberRole(): AddMemberRole {
+  return "viewer";
 }
 
-export function canInviteAdmins(
+export function canAssignAdminRole(
   role: BoardMemberRole | string | null | undefined,
 ): boolean {
   return role === "owner";
 }
 
-export function addInvitationRow(
-  invitations: InvitationData[],
-): InvitationData[] {
-  return invitations.length < MAX_INVITATIONS
-    ? [...invitations, createEmptyInvitation()]
-    : invitations;
-}
-
-export function getInvitationValidationError(
-  invitations: InvitationData[],
-): InvitationValidationErrorKey | null {
-  const validInvitations = invitations.filter((invitation) =>
-    invitation.email.trim(),
-  );
-
-  if (validInvitations.length === 0) {
-    return "admin.validationErrors.noEmail";
+export function getMemberSelectionValidationError(
+  selectedUserId: string | null,
+  queuedUserIds: string[] = [],
+): MemberSelectionValidationErrorKey | null {
+  if (!selectedUserId) {
+    return "admin.validationErrors.noUserSelected";
   }
 
-  const invalidEmails = validInvitations.filter(
-    (invitation) => !EMAIL_REGEX.test(invitation.email),
-  );
-  if (invalidEmails.length > 0) {
-    return "admin.validationErrors.invalidEmails";
-  }
-
-  const emails = validInvitations.map((invitation) =>
-    invitation.email.toLowerCase(),
-  );
-  const duplicates = emails.filter(
-    (email, index) => emails.indexOf(email) !== index,
-  );
-  if (duplicates.length > 0) {
-    return "admin.validationErrors.duplicateEmails";
+  if (queuedUserIds.includes(selectedUserId)) {
+    return "admin.validationErrors.userAlreadyQueued";
   }
 
   return null;
 }
 
-export function getInvitationResultSummary(
+export function formatAvailableUserLabel(user: AvailableBoardUser): string {
+  return user.name ? `${user.name} (${user.email})` : user.email;
+}
+
+export function getAddMemberResultSummary(
   results: PromiseSettledResult<unknown>[],
 ): {
   successful: number;
