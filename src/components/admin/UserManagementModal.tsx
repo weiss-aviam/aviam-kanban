@@ -69,12 +69,12 @@ export function UserManagementModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] w-[95vw] max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+      <DialogContent className="flex max-h-[90vh] w-[95vw] max-w-[95vw] flex-col overflow-hidden sm:max-w-6xl">
+        <DialogHeader className="shrink-0 pr-8">
+          <DialogTitle className="flex flex-wrap items-center gap-2">
             <Users className="w-5 h-5" />
             {t("admin.userManagementTitle", { boardName })}
-            <Badge variant="outline" className="ml-2">
+            <Badge variant="outline">
               {t(getUserManagementRoleLabelKey(currentUserRole))}
             </Badge>
           </DialogTitle>
@@ -83,9 +83,9 @@ export function UserManagementModal({
         <Tabs
           value={activeTab}
           onValueChange={handleTabChange}
-          className="flex-1 flex flex-col"
+          className="flex min-h-0 flex-1 flex-col overflow-hidden"
         >
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid h-auto w-full shrink-0 grid-cols-2 gap-1 sm:grid-cols-4">
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               {t("admin.tabs.users")}
@@ -107,9 +107,9 @@ export function UserManagementModal({
             </TabsTrigger>
           </TabsList>
 
-          <div className="flex-1 overflow-hidden">
-            <TabsContent value="users" className="h-full">
-              <div className="space-y-6 h-full">
+          <div className="mt-4 flex min-h-0 flex-1 flex-col overflow-hidden">
+            <TabsContent value="users" className="mt-0 min-h-0 flex-1 overflow-y-auto">
+              <div className="space-y-6 pr-1">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold">
                     {t("admin.boardUsers")}
@@ -125,8 +125,11 @@ export function UserManagementModal({
               </div>
             </TabsContent>
 
-            <TabsContent value="members" className="h-full">
-              <div className="space-y-6">
+            <TabsContent
+              value="members"
+              className="mt-0 min-h-0 flex-1 overflow-y-auto"
+            >
+              <div className="space-y-6 pr-1">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold">
                     {t("admin.addExistingUsersToBoard")}
@@ -140,8 +143,11 @@ export function UserManagementModal({
               </div>
             </TabsContent>
 
-            <TabsContent value="memberships" className="h-full">
-              <div className="space-y-6 h-full">
+            <TabsContent
+              value="memberships"
+              className="mt-0 min-h-0 flex-1 overflow-y-auto"
+            >
+              <div className="space-y-6 pr-1">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold">
                     {t("admin.boardMemberships")}
@@ -157,8 +163,11 @@ export function UserManagementModal({
               </div>
             </TabsContent>
 
-            <TabsContent value="audit" className="h-full">
-              <div className="space-y-6 h-full">
+            <TabsContent
+              value="audit"
+              className="mt-0 min-h-0 flex-1 overflow-y-auto"
+            >
+              <div className="space-y-6 pr-1">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold">
                     {t("admin.adminActionsAuditLog")}

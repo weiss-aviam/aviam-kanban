@@ -138,42 +138,48 @@ export default function AdminUsersPage() {
       />
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="users" className="flex items-center space-x-2">
+      <div className="mx-auto w-full max-w-screen-2xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8 xl:px-10">
+        <Tabs defaultValue="users" className="space-y-5 lg:space-y-6">
+          <TabsList className="grid h-auto w-full grid-cols-2 gap-1 rounded-xl p-1 sm:grid-cols-4">
+            <TabsTrigger
+              value="users"
+              className="flex min-h-11 items-center gap-2 px-3 py-2 text-xs sm:text-sm"
+            >
               <Users className="h-4 w-4" />
               <span>Users</span>
             </TabsTrigger>
             <TabsTrigger
               value="members"
-              className="flex items-center space-x-2"
+              className="flex min-h-11 items-center gap-2 px-3 py-2 text-xs sm:text-sm"
             >
               <UserPlus className="h-4 w-4" />
               <span>Add Members</span>
             </TabsTrigger>
             <TabsTrigger
               value="memberships"
-              className="flex items-center space-x-2"
+              className="flex min-h-11 items-center gap-2 px-3 py-2 text-xs sm:text-sm"
             >
               <Shield className="h-4 w-4" />
               <span>Memberships</span>
             </TabsTrigger>
-            <TabsTrigger value="audit" className="flex items-center space-x-2">
+            <TabsTrigger
+              value="audit"
+              className="flex min-h-11 items-center gap-2 px-3 py-2 text-xs sm:text-sm"
+            >
               <Activity className="h-4 w-4" />
               <span>Audit Log</span>
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="users" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Board Users</CardTitle>
-                <CardDescription>
+            <Card className="overflow-hidden border-gray-200 shadow-sm">
+              <CardHeader className="gap-2 px-5 py-5 sm:px-6 lg:px-8">
+                <CardTitle className="text-xl">Board Users</CardTitle>
+                <CardDescription className="max-w-3xl text-sm leading-6">
                   Manage users who have access to this board
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-5 pb-6 sm:px-6 lg:px-8">
                 <UserList
                   boardId={boardId}
                   currentUserRole={
@@ -187,14 +193,14 @@ export default function AdminUsersPage() {
           </TabsContent>
 
           <TabsContent value="members" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Add Registered Users</CardTitle>
-                <CardDescription>
+            <Card className="overflow-hidden border-gray-200 shadow-sm">
+              <CardHeader className="gap-2 px-5 py-5 sm:px-6 lg:px-8">
+                <CardTitle className="text-xl">Add Registered Users</CardTitle>
+                <CardDescription className="max-w-3xl text-sm leading-6">
                   Add existing Aviam users to this board and assign their role.
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-5 pb-6 sm:px-6 lg:px-8">
                 <InviteUserForm
                   boardId={boardId}
                   currentUserRole={
@@ -207,14 +213,14 @@ export default function AdminUsersPage() {
           </TabsContent>
 
           <TabsContent value="memberships" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Board Memberships</CardTitle>
-                <CardDescription>
+            <Card className="overflow-hidden border-gray-200 shadow-sm">
+              <CardHeader className="gap-2 px-5 py-5 sm:px-6 lg:px-8">
+                <CardTitle className="text-xl">Board Memberships</CardTitle>
+                <CardDescription className="max-w-3xl text-sm leading-6">
                   Overview of all board members and their roles
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-5 pb-6 sm:px-6 lg:px-8">
                 <MembershipTable
                   boardId={boardId}
                   currentUserRole={
@@ -228,14 +234,14 @@ export default function AdminUsersPage() {
           </TabsContent>
 
           <TabsContent value="audit" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Audit Log</CardTitle>
-                <CardDescription>
+            <Card className="overflow-hidden border-gray-200 shadow-sm">
+              <CardHeader className="gap-2 px-5 py-5 sm:px-6 lg:px-8">
+                <CardTitle className="text-xl">Audit Log</CardTitle>
+                <CardDescription className="max-w-3xl text-sm leading-6">
                   Track all administrative actions performed on this board
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-5 pb-6 sm:px-6 lg:px-8">
                 <AuditLogTable
                   boardId={boardId}
                   refreshTrigger={refreshTrigger}
