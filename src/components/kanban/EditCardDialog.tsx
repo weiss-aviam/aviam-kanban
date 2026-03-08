@@ -652,13 +652,22 @@ export function EditCardDialog({
     onOpenChange(false);
   };
 
+  const handleDialogOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      handleClose();
+      return;
+    }
+
+    onOpenChange(true);
+  };
+
   const watchedColumnId = watch("columnId");
   const selectedColumn = columns.find(
     (col) => col.id === parseInt(watchedColumnId || "0"),
   );
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="sm:max-w-7xl w-[95vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>

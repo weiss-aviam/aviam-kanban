@@ -31,6 +31,7 @@ import type {
   Label,
   BoardMemberRole,
 } from "@/types/database";
+import type { BoardPresenceMember } from "@/hooks/useBoardPresence";
 
 interface KanbanColumnProps {
   column: Column;
@@ -39,6 +40,7 @@ interface KanbanColumnProps {
   boardMembers: User[];
   boardLabels: Label[];
   allColumns: Column[];
+  getEditingMembersForCard?: (cardId: string) => BoardPresenceMember[];
   isLoading?: boolean;
   onCardCreated: (card: CardType) => void;
   onCardClick: (card: CardType) => void;
@@ -55,6 +57,7 @@ export function KanbanColumn({
   boardMembers,
   boardLabels,
   allColumns,
+  getEditingMembersForCard,
   isLoading = false,
   onCardCreated,
   onCardClick,
@@ -187,6 +190,7 @@ export function KanbanColumn({
                       boardMembers={boardMembers}
                       boardLabels={boardLabels}
                       allColumns={allColumns}
+                      editingMembers={getEditingMembersForCard?.(card.id) ?? []}
                       currentUser={currentUser}
                       userRole={userRole}
                       onClick={() => onCardClick(card)}
