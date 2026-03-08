@@ -179,6 +179,15 @@ export async function GET(
       userRole = "owner";
     }
 
+    const { count: memberCount, error: memberCountError } = await supabase
+      .from("board_members")
+      .select("user_id", { count: "exact", head: true })
+      .eq("board_id", boardId);
+
+    if (memberCountError) {
+      console.error("Error fetching board member count:", memberCountError);
+    }
+
     console.log("Final extracted user role:", userRole);
 
     const board = {
@@ -188,6 +197,7 @@ export async function GET(
       createdAt: boardData.created_at,
       ownerId: boardData.owner_id,
       role: userRole,
+      memberCount: memberCount ?? 0,
       columns: columns,
     };
 

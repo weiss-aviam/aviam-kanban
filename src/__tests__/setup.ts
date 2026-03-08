@@ -113,34 +113,6 @@ vi.mock("date-fns", () => ({
   format: vi.fn(() => "2023-01-01 12:00:00"),
 }));
 
-// Mock lucide-react icons — return a real React element so components render without errors
-vi.mock("lucide-react", () => {
-  const MockIcon = ({
-    className,
-    title,
-  }: {
-    className?: string;
-    title?: string;
-    [key: string]: unknown;
-  }) =>
-    React.createElement("svg", {
-      className,
-      "data-testid": "mock-icon",
-      role: "img",
-      title,
-    });
-
-  return new Proxy(
-    {},
-    {
-      get: (_target, prop) => {
-        if (prop === "__esModule") return true;
-        return MockIcon;
-      },
-    },
-  );
-});
-
 // Global test utilities
 global.ResizeObserver = vi.fn().mockImplementation(() => ({
   observe: vi.fn(),

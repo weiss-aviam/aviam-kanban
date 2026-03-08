@@ -154,6 +154,66 @@ export async function requireAuth(): Promise<AuthUser> {
   return user;
 }
 
+const SUPER_ADMIN_ROLE_VALUES = new Set([
+  "super_admin",
+  "super-admin",
+  "superadmin",
+]);
+
+function hasSuperAdminMetadata(
+  metadata: Record<string, unknown> | undefined,
+): boolean {
+  if (!metadata) {
+    return false;
+  }
+
+  const booleanFlag = metadata.super_admin ?? metadata.is_super_admin;
+  if (typeof booleanFlag === "boolean") {
+    return booleanFlag;
+  }
+
+  const role = metadata.role;
+  if (
+    typeof role === "string" &&
+    SUPER_ADMIN_ROLE_VALUES.has(role.toLowerCase())
+  ) {
+    return true;
+  }
+
+  const roles = metadata.roles;
+  if (Array.isArray(roles)) {
+    return roles.some(
+      (value) =>
+        typeof value === "string" &&
+        SUPER_ADMIN_ROLE_VALUES.has(value.toLowerCase()),
+    );
+  }
+
+  return false;
+}
+
+export function isSuperAdminUser(
+  user: Pick<AuthUser, "app_metadata" | "user_metadata"> | null | undefined,
+): boolean {
+  if (!user) {
+    return false;
+  }
+
+  return hasSuperAdminMetadata(
+    user.app_metadata as Record<string, unknown> | undefined,
+  );
+}
+
+export async function requireSuperAdmin(): Promise<AuthUser> {
+  const user = await requireAuth();
+
+  if (!isSuperAdminUser(user)) {
+    throw new Error("Super Admin access required");
+  }
+
+  return user;
+}
+
 /**
  * Validate email format
  */
