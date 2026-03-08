@@ -6,20 +6,11 @@ import { Button } from "../../components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "../../components/ui/card";
 // import { Badge } from '../../components/ui/badge';
-import {
-  Kanban,
-  Plus,
-  Users,
-  Calendar,
-  // Archive,
-  // Trash2,
-  User,
-} from "lucide-react";
+import { Kanban, Plus, Users, Calendar } from "lucide-react";
 import { createClient } from "../../lib/supabase/client";
 import { CreateBoardDialog } from "../../components/boards/CreateBoardDialog";
 import { EditBoardDialog } from "../../components/boards/EditBoardDialog";
@@ -325,64 +316,6 @@ export default function DashboardPage() {
               ))}
             </div>
           )}
-        </div>
-
-        {/* Getting Started Section */}
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Getting Started
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Create a Board</CardTitle>
-                <CardDescription>
-                  Set up your first Kanban board to organize your project
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <CreateBoardDialog
-                  onBoardCreated={handleBoardCreated}
-                  trigger={
-                    <Button variant="outline" className="w-full">
-                      <Plus className="w-4 h-4 mr-2" />
-                      New Board
-                    </Button>
-                  }
-                />
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Invite Team Members</CardTitle>
-                <CardDescription>
-                  Collaborate with your team by inviting members to your boards
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button variant="outline" className="w-full">
-                  <Users className="w-4 h-4 mr-2" />
-                  Invite Members
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Customize Profile</CardTitle>
-                <CardDescription>
-                  Update your profile information and preferences
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button variant="outline" className="w-full">
-                  <User className="w-4 h-4 mr-2" />
-                  Edit Profile
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
         </div>
       </main>
 
