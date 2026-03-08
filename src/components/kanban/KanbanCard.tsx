@@ -26,8 +26,12 @@ import { useCardActionsWithStore } from "@/hooks/useCardActionsWithStore";
 import type { BoardPresenceMember } from "@/hooks/useBoardPresence";
 import { CardEditorsIndicator } from "@/components/boards/board-presence-ui";
 
+type KanbanCardData = CardType & {
+  assignee?: User | null;
+};
+
 interface KanbanCardProps {
-  card: CardType;
+  card: KanbanCardData;
   boardMembers?: User[];
   boardLabels?: Label[];
   allColumns?: Column[];
@@ -156,8 +160,11 @@ export function KanbanCard({
   const cardIsDueSoon = isDueSoon(card.dueDate);
   const formattedDueDate = formatDueDate(card.dueDate);
 
-  // Find assignee from board members
-  const assignee = boardMembers.find((member) => member.id === card.assigneeId);
+  // Prefer assignee data from the board payload, then fall back to board members.
+  const assignee =
+    card.assignee ??
+    boardMembers.find((member) => member.id === card.assigneeId) ??
+    null;
 
   return (
     <AutoCardContextMenu

@@ -34,6 +34,7 @@ import {
 import { AppHeader } from "../layout/AppHeader";
 
 import type { BoardWithDetails, Column } from "../../types/database";
+import { canEditBoard, canManageBoardMembers } from "@/lib/board-permissions";
 import { getRoleBadgeClasses, getRoleLabel } from "../../lib/role-colors";
 import { t } from "@/lib/i18n";
 
@@ -74,7 +75,7 @@ export function BoardDetailPage({
   // Use store state if available, otherwise fall back to local state
   const isLoading = storeIsLoading;
   const error = storeError || "";
-  const userRole = storeUserRole || "member";
+  const userRole = storeUserRole || board?.role || "member";
   const {
     members: presenceMembers,
     setViewingBoardActivity,
@@ -99,26 +100,20 @@ export function BoardDetailPage({
 
   useEffect(() => {
     if (!initialBoard) {
-      fetchBoard();
+      void fetchBoard();
     } else {
-      // Initialize store with initial board data
-      setCurrentBoard(initialBoard);
-      setBoard(initialBoard);
+      const normalizedInitialBoard = {
+        ...initialBoard,
+        labels: initialBoard.labels ?? [],
+        members: initialBoard.members ?? [],
+        memberCount:
+          initialBoard.memberCount ?? initialBoard.members?.length ?? 0,
+      };
 
-      // Set user role from initial board data
-      const membership = initialBoard.members?.find((m: unknown) => {
-        const member = m as {
-          user: { id: string };
-          role: "owner" | "admin" | "member" | "viewer";
-        };
-        return member.user.id === currentUser?.id;
-      });
-      if (membership) {
-        const m = membership as {
-          role: "owner" | "admin" | "member" | "viewer";
-        };
-        setUserRole(m.role);
-      }
+      // Initialize store with initial board data
+      setCurrentBoard(normalizedInitialBoard);
+      setBoard(normalizedInitialBoard);
+      setUserRole(normalizedInitialBoard.role);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boardId, initialBoard, setCurrentBoard, currentUser?.id, setUserRole]);
@@ -140,29 +135,29 @@ export function BoardDetailPage({
       }
 
       const { board } = await response.json();
+      const normalizedBoard = {
+        ...board,
+        labels: board.labels ?? [],
+        members: board.members ?? [],
+        memberCount: board.memberCount ?? board.members?.length ?? 0,
+      } as BoardWithDetails;
 
       // Update both local state and Zustand store
-      setBoard(board);
-      setCurrentBoard(board);
-
-      // Determine user role from board membership
-      const membership = board.members?.find((m: unknown) => {
-        const member = m as {
-          user: { id: string };
-          role: "owner" | "admin" | "member" | "viewer";
-        };
-        return member.user.id === currentUser?.id;
-      });
-      if (membership) {
-        const m = membership as {
-          role: "owner" | "admin" | "member" | "viewer";
-        };
-        setUserRole(m.role);
-      }
+      setBoard(normalizedBoard);
+      setCurrentBoard(normalizedBoard);
+      setUserRole(normalizedBoard.role);
     } catch (_err) {
       setError(t("boardDetail.loadError"));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleMembersModalChange = (open: boolean) => {
+    setShowMembersModal(open);
+
+    if (!open) {
+      void fetchBoard();
     }
   };
 
@@ -183,10 +178,11 @@ export function BoardDetailPage({
 
   // Removed test function
 
-  const canManageBoard = board && ["owner", "admin"].includes(board.role);
-  const canAddColumns =
-    board && ["owner", "admin", "member"].includes(board.role);
-  const canDeleteBoard = board && board.role === "owner"; // Only owners can delete boards
+  const boardRole = board?.role;
+  const canManageBoard = canManageBoardMembers(boardRole);
+  const canAddColumns = canEditBoard(boardRole);
+  const canDeleteBoard = boardRole === "owner"; // Only owners can delete boards
+  const memberCount = board?.memberCount ?? board?.members?.length ?? 0;
 
   const getTotalCards = () => {
     return (
@@ -248,7 +244,7 @@ export function BoardDetailPage({
               })}{" "}
               • {t("boardDetail.cardCount", { count: getTotalCards() })} •{" "}
               {t("boardDetail.memberCount", {
-                count: board.members?.length || 0,
+                count: memberCount,
               })}
             </span>
             {presenceMembers.length > 0 ? (
@@ -349,7 +345,7 @@ export function BoardDetailPage({
 
       <UserManagementModal
         open={showMembersModal}
-        onOpenChange={setShowMembersModal}
+        onOpenChange={handleMembersModalChange}
         boardId={boardId}
         boardName={board.name}
         currentUserRole={userRole as "owner" | "admin" | "member" | "viewer"}

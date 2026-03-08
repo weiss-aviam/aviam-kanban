@@ -147,6 +147,49 @@ export const paginationSchema = z.object({
 export type PaginationInput = z.infer<typeof paginationSchema>;
 
 /**
+ * Schema for Super Admin global user list filters
+ */
+export const superAdminUserListQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(10),
+  search: z.string().trim().optional(),
+  sortBy: z.enum(["name", "email", "createdAt"]).default("createdAt"),
+  sortOrder: z.enum(["asc", "desc"]).default("desc"),
+});
+
+export type SuperAdminUserListQueryInput = z.infer<
+  typeof superAdminUserListQuerySchema
+>;
+
+/**
+ * Schema for Super Admin user creation
+ */
+export const superAdminCreateUserSchema = z.object({
+  email: emailSchema,
+  name: nameSchema.optional(),
+  password: z.string().min(8, "Password must be at least 8 characters long"),
+});
+
+export type SuperAdminCreateUserInput = z.infer<
+  typeof superAdminCreateUserSchema
+>;
+
+/**
+ * Schema for Super Admin user updates
+ */
+export const superAdminUpdateUserSchema = z
+  .object({
+    name: nameSchema.optional(),
+  })
+  .refine((data) => data.name !== undefined, {
+    message: "At least one field (name) must be provided",
+  });
+
+export type SuperAdminUpdateUserInput = z.infer<
+  typeof superAdminUpdateUserSchema
+>;
+
+/**
  * Schema for audit log filters
  */
 export const auditLogFiltersSchema = z.object({
