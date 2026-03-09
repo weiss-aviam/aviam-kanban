@@ -48,8 +48,10 @@ import type {
   Label as DatabaseLabel,
   CardPriority,
 } from "@/types/database";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { MarkdownEditor } from "@/components/ui/markdown-editor";
 import { PrioritySelector } from "@/components/ui/priority-selector";
+import { getUserInitials, getUserAvatarColor } from "@/lib/role-colors";
 import { createClient as createSupabaseClient } from "@/lib/supabase/client";
 
 import { t } from "@/lib/i18n";
@@ -816,14 +818,60 @@ export function EditCardDialog({
                             key={currentUser.id}
                             value={currentUser.id}
                           >
-                            {currentUser.name || currentUser.email} (YOU)
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-5 w-5 shrink-0">
+                                {(currentUser as { avatarUrl?: string | null })
+                                  .avatarUrl ? (
+                                  <AvatarImage
+                                    src={
+                                      (
+                                        currentUser as {
+                                          avatarUrl?: string | null;
+                                        }
+                                      ).avatarUrl!
+                                    }
+                                    alt={currentUser.name || ""}
+                                  />
+                                ) : null}
+                                <AvatarFallback
+                                  className={`${getUserAvatarColor()} text-[10px] font-semibold text-white`}
+                                >
+                                  {getUserInitials(
+                                    currentUser.name || "",
+                                    currentUser.email || "",
+                                  )}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span>
+                                {currentUser.name || currentUser.email} (
+                                {t("boardDetail.you")})
+                              </span>
+                            </div>
                           </SelectItem>
                         )}
                         {boardMembers
                           ?.filter((member) => member.id !== currentUser?.id)
                           .map((member) => (
                             <SelectItem key={member.id} value={member.id}>
-                              {member.name || member.email}
+                              <div className="flex items-center gap-2">
+                                <Avatar className="h-5 w-5 shrink-0">
+                                  {member.avatarUrl ? (
+                                    <AvatarImage
+                                      src={member.avatarUrl}
+                                      alt={member.name || ""}
+                                    />
+                                  ) : null}
+                                  <AvatarFallback
+                                    className={`${getUserAvatarColor()} text-[10px] font-semibold text-white`}
+                                  >
+                                    {getUserInitials(
+                                      member.name || "",
+                                      member.email || "",
+                                    )}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span>{member.name || member.email}</span>
+                              </div>
                             </SelectItem>
                           ))}
                       </SelectContent>

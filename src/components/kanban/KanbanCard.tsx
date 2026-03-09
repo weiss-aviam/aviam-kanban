@@ -5,7 +5,7 @@ import { CSS } from "@dnd-kit/utilities";
 import type { CSSProperties } from "react";
 import { Card } from "@/components/ui/card";
 // import { Badge } from '@/components/ui/badge'; // Removed for now since labels aren't implemented
-import { Avatar } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Calendar, GripVertical } from "lucide-react";
 import { t } from "@/lib/i18n";
 import type {
@@ -251,11 +251,17 @@ export function KanbanCard({
           {assignee ? (
             <div className="ml-auto flex min-w-0 items-center gap-2 rounded-full border border-white/70 bg-white/90 px-2.5 py-1 shadow-sm">
               <Avatar className="h-7 w-7 shrink-0">
-                <div
-                  className={`flex h-full w-full items-center justify-center ${getUserAvatarColor()} text-xs font-semibold text-white`}
+                {(assignee as { avatarUrl?: string | null }).avatarUrl ? (
+                  <AvatarImage
+                    src={(assignee as { avatarUrl?: string | null }).avatarUrl!}
+                    alt={assignee.name || assignee.email || ""}
+                  />
+                ) : null}
+                <AvatarFallback
+                  className={`${getUserAvatarColor()} text-xs font-semibold text-white`}
                 >
                   {getUserInitials(assignee.name || "", assignee.email || "")}
-                </div>
+                </AvatarFallback>
               </Avatar>
               <span className="truncate text-sm font-medium text-gray-700">
                 {assignee.name || assignee.email || t("editCard.noAssignee")}

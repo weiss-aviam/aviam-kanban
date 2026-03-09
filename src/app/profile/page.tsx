@@ -124,6 +124,12 @@ export default function ProfilePage() {
       });
       if (metaErr) throw metaErr;
 
+      // Also persist to the users table so board member queries include it
+      await supabase
+        .from("users")
+        .update({ avatar_url: signedData.signedUrl })
+        .eq("id", userId);
+
       setAvatarUrl(signedData.signedUrl);
       setSuccess(t("profile.avatarUpdated"));
     } catch (e) {

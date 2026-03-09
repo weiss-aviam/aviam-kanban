@@ -16,6 +16,7 @@ export const users = pgTable("users", {
   id: varchar("id").primaryKey(), // Supabase auth UID
   email: varchar("email", { length: 255 }).notNull().unique(),
   name: varchar("name", { length: 255 }),
+  avatarUrl: varchar("avatar_url", { length: 2048 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

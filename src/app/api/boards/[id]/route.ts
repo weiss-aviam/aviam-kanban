@@ -81,6 +81,46 @@ export async function GET(
       user.id,
     );
 
+    // Get all board members with user data (for assignee dropdown + avatar display)
+    const { data: membersData } = await supabase
+      .from("board_members")
+      .select(
+        `
+        role,
+        users:user_id (
+          id,
+          email,
+          name,
+          avatar_url
+        )
+      `,
+      )
+      .eq("board_id", boardId);
+
+    const members = (membersData || []).flatMap((m) => {
+      type U = {
+        id: string;
+        email: string | null;
+        name: string | null;
+        avatar_url: string | null;
+      };
+      const u = (m as unknown as { users?: U | U[] | null }).users;
+      if (!u) return [];
+      const user = Array.isArray(u) ? u[0] : u;
+      if (!user) return [];
+      return [
+        {
+          role: m.role,
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            avatarUrl: user.avatar_url,
+          },
+        },
+      ];
+    });
+
     // Get columns for this board
     const { data: columnsData, error: columnsError } = await supabase
       .from("columns")
@@ -104,7 +144,8 @@ export async function GET(
           users:assignee_id (
             id,
             email,
-            name
+            name,
+            avatar_url
           )
         )
       `,
@@ -138,7 +179,12 @@ export async function GET(
         createdAt: card.created_at,
         assigneeId: card.assignee_id,
         assignee: (() => {
-          type U = { id: string; email: string | null; name: string | null };
+          type U = {
+            id: string;
+            email: string | null;
+            name: string | null;
+            avatar_url: string | null;
+          };
           const u = (card as unknown as { users?: U | U[] | null }).users;
           if (!u) return null;
           const single = Array.isArray(u) ? u[0] : u;
@@ -147,6 +193,7 @@ export async function GET(
             id: single.id,
             email: single.email,
             name: single.name,
+            avatarUrl: single.avatar_url,
           };
         })(),
       })),
@@ -199,6 +246,7 @@ export async function GET(
       role: userRole,
       memberCount: memberCount ?? 0,
       columns: columns,
+      members: members,
     };
 
     console.log("Final board object role:", board.role);
