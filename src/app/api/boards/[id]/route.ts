@@ -84,40 +84,49 @@ export async function GET(
     );
 
     // Get all board members with user data (for assignee dropdown + avatar display)
-    const { data: membersData } = await supabase
+    // Two-step to avoid PostgREST embedded-join ambiguity: first get memberships,
+    // then fetch users in a single IN query.
+    const { data: membershipsData, error: membershipsError } = await supabase
       .from("board_members")
-      .select(
-        `
-        role,
-        users:user_id (
-          id,
-          email,
-          name,
-          avatar_url
-        )
-      `,
-      )
+      .select("user_id, role")
       .eq("board_id", boardId);
 
-    const members = (membersData || []).flatMap((m) => {
-      type U = {
-        id: string;
-        email: string | null;
-        name: string | null;
-        avatar_url: string | null;
-      };
-      const u = (m as unknown as { users?: U | U[] | null }).users;
+    if (membershipsError) {
+      console.error("Error fetching board memberships:", membershipsError);
+    }
+
+    const memberUserIds = (membershipsData || []).map((m) => m.user_id);
+    let usersData: Array<{
+      id: string;
+      email: string;
+      name: string | null;
+      avatar_url: string | null;
+    }> = [];
+
+    if (memberUserIds.length > 0) {
+      const { data: fetchedUsers, error: usersError } = await supabase
+        .from("users")
+        .select("id, email, name, avatar_url")
+        .in("id", memberUserIds);
+
+      if (usersError) {
+        console.error("Error fetching member user data:", usersError);
+      }
+      usersData = fetchedUsers || [];
+    }
+
+    const userMap = new Map(usersData.map((u) => [u.id, u]));
+    const members = (membershipsData || []).flatMap((m) => {
+      const u = userMap.get(m.user_id);
       if (!u) return [];
-      const user = Array.isArray(u) ? u[0] : u;
-      if (!user) return [];
       return [
         {
           role: m.role,
           user: {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            avatarUrl: user.avatar_url,
+            id: u.id,
+            email: u.email,
+            name: u.name,
+            avatarUrl: u.avatar_url,
           },
         },
       ];
