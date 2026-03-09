@@ -10,5 +10,5 @@ export function isAviamEmail(email: string): boolean {
 }
 
 export function getAviamEmailError(): string {
-  return `Only @${AVIAM_EMAIL_DOMAIN} email addresses can register.`;
+  return `Nur @${AVIAM_EMAIL_DOMAIN}-E-Mail-Adressen können sich registrieren.`;
 }

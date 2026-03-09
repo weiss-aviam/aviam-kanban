@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "../../../components/ui/button";
@@ -14,7 +15,7 @@ import {
   CardTitle,
 } from "../../../components/ui/card";
 import { Alert, AlertDescription } from "../../../components/ui/alert";
-import { Kanban, Mail, Lock, User, Loader2 } from "lucide-react";
+import { Mail, Lock, User, Loader2 } from "lucide-react";
 import {
   AVIAM_EMAIL_DOMAIN,
   getAviamEmailError,
@@ -22,6 +23,23 @@ import {
   normalizeEmail,
 } from "../../../lib/auth-email";
 import { createClient } from "../../../lib/supabase/client";
+
+const AUTH_ERRORS: Record<string, string> = {
+  "User already registered": "Diese E-Mail-Adresse ist bereits registriert.",
+  "Password should be at least 6 characters":
+    "Das Passwort muss mindestens 6 Zeichen lang sein.",
+  "Unable to validate email address":
+    "Die E-Mail-Adresse konnte nicht validiert werden.",
+  "Too many requests":
+    "Zu viele Anfragen. Bitte versuchen Sie es später erneut.",
+};
+
+function translateError(msg: string): string {
+  for (const [key, translation] of Object.entries(AUTH_ERRORS)) {
+    if (msg.toLowerCase().includes(key.toLowerCase())) return translation;
+  }
+  return "Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut.";
+}
 
 export default function SignUpPage() {
   const [email, setEmail] = useState("");
@@ -53,67 +71,26 @@ export default function SignUpPage() {
         email: normalizedEmail,
         password,
         options: {
-          data: {
-            name,
-          },
+          data: { name },
         },
       });
 
       if (error) {
-        setError(error.message);
+        setError(translateError(error.message));
         return;
       }
 
       if (data.user && !data.user.email_confirmed_at) {
-        setSuccess("Please check your email for a confirmation link!");
+        setSuccess(
+          "Bitte prüfen Sie Ihr Postfach und bestätigen Sie Ihre E-Mail-Adresse.",
+        );
       } else {
         router.push("/dashboard");
       }
     } catch (_err) {
-      setError("An unexpected error occurred. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleMagicLink = async () => {
-    const normalizedEmail = normalizeEmail(email);
-
-    if (!normalizedEmail) {
-      setError("Please enter your email address first");
-      return;
-    }
-
-    setEmail(normalizedEmail);
-    setError("");
-    setSuccess("");
-
-    if (!isAviamEmail(normalizedEmail)) {
-      setError(getAviamEmailError());
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email: normalizedEmail,
-        options: {
-          shouldCreateUser: true,
-          emailRedirectTo: `${window.location.origin}${process.env.NEXT_PUBLIC_BASE_PATH || ""}/auth/callback`,
-          data: {
-            name,
-          },
-        },
-      });
-
-      if (error) {
-        setError(error.message);
-      } else {
-        setSuccess("Check your email for a magic link!");
-      }
-    } catch (_err) {
-      setError("An unexpected error occurred. Please try again.");
+      setError(
+        "Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut.",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -122,42 +99,36 @@ export default function SignUpPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center space-x-2 mb-4">
-            <Kanban className="h-8 w-8 text-blue-600" />
-            <span className="text-2xl font-bold text-gray-900">
-              Aviam Kanban
-            </span>
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Create Account
-          </h1>
-          <p className="text-gray-600">
-            Join thousands of teams already using our platform
-          </p>
+        {/* Logo */}
+        <div className="flex justify-center mb-8">
+          <Image
+            src="/aviam_logo.svg"
+            alt="Aviam"
+            width={180}
+            height={53}
+            priority
+          />
         </div>
 
         {/* Sign Up Form */}
         <Card>
           <CardHeader>
-            <CardTitle>Sign Up</CardTitle>
+            <CardTitle>Konto erstellen</CardTitle>
             <CardDescription>
-              Create your account to start managing projects with Kanban boards.
-              Only @{AVIAM_EMAIL_DOMAIN} email addresses can register.
+              Erstellen Sie Ihr Konto. Nur @{AVIAM_EMAIL_DOMAIN}-Adressen sind
+              zugelassen.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSignUp} className="space-y-4">
-              {/* Name Field */}
               <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
+                <Label htmlFor="name">Vollständiger Name</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
                     id="name"
                     type="text"
-                    placeholder="Enter your full name"
+                    placeholder="Vor- und Nachname"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="pl-10"
@@ -166,15 +137,14 @@ export default function SignUpPage() {
                 </div>
               </div>
 
-              {/* Email Field */}
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">E-Mail</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
                     id="email"
                     type="email"
-                    placeholder="Enter your email"
+                    placeholder={`name@${AVIAM_EMAIL_DOMAIN}`}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10"
@@ -182,20 +152,18 @@ export default function SignUpPage() {
                   />
                 </div>
                 <p className="text-xs text-gray-500">
-                  Only @{AVIAM_EMAIL_DOMAIN} email addresses can create an
-                  account.
+                  Nur @{AVIAM_EMAIL_DOMAIN}-Adressen können sich registrieren.
                 </p>
               </div>
 
-              {/* Password Field */}
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">Passwort</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
                     id="password"
                     type="password"
-                    placeholder="Create a password"
+                    placeholder="Passwort erstellen"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10"
@@ -204,11 +172,10 @@ export default function SignUpPage() {
                   />
                 </div>
                 <p className="text-xs text-gray-500">
-                  Password must be at least 6 characters long
+                  Das Passwort muss mindestens 6 Zeichen lang sein.
                 </p>
               </div>
 
-              {/* Error/Success Messages */}
               {error && (
                 <Alert variant="destructive">
                   <AlertDescription>{error}</AlertDescription>
@@ -221,78 +188,31 @@ export default function SignUpPage() {
                 </Alert>
               )}
 
-              {/* Submit Button */}
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating Account...
+                    Konto wird erstellt...
                   </>
                 ) : (
-                  "Create Account"
-                )}
-              </Button>
-
-              {/* Divider */}
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white px-2 text-gray-500">Or</span>
-                </div>
-              </div>
-
-              {/* Magic Link Button */}
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={handleMagicLink}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Sending Magic Link...
-                  </>
-                ) : (
-                  <>
-                    <Mail className="mr-2 h-4 w-4" />
-                    Sign up with Magic Link
-                  </>
+                  "Konto erstellen"
                 )}
               </Button>
             </form>
 
-            {/* Sign In Link */}
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
-                Already have an account?{" "}
+                Bereits ein Konto?{" "}
                 <Link
                   href="/auth/login"
                   className="text-blue-600 hover:text-blue-700 font-medium"
                 >
-                  Sign in
+                  Anmelden
                 </Link>
               </p>
             </div>
           </CardContent>
         </Card>
-
-        {/* Footer */}
-        <div className="mt-8 text-center text-xs text-gray-500">
-          <p>
-            By creating an account, you agree to our{" "}
-            <Link href="#" className="text-blue-600 hover:text-blue-700">
-              Terms of Service
-            </Link>{" "}
-            and{" "}
-            <Link href="#" className="text-blue-600 hover:text-blue-700">
-              Privacy Policy
-            </Link>
-          </p>
-        </div>
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "../../../components/ui/button";
@@ -14,8 +15,25 @@ import {
   CardTitle,
 } from "../../../components/ui/card";
 import { Alert, AlertDescription } from "../../../components/ui/alert";
-import { Kanban, Mail, Lock, Loader2 } from "lucide-react";
+import { Mail, Lock, Loader2 } from "lucide-react";
 import { createClient } from "../../../lib/supabase/client";
+
+const AUTH_ERRORS: Record<string, string> = {
+  "Invalid login credentials":
+    "Ungültige Anmeldedaten. Bitte überprüfen Sie E-Mail und Passwort.",
+  "Email not confirmed":
+    "E-Mail-Adresse noch nicht bestätigt. Bitte prüfen Sie Ihr Postfach.",
+  "Too many requests":
+    "Zu viele Anfragen. Bitte versuchen Sie es später erneut.",
+  "User not found": "Kein Konto mit dieser E-Mail-Adresse gefunden.",
+};
+
+function translateError(msg: string): string {
+  for (const [key, translation] of Object.entries(AUTH_ERRORS)) {
+    if (msg.toLowerCase().includes(key.toLowerCase())) return translation;
+  }
+  return "Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut.";
+}
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -30,6 +48,7 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
     setError("");
+    setSuccess("");
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -38,7 +57,7 @@ export default function LoginPage() {
       });
 
       if (error) {
-        setError(error.message);
+        setError(translateError(error.message));
         return;
       }
 
@@ -46,37 +65,9 @@ export default function LoginPage() {
         router.push("/dashboard");
       }
     } catch (_err) {
-      setError("An unexpected error occurred. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleMagicLink = async () => {
-    if (!email) {
-      setError("Please enter your email address first");
-      return;
-    }
-
-    setIsLoading(true);
-    setError("");
-
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          shouldCreateUser: false,
-          emailRedirectTo: `${window.location.origin}${process.env.NEXT_PUBLIC_BASE_PATH || ""}/auth/callback`,
-        },
-      });
-
-      if (error) {
-        setError(error.message);
-      } else {
-        setSuccess("Check your email for a magic link!");
-      }
-    } catch (_err) {
-      setError("An unexpected error occurred. Please try again.");
+      setError(
+        "Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut.",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -84,12 +75,13 @@ export default function LoginPage() {
 
   const handleForgotPassword = async () => {
     if (!email) {
-      setError("Please enter your email address first");
+      setError("Bitte geben Sie zuerst Ihre E-Mail-Adresse ein.");
       return;
     }
 
     setIsLoading(true);
     setError("");
+    setSuccess("");
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -97,12 +89,16 @@ export default function LoginPage() {
       });
 
       if (error) {
-        setError(error.message);
+        setError(translateError(error.message));
       } else {
-        setSuccess("Password reset email sent! Check your inbox.");
+        setSuccess(
+          "E-Mail zum Zurücksetzen des Passworts wurde gesendet. Bitte prüfen Sie Ihr Postfach.",
+        );
       }
     } catch (_err) {
-      setError("An unexpected error occurred. Please try again.");
+      setError(
+        "Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut.",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -111,39 +107,35 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center space-x-2 mb-4">
-            <Kanban className="h-8 w-8 text-blue-600" />
-            <span className="text-2xl font-bold text-gray-900">
-              Aviam Kanban
-            </span>
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome Back
-          </h1>
-          <p className="text-gray-600">Sign in to your account to continue</p>
+        {/* Logo */}
+        <div className="flex justify-center mb-8">
+          <Image
+            src="/aviam_logo.svg"
+            alt="Aviam"
+            width={180}
+            height={53}
+            priority
+          />
         </div>
 
         {/* Sign In Form */}
         <Card>
           <CardHeader>
-            <CardTitle>Sign In</CardTitle>
+            <CardTitle>Anmelden</CardTitle>
             <CardDescription>
-              Enter your credentials to access your Kanban boards
+              Melden Sie sich mit Ihren Zugangsdaten an.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSignIn} className="space-y-4">
-              {/* Email Field */}
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">E-Mail</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
                     id="email"
                     type="email"
-                    placeholder="Enter your email"
+                    placeholder="ihre@email.de"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10"
@@ -152,15 +144,14 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Password Field */}
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">Passwort</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
                     id="password"
                     type="password"
-                    placeholder="Enter your password"
+                    placeholder="Ihr Passwort"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10"
@@ -169,7 +160,6 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Forgot Password Link */}
               <div className="flex justify-end">
                 <button
                   type="button"
@@ -177,11 +167,10 @@ export default function LoginPage() {
                   className="text-sm text-blue-600 hover:text-blue-700"
                   disabled={isLoading}
                 >
-                  Forgot password?
+                  Passwort vergessen?
                 </button>
               </div>
 
-              {/* Error/Success Messages */}
               {error && (
                 <Alert variant="destructive">
                   <AlertDescription>{error}</AlertDescription>
@@ -194,59 +183,26 @@ export default function LoginPage() {
                 </Alert>
               )}
 
-              {/* Submit Button */}
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Signing In...
+                    Anmelden...
                   </>
                 ) : (
-                  "Sign In"
-                )}
-              </Button>
-
-              {/* Divider */}
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white px-2 text-gray-500">Or</span>
-                </div>
-              </div>
-
-              {/* Magic Link Button */}
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={handleMagicLink}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Sending Magic Link...
-                  </>
-                ) : (
-                  <>
-                    <Mail className="mr-2 h-4 w-4" />
-                    Sign in with Magic Link
-                  </>
+                  "Anmelden"
                 )}
               </Button>
             </form>
 
-            {/* Sign Up Link */}
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
-                Don&apos;t have an account?{" "}
+                Noch kein Konto?{" "}
                 <Link
                   href="/auth/signup"
                   className="text-blue-600 hover:text-blue-700 font-medium"
                 >
-                  Sign up
+                  Registrieren
                 </Link>
               </p>
             </div>
