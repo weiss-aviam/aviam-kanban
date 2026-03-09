@@ -7,13 +7,13 @@
 -- avatars bucket
 -- ============================================================
 
--- Read: any authenticated user (needed to display avatars across the app)
+DROP POLICY IF EXISTS "Authenticated users can read avatars" ON storage.objects;
 CREATE POLICY "Authenticated users can read avatars"
 ON storage.objects FOR SELECT
 TO authenticated
 USING (bucket_id = 'avatars');
 
--- Upload
+DROP POLICY IF EXISTS "Users can upload their own avatar" ON storage.objects;
 CREATE POLICY "Users can upload their own avatar"
 ON storage.objects FOR INSERT
 TO authenticated
@@ -22,7 +22,7 @@ WITH CHECK (
   (storage.foldername(name))[1] = auth.uid()::text
 );
 
--- Update (required for upsert)
+DROP POLICY IF EXISTS "Users can update their own avatar" ON storage.objects;
 CREATE POLICY "Users can update their own avatar"
 ON storage.objects FOR UPDATE
 TO authenticated
@@ -35,7 +35,7 @@ USING (
 -- card-attachments bucket
 -- ============================================================
 
--- Read: authenticated user must be a member of the board the card belongs to
+DROP POLICY IF EXISTS "Board members can read card attachments" ON storage.objects;
 CREATE POLICY "Board members can read card attachments"
 ON storage.objects FOR SELECT
 TO authenticated
@@ -49,7 +49,7 @@ USING (
   )
 );
 
--- Upload: same board membership check
+DROP POLICY IF EXISTS "Board members can upload card attachments" ON storage.objects;
 CREATE POLICY "Board members can upload card attachments"
 ON storage.objects FOR INSERT
 TO authenticated
@@ -63,7 +63,7 @@ WITH CHECK (
   )
 );
 
--- Delete: same board membership check
+DROP POLICY IF EXISTS "Board members can delete card attachments" ON storage.objects;
 CREATE POLICY "Board members can delete card attachments"
 ON storage.objects FOR DELETE
 TO authenticated
