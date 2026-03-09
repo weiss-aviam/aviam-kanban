@@ -110,15 +110,17 @@ export default function ProfilePage() {
 
       if (uploadErr) throw uploadErr;
 
-      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
-      const url = `${data.publicUrl}?t=${Date.now()}`;
+      const { data: signedData, error: signErr } = await supabase.storage
+        .from("avatars")
+        .createSignedUrl(path, 60 * 60 * 24 * 365); // 1 year
+      if (signErr) throw signErr;
 
       const { error: metaErr } = await supabase.auth.updateUser({
-        data: { avatar_url: url },
+        data: { avatar_url: signedData.signedUrl, avatar_path: path },
       });
       if (metaErr) throw metaErr;
 
-      setAvatarUrl(url);
+      setAvatarUrl(signedData.signedUrl);
       setSuccess("Avatar updated.");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to upload avatar.");
