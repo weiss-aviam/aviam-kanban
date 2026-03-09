@@ -465,24 +465,26 @@ export function KanbanBoard({
   return (
     <div className="flex flex-col h-full bg-gray-50">
       {/* Board Filters */}
-      <div className="border-b bg-white px-6 py-4">
-        <BoardFilters
-          filters={filters}
-          onFiltersChange={setFilters}
-          availableAssignees={availableAssignees}
-          currentUserId={currentUser?.id}
-          className="mb-2"
-        />
-        {hasActiveFilters && (
-          <div className="text-sm text-gray-600">
-            {t("board.showingCards", {
-              filtered: stats.filtered,
-              total: stats.total,
-            })}
-            {stats.hidden > 0 &&
-              ` (${t("board.hiddenCards", { count: stats.hidden })})`}
-          </div>
-        )}
+      <div className="border-b bg-white">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <BoardFilters
+            filters={filters}
+            onFiltersChange={setFilters}
+            availableAssignees={availableAssignees}
+            currentUserId={currentUser?.id}
+            className="mb-2"
+          />
+          {hasActiveFilters && (
+            <div className="text-sm text-gray-600">
+              {t("board.showingCards", {
+                filtered: stats.filtered,
+                total: stats.total,
+              })}
+              {stats.hidden > 0 &&
+                ` (${t("board.hiddenCards", { count: stats.hidden })})`}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Main Content */}
