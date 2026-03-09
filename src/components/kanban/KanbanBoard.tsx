@@ -556,6 +556,7 @@ export function KanbanBoard({
         boardMembers={boardData.members?.map((m) => m.user) || []}
         boardLabels={boardData.labels}
         currentUser={currentUser}
+        userRole={userRole}
         onCardUpdated={handleCardUpdated}
         onCardDeleted={handleCardDeleted}
       />

@@ -347,6 +347,8 @@ export const de = {
     attachments: "Anhänge",
     uploadHint: "Klicken zum Hochladen oder Datei hier ablegen",
     noFiles: "Keine Anhänge.",
+    viewerReadOnly:
+      "Sie haben nur Leserechte für dieses Board und können keine Änderungen vornehmen.",
     createToEnable:
       "Zuerst Karte erstellen, um Kommentare und Anhänge hinzuzufügen.",
     updateCard: "Karte aktualisieren",

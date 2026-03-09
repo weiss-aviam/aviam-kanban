@@ -149,8 +149,8 @@ export function KanbanCard({
   };
 
   const handleCardDoubleClick = () => {
-    // Prevent double-click when dragging
-    if (isCurrentlyDragging) return;
+    // Prevent double-click when dragging or viewing as read-only
+    if (isCurrentlyDragging || isViewer) return;
 
     // Call the onEdit handler if provided
     onEdit?.(card);

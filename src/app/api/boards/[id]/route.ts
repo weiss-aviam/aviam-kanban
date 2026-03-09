@@ -210,14 +210,13 @@ export async function GET(
         "No membership found but user is board owner, creating membership record",
       );
 
-      // Create the missing membership record
+      // Create the missing membership record (upsert to avoid duplicate-key errors)
       const { error: createMemberError } = await supabase
         .from("board_members")
-        .insert({
-          board_id: boardId,
-          user_id: user.id,
-          role: "owner",
-        });
+        .upsert(
+          { board_id: boardId, user_id: user.id, role: "owner" },
+          { onConflict: "board_id,user_id", ignoreDuplicates: true },
+        );
 
       if (createMemberError) {
         console.error("Error creating board membership:", createMemberError);
