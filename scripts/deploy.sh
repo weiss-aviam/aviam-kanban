@@ -52,8 +52,11 @@ else
 fi
 
 # Step 1: Install dependencies
-print_info "Installing dependencies..."
-pnpm install
+# NODE_ENV is forced to 'development' here so pnpm installs devDependencies
+# (TypeScript, ESLint, etc.) even when the .env file sets NODE_ENV=production.
+# The production NODE_ENV is restored for the build step below.
+print_info "Installing dependencies (including devDependencies for build)..."
+NODE_ENV=development pnpm install --frozen-lockfile
 print_success "Dependencies installed"
 
 # Step 2: Apply database migrations
