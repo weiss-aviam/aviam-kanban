@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { formatDistanceToNow } from "date-fns";
+import { formatRelativeDate } from "@/lib/date-format";
 import { Loader2, Pencil, RefreshCw, Search, UserPlus } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -437,9 +437,7 @@ export function SuperAdminUserManagement() {
                         <div className="text-gray-500">{user.email}</div>
                       </td>
                       <td className="px-4 py-4 text-gray-600">
-                        {formatDistanceToNow(new Date(user.createdAt), {
-                          addSuffix: true,
-                        })}
+                        {formatRelativeDate(user.createdAt)}
                       </td>
                       <td className="px-4 py-4">
                         <Button

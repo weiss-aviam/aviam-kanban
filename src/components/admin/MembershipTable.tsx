@@ -13,8 +13,8 @@ import {
 } from "@/components/ui/select";
 import { Users, TrendingUp, Activity, Trash2 } from "lucide-react";
 import { getRoleBadgeClasses, getRoleLabel } from "@/lib/role-colors";
-import { formatDistanceToNow } from "date-fns";
 import { t } from "@/lib/i18n";
+import { formatRelativeDate } from "@/lib/date-format";
 
 interface MembershipSummary {
   totalMembers: number;
@@ -280,9 +280,7 @@ export function MembershipTable({
                     <div className="flex items-center space-x-4 text-xs text-gray-500 mt-1">
                       <span>
                         {t("admin.joinedAgo", {
-                          time: formatDistanceToNow(
-                            new Date(membership.joinedAt),
-                          ),
+                          time: formatRelativeDate(membership.joinedAt),
                         })}
                       </span>
                       <span>•</span>

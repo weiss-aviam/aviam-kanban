@@ -54,7 +54,7 @@ import { createClient as createSupabaseClient } from "@/lib/supabase/client";
 
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { formatDisplayDate } from "@/lib/date-format";
+import { formatDisplayDate, formatDateTime } from "@/lib/date-format";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -925,7 +925,7 @@ export function EditCardDialog({
                         {c.author.name || c.author.email}
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {new Date(c.createdAt).toLocaleString()}
+                        {formatDateTime(c.createdAt)}
                       </div>
                       <div className="mt-1 text-sm whitespace-pre-wrap">
                         {c.body}

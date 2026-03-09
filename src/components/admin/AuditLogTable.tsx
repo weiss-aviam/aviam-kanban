@@ -22,7 +22,7 @@ import {
   User,
   Activity,
 } from "lucide-react";
-import { formatDistanceToNow, format } from "date-fns";
+import { formatRelativeDate, formatDateTime } from "@/lib/date-format";
 import { t } from "@/lib/i18n";
 
 interface AuditLogDetails {
@@ -406,7 +406,7 @@ export function AuditLogTable({ boardId, refreshTrigger }: AuditLogTableProps) {
                       {getActionBadge(log.action)}
                       <span className="text-sm text-gray-500">
                         {t("common.timeAgo", {
-                          time: formatDistanceToNow(new Date(log.createdAt)),
+                          time: formatRelativeDate(log.createdAt),
                         })}
                       </span>
                     </div>
@@ -423,7 +423,7 @@ export function AuditLogTable({ boardId, refreshTrigger }: AuditLogTableProps) {
                     </div>
 
                     <div className="text-xs text-gray-500">
-                      <p>{format(new Date(log.createdAt), "PPpp")}</p>
+                      <p>{formatDateTime(log.createdAt)}</p>
                       {log.ipAddress && <p>IP: {log.ipAddress}</p>}
                     </div>
                   </div>

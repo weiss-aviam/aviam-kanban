@@ -1,8 +1,7 @@
 "use client";
 
-// import { useState } from 'react';
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Card, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import {
@@ -68,12 +67,13 @@ export function BoardCard({
 
   return (
     <Card
-      className={`hover:shadow-md transition-shadow ${board.isArchived ? "opacity-60" : ""}`}
+      className={`flex flex-col h-full hover:shadow-md transition-shadow ${board.isArchived ? "opacity-60" : ""}`}
     >
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <div className="flex items-center space-x-2">
-          <Kanban className="h-4 w-4 text-blue-600" />
-          <CardTitle className="text-base font-medium">
+      {/* Top: icon + title + badges/menu — grows to fill available height */}
+      <div className="flex flex-row items-start justify-between gap-2 p-6 pb-3 flex-1">
+        <div className="flex items-start space-x-2 min-w-0">
+          <Kanban className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
+          <CardTitle className="text-base font-medium leading-snug">
             <Link
               href={`/boards/${board.id}`}
               className="hover:text-blue-600 transition-colors"
@@ -82,7 +82,8 @@ export function BoardCard({
             </Link>
           </CardTitle>
         </div>
-        <div className="flex items-center space-x-2">
+
+        <div className="flex items-center gap-1.5 shrink-0">
           <Badge className={getRoleBadgeClasses(board.role)}>
             {getRoleLabel(board.role)}
           </Badge>
@@ -155,25 +156,25 @@ export function BoardCard({
             </DropdownMenu>
           )}
         </div>
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-center justify-between text-sm text-gray-600">
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center">
-              <Users className="mr-1 h-3 w-3" />
-              <span>{t("board.team")}</span>
-            </div>
-            <div className="flex items-center">
-              <Calendar className="mr-1 h-3 w-3" />
-              <span>
-                {t("board.created", {
-                  date: formatDisplayDate(board.createdAt),
-                })}
-              </span>
-            </div>
+      </div>
+
+      {/* Bottom: metadata — always pinned to bottom */}
+      <div className="px-6 pb-5 pt-0">
+        <div className="flex items-center space-x-4 text-sm text-gray-500">
+          <div className="flex items-center">
+            <Users className="mr-1 h-3 w-3" />
+            <span>{t("board.team")}</span>
+          </div>
+          <div className="flex items-center">
+            <Calendar className="mr-1 h-3 w-3" />
+            <span>
+              {t("board.created", {
+                date: formatDisplayDate(board.createdAt),
+              })}
+            </span>
           </div>
         </div>
-      </CardContent>
+      </div>
     </Card>
   );
 }

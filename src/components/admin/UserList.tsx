@@ -31,8 +31,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { EditUserModal } from "./EditUserModal";
 import { getRoleBadgeClasses, getRoleLabel } from "@/lib/role-colors";
-import { formatDistanceToNow } from "date-fns";
 import { t } from "@/lib/i18n";
+import { formatRelativeDate } from "@/lib/date-format";
 
 interface User {
   id: string;
@@ -310,7 +310,7 @@ export function UserList({
                         <Calendar className="w-3 h-3" />
                         <span>
                           {t("admin.joinedAgo", {
-                            time: formatDistanceToNow(new Date(user.joinedAt)),
+                            time: formatRelativeDate(user.joinedAt),
                           })}
                         </span>
                       </span>
