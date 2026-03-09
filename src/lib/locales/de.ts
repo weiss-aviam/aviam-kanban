@@ -239,6 +239,9 @@ export const de = {
     namePlaceholder: "Board-Namen eingeben...",
     nameRequired: "Board-Name ist erforderlich",
     updateError: "Board konnte nicht aktualisiert werden",
+    description: "Board-Namen und Einstellungen aktualisieren.",
+    submit: "Board aktualisieren",
+    updating: "Wird aktualisiert...",
   },
 
   emptyStates: {

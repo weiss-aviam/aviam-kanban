@@ -94,10 +94,8 @@ export function EditBoardDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl w-[90vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit Board</DialogTitle>
-          <DialogDescription>
-            Update the board name and settings.
-          </DialogDescription>
+          <DialogTitle>{t("board.editBoard")}</DialogTitle>
+          <DialogDescription>{t("editBoard.description")}</DialogDescription>
         </DialogHeader>
         <form onSubmit={rhfHandleSubmit(onSubmit)} className="space-y-6">
           {error && (
@@ -127,18 +125,18 @@ export function EditBoardDialog({
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button type="submit" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Updating...
+                  {t("editBoard.updating")}
                 </>
               ) : (
                 <>
                   <Edit className="w-4 h-4 mr-2" />
-                  Update Board
+                  {t("editBoard.submit")}
                 </>
               )}
             </Button>

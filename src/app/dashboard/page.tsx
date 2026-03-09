@@ -175,29 +175,31 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome Section */}
-        <div className="mb-8">
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-6 text-white">
-            <h2 className="text-2xl font-bold mb-2">
-              {t("dashboard.welcomeTitle")}
-            </h2>
-            <p className="text-blue-100 mb-4">
-              {t("dashboard.welcomeSubtitle")}
-            </p>
-            <CreateBoardDialog
-              onBoardCreated={handleBoardCreated}
-              trigger={
-                <Button
-                  variant="secondary"
-                  className="bg-white text-blue-600 hover:bg-gray-100"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  {t("dashboard.createFirstBoard")}
-                </Button>
-              }
-            />
+        {/* Welcome Section — only shown when user has no boards */}
+        {!isBoardsLoading && boards.length === 0 && (
+          <div className="mb-8">
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-6 text-white">
+              <h2 className="text-2xl font-bold mb-2">
+                {t("dashboard.welcomeTitle")}
+              </h2>
+              <p className="text-blue-100 mb-4">
+                {t("dashboard.welcomeSubtitle")}
+              </p>
+              <CreateBoardDialog
+                onBoardCreated={handleBoardCreated}
+                trigger={
+                  <Button
+                    variant="secondary"
+                    className="bg-white text-blue-600 hover:bg-gray-100"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    {t("dashboard.createFirstBoard")}
+                  </Button>
+                }
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

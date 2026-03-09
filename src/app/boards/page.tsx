@@ -179,6 +179,26 @@ export default function BoardsPage() {
     setEditingBoard(null);
   };
 
+  const handleArchiveBoard = async (board: BoardWithDetails) => {
+    try {
+      const res = await fetch(`/api/boards/${board.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isArchived: !board.isArchived }),
+      });
+      if (!res.ok) throw new Error("Failed to archive board");
+      const { board: updated } = await res.json();
+      setState((prev) => ({
+        ...prev,
+        boards: prev.boards.map((b) =>
+          b.id === updated.id ? { ...b, isArchived: updated.isArchived } : b,
+        ),
+      }));
+    } catch (err) {
+      console.error("Archive board failed:", err);
+    }
+  };
+
   const handleDeleteBoard = (board: BoardWithDetails) => {
     setDeletingBoard(board);
   };
@@ -384,6 +404,7 @@ export default function BoardsPage() {
                 board={board}
                 viewMode={state.viewMode}
                 onEdit={() => setEditingBoard(board)}
+                onArchive={() => handleArchiveBoard(board)}
                 onDelete={() => handleDeleteBoard(board)}
               />
             ))}
@@ -417,10 +438,19 @@ interface BoardCardProps {
   board: BoardWithDetails;
   viewMode: "grid" | "list";
   onEdit: () => void;
+  onArchive?: () => void;
   onDelete?: () => void;
 }
 
-function BoardCard({ board, viewMode, onEdit, onDelete }: BoardCardProps) {
+function BoardCard({
+  board,
+  viewMode,
+  onEdit,
+  onArchive,
+  onDelete,
+}: BoardCardProps) {
+  const canManage = board.role === "owner" || board.role === "admin";
+  const canDelete = board.role === "owner";
   if (viewMode === "list") {
     return (
       <Card className="hover:shadow-md transition-shadow">
@@ -459,24 +489,43 @@ function BoardCard({ board, viewMode, onEdit, onDelete }: BoardCardProps) {
                 </span>
               </div>
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm">
-                  <MoreHorizontal className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={onEdit}>
-                  <Edit className="mr-2 h-4 w-4" />
-                  {t("boardsPage.editBoard")}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={onDelete} className="text-red-600">
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  {t("boardsPage.deleteBoard")}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {(canManage || canDelete) && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    <MoreHorizontal className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {canManage && (
+                    <>
+                      <DropdownMenuItem onClick={onEdit}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        {t("boardsPage.editBoard")}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={onArchive}>
+                        <Archive className="mr-2 h-4 w-4" />
+                        {board.isArchived
+                          ? t("board.unarchive")
+                          : t("board.archive")}
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  {canDelete && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={onDelete}
+                        className="text-red-600"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        {t("boardsPage.deleteBoard")}
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -496,40 +545,61 @@ function BoardCard({ board, viewMode, onEdit, onDelete }: BoardCardProps) {
                 {board.description || t("boardsPage.noDescription")}
               </CardDescription>
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => e.preventDefault()}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <MoreHorizontal className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.preventDefault();
-                    onEdit();
-                  }}
-                >
-                  <Edit className="mr-2 h-4 w-4" />
-                  {t("boardsPage.editBoard")}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.preventDefault();
-                    onDelete?.();
-                  }}
-                  className="text-red-600"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  {t("boardsPage.deleteBoard")}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {(canManage || canDelete) && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => e.preventDefault()}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <MoreHorizontal className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {canManage && (
+                    <>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.preventDefault();
+                          onEdit();
+                        }}
+                      >
+                        <Edit className="mr-2 h-4 w-4" />
+                        {t("boardsPage.editBoard")}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.preventDefault();
+                          onArchive?.();
+                        }}
+                      >
+                        <Archive className="mr-2 h-4 w-4" />
+                        {board.isArchived
+                          ? t("board.unarchive")
+                          : t("board.archive")}
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  {canDelete && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.preventDefault();
+                          onDelete?.();
+                        }}
+                        className="text-red-600"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        {t("boardsPage.deleteBoard")}
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </CardHeader>
         <CardContent>

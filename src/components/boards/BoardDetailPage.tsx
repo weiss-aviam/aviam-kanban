@@ -5,7 +5,15 @@ import { useRouter } from "next/navigation";
 import { Button } from "../ui/button";
 // Removed unused Card imports
 import { Badge } from "../ui/badge";
-import { ArrowLeft, Plus, Users, Trash2, MoreHorizontal } from "lucide-react";
+import {
+  ArrowLeft,
+  Plus,
+  Users,
+  Trash2,
+  MoreHorizontal,
+  Edit,
+  Archive,
+} from "lucide-react";
 
 import { CreateColumnDialog } from "../columns/CreateColumnDialog";
 import {
@@ -22,13 +30,14 @@ import {
 import { KanbanBoard } from "../kanban/KanbanBoard";
 import { HeaderMenu } from "../layout/HeaderMenu";
 import { DeleteBoardDialog } from "./DeleteBoardDialog";
+import { EditBoardDialog } from "./EditBoardDialog";
 import { UserManagementModal } from "../admin/UserManagementModal";
 import { BoardPresenceSummary } from "./board-presence-ui";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  // DropdownMenuSeparator,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { AppHeader } from "../layout/AppHeader";
@@ -54,6 +63,7 @@ export function BoardDetailPage({
   );
   const [showCreateColumn, setShowCreateColumn] = useState(false);
   const [showDeleteBoard, setShowDeleteBoard] = useState(false);
+  const [showEditBoard, setShowEditBoard] = useState(false);
   const [showMembersModal, setShowMembersModal] = useState(false);
 
   const router = useRouter();
@@ -159,6 +169,31 @@ export function BoardDetailPage({
     if (!open) {
       void fetchBoard();
     }
+  };
+
+  const handleArchiveBoard = async () => {
+    if (!board) return;
+    try {
+      const res = await fetch(`/api/boards/${boardId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isArchived: !board.isArchived }),
+      });
+      if (!res.ok) return;
+      const { board: updated } = await res.json();
+      const updatedBoard = { ...board, isArchived: updated.isArchived };
+      setBoard(updatedBoard);
+      setCurrentBoard(updatedBoard);
+    } catch (err) {
+      console.error("Archive board failed:", err);
+    }
+  };
+
+  const handleBoardUpdated = (updated: { id: string; name: string }) => {
+    if (!board) return;
+    const updatedBoard = { ...board, name: updated.name };
+    setBoard(updatedBoard);
+    setCurrentBoard(updatedBoard);
   };
 
   const handleColumnCreated = (newColumn: Column) => {
@@ -296,14 +331,27 @@ export function BoardDetailPage({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => setShowEditBoard(true)}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    {t("board.editBoard")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleArchiveBoard}>
+                    <Archive className="mr-2 h-4 w-4" />
+                    {board.isArchived
+                      ? t("board.unarchive")
+                      : t("board.archive")}
+                  </DropdownMenuItem>
                   {canDeleteBoard && (
-                    <DropdownMenuItem
-                      onClick={() => setShowDeleteBoard(true)}
-                      className="text-red-600 focus:text-red-600"
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      {t("board.deleteBoard")}
-                    </DropdownMenuItem>
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => setShowDeleteBoard(true)}
+                        className="text-red-600 focus:text-red-600"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        {t("board.deleteBoard")}
+                      </DropdownMenuItem>
+                    </>
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -341,6 +389,13 @@ export function BoardDetailPage({
         open={showDeleteBoard}
         onOpenChange={setShowDeleteBoard}
         board={board}
+      />
+
+      <EditBoardDialog
+        board={board}
+        open={showEditBoard}
+        onOpenChange={setShowEditBoard}
+        onBoardUpdated={handleBoardUpdated}
       />
 
       <UserManagementModal
