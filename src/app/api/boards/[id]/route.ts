@@ -35,8 +35,10 @@ export async function GET(
         `
         id,
         name,
+        description,
         is_archived,
         created_at,
+        updated_at,
         owner_id
       `,
       )
@@ -240,8 +242,10 @@ export async function GET(
     const board = {
       id: boardData.id,
       name: boardData.name,
+      description: boardData.description ?? null,
       isArchived: boardData.is_archived,
       createdAt: boardData.created_at,
+      updatedAt: boardData.updated_at,
       ownerId: boardData.owner_id,
       role: userRole,
       memberCount: memberCount ?? 0,
@@ -289,7 +293,7 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { name, isArchived } = body;
+    const { name, isArchived, description } = body;
 
     // First, get the user's role for this board
     const { data: memberData, error: memberError } = await supabase
@@ -315,7 +319,11 @@ export async function PUT(
     }
 
     // Prepare update data
-    const updateData: Partial<{ name: string; is_archived: boolean }> = {};
+    const updateData: Partial<{
+      name: string;
+      is_archived: boolean;
+      description: string | null;
+    }> = {};
     if (name !== undefined) {
       if (typeof name !== "string" || name.trim().length === 0) {
         return NextResponse.json(
@@ -327,6 +335,9 @@ export async function PUT(
     }
     if (isArchived !== undefined) {
       updateData.is_archived = Boolean(isArchived);
+    }
+    if (description !== undefined) {
+      updateData.description = description ?? null;
     }
 
     // Update the board using Supabase (respects RLS)
@@ -349,8 +360,10 @@ export async function PUT(
       board: {
         id: updatedBoard.id,
         name: updatedBoard.name,
+        description: updatedBoard.description ?? null,
         isArchived: updatedBoard.is_archived,
         createdAt: updatedBoard.created_at,
+        updatedAt: updatedBoard.updated_at,
         ownerId: updatedBoard.owner_id,
         role: userRole,
       },

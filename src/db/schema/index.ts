@@ -28,6 +28,8 @@ export const boards = pgTable("boards", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   isArchived: boolean("is_archived").default(false).notNull(),
+  description: text("description"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

@@ -2,50 +2,28 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { Button } from "../../components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "../../components/ui/card";
-import { Badge } from "../../components/ui/badge";
 import { Input } from "../../components/ui/input";
 import {
-  Kanban,
   Plus,
   Users,
-  Calendar,
   Search,
   // Filter,
   Grid,
   List,
   Archive,
   Star,
-  MoreHorizontal,
-  Edit,
-  Trash2,
 } from "lucide-react";
 import { createClient } from "../../lib/supabase/client";
 import { CreateBoardDialog } from "../../components/boards/CreateBoardDialog";
 import { EditBoardDialog } from "../../components/boards/EditBoardDialog";
 import { DeleteBoardDialog } from "../../components/boards/DeleteBoardDialog";
+import { BoardCard, BoardCardData } from "../../components/boards/BoardCard";
 import type { User as UserType } from "@supabase/supabase-js";
 import type { Board, BoardWithDetails } from "../../types/database";
-import { formatDisplayDate } from "../../lib/date-format";
-import { getRoleBadgeClasses, getRoleLabel } from "../../lib/role-colors";
 import { AppHeader } from "../../components/layout/AppHeader";
 import { HeaderMenu } from "../../components/layout/HeaderMenu";
 import { t } from "../../lib/i18n";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "../../components/ui/dropdown-menu";
 
 interface BoardsPageState {
   boards: BoardWithDetails[];
@@ -401,7 +379,7 @@ export default function BoardsPage() {
             {state.filteredBoards.map((board) => (
               <BoardCard
                 key={board.id}
-                board={board}
+                board={board as unknown as BoardCardData}
                 viewMode={state.viewMode}
                 onEdit={() => setEditingBoard(board)}
                 onArchive={() => handleArchiveBoard(board)}
@@ -430,204 +408,5 @@ export default function BoardsPage() {
         />
       </main>
     </div>
-  );
-}
-
-// Board Card Component
-interface BoardCardProps {
-  board: BoardWithDetails;
-  viewMode: "grid" | "list";
-  onEdit: () => void;
-  onArchive?: () => void;
-  onDelete?: () => void;
-}
-
-function BoardCard({
-  board,
-  viewMode,
-  onEdit,
-  onArchive,
-  onDelete,
-}: BoardCardProps) {
-  const canManage = board.role === "owner" || board.role === "admin";
-  const canDelete = board.role === "owner";
-  if (viewMode === "list") {
-    return (
-      <Card className="hover:shadow-md transition-shadow">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4 flex-1">
-              <Link href={`/boards/${board.id}`} className="flex-1">
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                    <Kanban className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 hover:text-blue-600 transition-colors">
-                      {board.name}
-                    </h3>
-                    <p className="text-sm text-gray-600 line-clamp-1">
-                      {board.description || t("boardsPage.noDescription")}
-                    </p>
-                  </div>
-                </div>
-              </Link>
-              <div className="flex items-center space-x-4 text-sm text-gray-500">
-                <Badge
-                  className={getRoleBadgeClasses(board.role)}
-                  variant="outline"
-                >
-                  {getRoleLabel(board.role)}
-                </Badge>
-                <span className="flex items-center space-x-1">
-                  <Calendar className="w-4 h-4" />
-                  <span>{formatDisplayDate(board.createdAt)}</span>
-                </span>
-                <span className="flex items-center space-x-1">
-                  <Users className="w-4 h-4" />
-                  <span>{board.memberCount || 1}</span>
-                </span>
-              </div>
-            </div>
-            {(canManage || canDelete) && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm">
-                    <MoreHorizontal className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {canManage && (
-                    <>
-                      <DropdownMenuItem onClick={onEdit}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        {t("boardsPage.editBoard")}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={onArchive}>
-                        <Archive className="mr-2 h-4 w-4" />
-                        {board.isArchived
-                          ? t("board.unarchive")
-                          : t("board.archive")}
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                  {canDelete && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={onDelete}
-                        className="text-red-600"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        {t("boardsPage.deleteBoard")}
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <Link href={`/boards/${board.id}`}>
-      <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
-        <CardHeader>
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <CardTitle className="line-clamp-2 text-base">
-                {board.name}
-              </CardTitle>
-              <CardDescription className="mt-2 line-clamp-2">
-                {board.description || t("boardsPage.noDescription")}
-              </CardDescription>
-            </div>
-            {(canManage || canDelete) && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => e.preventDefault()}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <MoreHorizontal className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {canManage && (
-                    <>
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.preventDefault();
-                          onEdit();
-                        }}
-                      >
-                        <Edit className="mr-2 h-4 w-4" />
-                        {t("boardsPage.editBoard")}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.preventDefault();
-                          onArchive?.();
-                        }}
-                      >
-                        <Archive className="mr-2 h-4 w-4" />
-                        {board.isArchived
-                          ? t("board.unarchive")
-                          : t("board.archive")}
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                  {canDelete && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.preventDefault();
-                          onDelete?.();
-                        }}
-                        className="text-red-600"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        {t("boardsPage.deleteBoard")}
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between text-xs text-gray-500">
-            <div className="flex items-center space-x-3">
-              <Badge
-                className={getRoleBadgeClasses(board.role)}
-                variant="outline"
-              >
-                {getRoleLabel(board.role)}
-              </Badge>
-              {board.isArchived && (
-                <Badge variant="secondary">{t("board.archived")}</Badge>
-              )}
-            </div>
-            <div className="flex items-center space-x-3">
-              <span className="flex items-center space-x-1">
-                <Users className="w-3 h-3" />
-                <span>{board.memberCount || 1}</span>
-              </span>
-              <span className="flex items-center space-x-1">
-                <Calendar className="w-3 h-3" />
-                <span>{formatDisplayDate(board.createdAt)}</span>
-              </span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </Link>
   );
 }

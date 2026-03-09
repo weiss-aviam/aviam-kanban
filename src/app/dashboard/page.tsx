@@ -26,6 +26,10 @@ interface Board {
   createdAt: string;
   ownerId: string;
   role: "owner" | "admin" | "member" | "viewer";
+  description?: string | null;
+  updatedAt?: string | null;
+  memberCount?: number;
+  taskCount?: number;
 }
 
 export default function DashboardPage() {
@@ -102,24 +106,12 @@ export default function DashboardPage() {
     );
   };
 
-  const handleEditBoard = (board: {
-    id: string;
-    name: string;
-    createdAt: Date;
-    ownerId: string;
-    isArchived: boolean;
-  }) => {
-    setEditingBoard(board as unknown as Board);
+  const handleEditBoard = (board: Board) => {
+    setEditingBoard(board);
     setEditDialogOpen(true);
   };
 
-  const handleArchiveBoard = async (board: {
-    id: string;
-    name: string;
-    createdAt: Date;
-    ownerId: string;
-    isArchived: boolean;
-  }) => {
+  const handleArchiveBoard = async (board: Board) => {
     try {
       const response = await fetch(`/api/boards/${board.id}`, {
         method: "PUT",
@@ -138,13 +130,7 @@ export default function DashboardPage() {
     }
   };
 
-  const handleDeleteBoard = async (board: {
-    id: string;
-    name: string;
-    createdAt: Date;
-    ownerId: string;
-    isArchived: boolean;
-  }) => {
+  const handleDeleteBoard = async (board: Board) => {
     if (!confirm(t("dashboard.deleteBoardConfirm", { name: board.name }))) {
       return;
     }
@@ -328,9 +314,9 @@ export default function DashboardPage() {
                 <BoardCard
                   key={board.id}
                   board={board}
-                  onEdit={handleEditBoard}
-                  onArchive={handleArchiveBoard}
-                  onDelete={handleDeleteBoard}
+                  onEdit={() => handleEditBoard(board)}
+                  onArchive={() => handleArchiveBoard(board)}
+                  onDelete={() => handleDeleteBoard(board)}
                 />
               ))}
             </div>

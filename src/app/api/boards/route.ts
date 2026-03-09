@@ -24,6 +24,8 @@ export async function GET(_request: NextRequest) {
         is_archived,
         created_at,
         owner_id,
+        description,
+        updated_at,
         board_members!inner(role, user_id)
       `,
       )
@@ -35,6 +37,19 @@ export async function GET(_request: NextRequest) {
         { error: "Failed to fetch boards" },
         { status: 500 },
       );
+    }
+
+    const boardIds = userBoards.map((b) => b.id);
+    let taskCounts: Record<string, number> = {};
+    if (boardIds.length > 0) {
+      const { data: cardRows } = await supabase
+        .from("cards")
+        .select("board_id")
+        .in("board_id", boardIds);
+      taskCounts = (cardRows || []).reduce<Record<string, number>>((acc, c) => {
+        acc[c.board_id] = (acc[c.board_id] || 0) + 1;
+        return acc;
+      }, {});
     }
 
     // Transform the data to match our expected format
@@ -49,6 +64,9 @@ export async function GET(_request: NextRequest) {
         board.board_members[0]?.role ||
         "viewer",
       memberCount: board.board_members.length,
+      description: board.description ?? null,
+      updatedAt: board.updated_at,
+      taskCount: taskCounts[board.id] ?? 0,
     }));
 
     return NextResponse.json({ boards });
@@ -201,6 +219,8 @@ export async function POST(request: NextRequest) {
           createdAt: newBoard.created_at,
           ownerId: newBoard.owner_id,
           role: "owner",
+          description: null,
+          updatedAt: newBoard.updated_at,
         },
       },
       { status: 201 },
