@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "../../../../lib/supabase/server";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
 
 // GET /api/boards/[id] - Get a specific board
 export async function GET(
@@ -113,6 +114,44 @@ export async function GET(
         console.error("Error fetching member user data:", usersError);
       }
       usersData = fetchedUsers || [];
+
+      // Some members may not yet have a public.users row (they were added before
+      // logging in for the first time). Fill them in from auth.users via admin API
+      // and sync them into public.users so future lookups work.
+      const foundIds = new Set(usersData.map((u) => u.id));
+      const missingIds = memberUserIds.filter((id) => !foundIds.has(id));
+
+      if (missingIds.length > 0) {
+        const adminClient = createAdminClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        );
+
+        for (const uid of missingIds) {
+          const { data: authUserData } =
+            await adminClient.auth.admin.getUserById(uid);
+          if (!authUserData?.user) continue;
+
+          const authUser = authUserData.user;
+          const email = authUser.email ?? "";
+          const name =
+            (authUser.user_metadata?.name as string | undefined) ??
+            email.split("@")[0] ??
+            "User";
+          const avatarUrl =
+            (authUser.user_metadata?.avatar_url as string | undefined) ?? null;
+
+          // Upsert into public.users so the row exists going forward
+          await supabase
+            .from("users")
+            .upsert(
+              { id: uid, email, name, avatar_url: avatarUrl },
+              { onConflict: "id" },
+            );
+
+          usersData.push({ id: uid, email, name, avatar_url: avatarUrl });
+        }
+      }
     }
 
     const userMap = new Map(usersData.map((u) => [u.id, u]));
