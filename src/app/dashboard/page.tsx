@@ -32,6 +32,7 @@ export default function DashboardPage() {
   const [boards, setBoards] = useState<Board[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isBoardsLoading, setIsBoardsLoading] = useState(false);
+  const [activeTaskCount, setActiveTaskCount] = useState<number | null>(null);
   const [editingBoard, setEditingBoard] = useState<Board | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const router = useRouter();
@@ -40,13 +41,20 @@ export default function DashboardPage() {
   const fetchBoards = async () => {
     setIsBoardsLoading(true);
     try {
-      const response = await fetch("/api/boards");
-      if (response.ok) {
-        const { boards } = await response.json();
+      const [boardsRes, statsRes] = await Promise.all([
+        fetch("/api/boards"),
+        fetch("/api/dashboard/stats"),
+      ]);
+      if (boardsRes.ok) {
+        const { boards } = await boardsRes.json();
         setBoards(boards);
       }
+      if (statsRes.ok) {
+        const { activeTaskCount } = await statsRes.json();
+        setActiveTaskCount(activeTaskCount);
+      }
     } catch (error) {
-      console.error("Error fetching boards:", error);
+      console.error("Error fetching dashboard data:", error);
     } finally {
       setIsBoardsLoading(false);
     }
@@ -245,9 +253,17 @@ export default function DashboardPage() {
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
+              <div className="text-2xl font-bold">
+                {activeTaskCount ?? (
+                  <span className="inline-block h-7 w-8 animate-pulse rounded bg-gray-200" />
+                )}
+              </div>
               <p className="text-xs text-muted-foreground">
-                {t("dashboard.noTasksYet")}
+                {activeTaskCount === 0
+                  ? t("dashboard.noTasksYet")
+                  : t("dashboard.assignedTasks", {
+                      count: activeTaskCount ?? 0,
+                    })}
               </p>
             </CardContent>
           </Card>
