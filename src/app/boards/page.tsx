@@ -34,7 +34,7 @@ import { EditBoardDialog } from "../../components/boards/EditBoardDialog";
 import { DeleteBoardDialog } from "../../components/boards/DeleteBoardDialog";
 import type { User as UserType } from "@supabase/supabase-js";
 import type { Board, BoardWithDetails } from "../../types/database";
-import { format } from "date-fns";
+import { formatDisplayDate } from "../../lib/date-format";
 import { getRoleBadgeClasses, getRoleLabel } from "../../lib/role-colors";
 import { AppHeader } from "../../components/layout/AppHeader";
 import { HeaderMenu } from "../../components/layout/HeaderMenu";
@@ -438,9 +438,7 @@ function BoardCard({ board, viewMode, onEdit, onDelete }: BoardCardProps) {
                 </Badge>
                 <span className="flex items-center space-x-1">
                   <Calendar className="w-4 h-4" />
-                  <span>
-                    {format(new Date(board.createdAt), "MMM d, yyyy")}
-                  </span>
+                  <span>{formatDisplayDate(board.createdAt)}</span>
                 </span>
                 <span className="flex items-center space-x-1">
                   <Users className="w-4 h-4" />
@@ -539,7 +537,7 @@ function BoardCard({ board, viewMode, onEdit, onDelete }: BoardCardProps) {
               </span>
               <span className="flex items-center space-x-1">
                 <Calendar className="w-3 h-3" />
-                <span>{format(new Date(board.createdAt), "MMM d")}</span>
+                <span>{formatDisplayDate(board.createdAt)}</span>
               </span>
             </div>
           </div>

@@ -24,7 +24,7 @@ export async function GET(_request: NextRequest) {
         is_archived,
         created_at,
         owner_id,
-        board_members!inner(role)
+        board_members!inner(role, user_id)
       `,
       )
       .order("created_at", { ascending: false });
@@ -44,7 +44,11 @@ export async function GET(_request: NextRequest) {
       isArchived: board.is_archived,
       createdAt: board.created_at,
       ownerId: board.owner_id,
-      role: board.board_members[0]?.role || "viewer",
+      role:
+        board.board_members.find((m) => m.user_id === user.id)?.role ||
+        board.board_members[0]?.role ||
+        "viewer",
+      memberCount: board.board_members.length,
     }));
 
     return NextResponse.json({ boards });

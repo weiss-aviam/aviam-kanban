@@ -189,8 +189,11 @@ export function EditCardDialog({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
-  // Initialize form from card when editing, or defaults when creating
+  // Initialize form from card when editing, or defaults when creating.
+  // `open` is included so the form resets every time the dialog opens,
+  // even when the same card is opened twice in a row.
   useEffect(() => {
+    if (!open) return;
     if (card) {
       reset({
         title: card.title,
@@ -198,7 +201,6 @@ export function EditCardDialog({
         columnId: card.columnId ? String(card.columnId) : "",
         assigneeId: card.assigneeId || "none",
         dueDate: getEditCardDueDateInputValue(card.dueDate),
-
         priority: (card.priority as CardPriority) || "medium",
       });
     } else {
@@ -208,11 +210,10 @@ export function EditCardDialog({
         columnId: defaultColumnId ? String(defaultColumnId) : "",
         assigneeId: currentUser?.id || "none",
         dueDate: "",
-
         priority: "medium",
       });
     }
-  }, [card, defaultColumnId, currentUser, reset]);
+  }, [open, card, defaultColumnId, currentUser, reset]);
 
   // Load comments and attachments when dialog opens for an existing card
   useEffect(() => {
