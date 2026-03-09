@@ -20,9 +20,13 @@ import {
 } from "../../components/ui/card";
 import { Alert, AlertDescription } from "../../components/ui/alert";
 import { Loader2, Mail, User as UserIcon, Lock, Camera } from "lucide-react";
+import { t } from "../../lib/i18n";
 
 const schema = z.object({
-  name: z.string().min(1, "Name is required").max(255, "Name is too long"),
+  name: z
+    .string()
+    .min(1, t("profile.nameRequired"))
+    .max(255, t("profile.nameTooLong")),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -89,11 +93,11 @@ export default function ProfilePage() {
 
     const allowed = ["image/jpeg", "image/png", "image/webp", "image/gif"];
     if (!allowed.includes(file.type)) {
-      setError("Only JPEG, PNG, WebP or GIF images are allowed.");
+      setError(t("profile.invalidImageType"));
       return;
     }
     if (file.size > 2 * 1024 * 1024) {
-      setError("Image must be smaller than 2 MB.");
+      setError(t("profile.imageTooLarge"));
       return;
     }
 
@@ -121,9 +125,9 @@ export default function ProfilePage() {
       if (metaErr) throw metaErr;
 
       setAvatarUrl(signedData.signedUrl);
-      setSuccess("Avatar updated.");
+      setSuccess(t("profile.avatarUpdated"));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to upload avatar.");
+      setError(e instanceof Error ? e.message : t("profile.failedToUpload"));
     } finally {
       setAvatarUploading(false);
     }
@@ -141,11 +145,11 @@ export default function ProfilePage() {
       });
       if (!res.ok) {
         const { error } = await res.json();
-        throw new Error(error || "Failed to update profile");
+        throw new Error(error || t("profile.failedToUpdate"));
       }
-      setSuccess("Profile updated.");
+      setSuccess(t("profile.profileUpdated"));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to update profile");
+      setError(e instanceof Error ? e.message : t("profile.failedToUpdate"));
     } finally {
       setSubmitting(false);
     }
@@ -160,7 +164,8 @@ export default function ProfilePage() {
         data: { user },
         error: userErr,
       } = await supabase.auth.getUser();
-      if (userErr || !user || !user.email) throw new Error("Not authenticated");
+      if (userErr || !user || !user.email)
+        throw new Error(t("profile.notAuthenticated"));
 
       const redirectTo = `${siteUrl}${basePath || ""}/auth/reset-password`;
       const { error: resetErr } = await supabase.auth.resetPasswordForEmail(
@@ -168,9 +173,9 @@ export default function ProfilePage() {
         { redirectTo },
       );
       if (resetErr) throw resetErr;
-      setSuccess("Password reset email sent. Please check your inbox.");
+      setSuccess(t("profile.passwordResetSent"));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to send reset email");
+      setError(e instanceof Error ? e.message : t("profile.failedToSendReset"));
     } finally {
       setSubmitting(false);
     }
@@ -181,7 +186,7 @@ export default function ProfilePage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-12 w-12 text-blue-600 mx-auto mb-4 animate-spin" />
-          <p className="text-gray-600">Loading profile...</p>
+          <p className="text-gray-600">{t("profile.loading")}</p>
         </div>
       </div>
     );
@@ -190,11 +195,11 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <AppHeader
-        title="User Settings"
-        subtitle="Manage your profile details and account security"
+        title={t("profile.title")}
+        subtitle={t("profile.subtitle")}
         actions={
           <Button asChild variant="outline" size="sm">
-            <Link href="/dashboard">Dashboard</Link>
+            <Link href="/dashboard">{t("profile.dashboard")}</Link>
           </Button>
         }
       />
@@ -204,10 +209,8 @@ export default function ProfilePage() {
           {/* Profile card */}
           <Card>
             <CardHeader>
-              <CardTitle>Profile</CardTitle>
-              <CardDescription>
-                Update your personal information
-              </CardDescription>
+              <CardTitle>{t("profile.cardTitle")}</CardTitle>
+              <CardDescription>{t("profile.cardDescription")}</CardDescription>
             </CardHeader>
             <CardContent>
               {/* Avatar */}
@@ -247,10 +250,10 @@ export default function ProfilePage() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-900">
-                    Profile photo
+                    {t("profile.profilePhoto")}
                   </p>
                   <p className="text-xs text-gray-500">
-                    JPEG, PNG, WebP or GIF · max 2 MB
+                    {t("profile.photoFormats")}
                   </p>
                 </div>
               </div>
@@ -267,7 +270,7 @@ export default function ProfilePage() {
                   </Alert>
                 )}
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">{t("profile.emailLabel")}</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
@@ -279,12 +282,12 @@ export default function ProfilePage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="name">Name</Label>
+                  <Label htmlFor="name">{t("profile.nameLabel")}</Label>
                   <div className="relative">
                     <UserIcon className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
                       id="name"
-                      placeholder="Your name"
+                      placeholder={t("profile.namePlaceholder")}
                       className="pl-10"
                       {...register("name")}
                     />
@@ -302,16 +305,16 @@ export default function ProfilePage() {
                     onClick={() => router.back()}
                     disabled={submitting}
                   >
-                    Cancel
+                    {t("common.cancel")}
                   </Button>
                   <Button type="submit" disabled={submitting}>
                     {submitting ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Saving...
+                        {t("profile.saving")}
                       </>
                     ) : (
-                      "Save Changes"
+                      t("profile.saveChanges")
                     )}
                   </Button>
                 </div>
@@ -322,29 +325,27 @@ export default function ProfilePage() {
           {/* Security card */}
           <Card>
             <CardHeader>
-              <CardTitle>Security</CardTitle>
+              <CardTitle>{t("profile.securityTitle")}</CardTitle>
               <CardDescription>
-                Reset your account password via email
+                {t("profile.securityDescription")}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
                 <div className="text-sm text-gray-600">
-                  <p>Send a password reset email to your address.</p>
-                  <p className="text-xs">
-                    We will redirect you to the reset page after the email link.
-                  </p>
+                  <p>{t("profile.sendResetEmail")}</p>
+                  <p className="text-xs">{t("profile.resetRedirectInfo")}</p>
                 </div>
                 <Button onClick={handleResetPassword} disabled={submitting}>
                   {submitting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Sending...
+                      {t("profile.sending")}
                     </>
                   ) : (
                     <>
                       <Lock className="mr-2 h-4 w-4" />
-                      Reset Password
+                      {t("profile.resetPassword")}
                     </>
                   )}
                 </Button>

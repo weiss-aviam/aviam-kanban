@@ -17,6 +17,7 @@ import { EditBoardDialog } from "../../components/boards/EditBoardDialog";
 import { BoardCard } from "../../components/boards/BoardCard";
 import { AppHeader } from "../../components/layout/AppHeader";
 import { HeaderMenu } from "../../components/layout/HeaderMenu";
+import { t } from "../../lib/i18n";
 
 interface Board {
   id: string;
@@ -136,11 +137,7 @@ export default function DashboardPage() {
     ownerId: string;
     isArchived: boolean;
   }) => {
-    if (
-      !confirm(
-        `Are you sure you want to delete "${board.name}"? This action cannot be undone.`,
-      )
-    ) {
+    if (!confirm(t("dashboard.deleteBoardConfirm", { name: board.name }))) {
       return;
     }
 
@@ -162,7 +159,7 @@ export default function DashboardPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <Kanban className="h-12 w-12 text-blue-600 mx-auto mb-4 animate-pulse" />
-          <p className="text-gray-600">Loading dashboard...</p>
+          <p className="text-gray-600">{t("dashboard.loading")}</p>
         </div>
       </div>
     );
@@ -171,8 +168,8 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <AppHeader
-        title="Dashboard"
-        subtitle="Track your boards, recent activity, and upcoming work"
+        title={t("dashboard.title")}
+        subtitle={t("dashboard.subtitle")}
         actions={<HeaderMenu />}
       />
 
@@ -182,11 +179,10 @@ export default function DashboardPage() {
         <div className="mb-8">
           <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-6 text-white">
             <h2 className="text-2xl font-bold mb-2">
-              Welcome to Aviam Kanban! 🎉
+              {t("dashboard.welcomeTitle")}
             </h2>
             <p className="text-blue-100 mb-4">
-              You&apos;ve successfully set up your account. Now you can create
-              boards and start organizing your projects.
+              {t("dashboard.welcomeSubtitle")}
             </p>
             <CreateBoardDialog
               onBoardCreated={handleBoardCreated}
@@ -196,7 +192,7 @@ export default function DashboardPage() {
                   className="bg-white text-blue-600 hover:bg-gray-100"
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  Create Your First Board
+                  {t("dashboard.createFirstBoard")}
                 </Button>
               }
             />
@@ -208,7 +204,7 @@ export default function DashboardPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Total Boards
+                {t("dashboard.totalBoards")}
               </CardTitle>
               <Kanban className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -216,10 +212,10 @@ export default function DashboardPage() {
               <div className="text-2xl font-bold">{boards.length}</div>
               <p className="text-xs text-muted-foreground">
                 {boards.length === 0
-                  ? "No boards created yet"
+                  ? t("dashboard.noBoardsCreated")
                   : boards.length === 1
-                    ? "1 board created"
-                    : `${boards.length} boards created`}
+                    ? t("dashboard.oneBoardCreated")
+                    : t("dashboard.nBoardsCreated", { count: boards.length })}
               </p>
             </CardContent>
           </Card>
@@ -227,26 +223,30 @@ export default function DashboardPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Team Members
+                {t("dashboard.teamMembers")}
               </CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">1</div>
-              <p className="text-xs text-muted-foreground">Just you for now</p>
+              <p className="text-xs text-muted-foreground">
+                {t("dashboard.justYou")}
+              </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Active Tasks
+                {t("dashboard.activeTasks")}
               </CardTitle>
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">0</div>
-              <p className="text-xs text-muted-foreground">No tasks yet</p>
+              <p className="text-xs text-muted-foreground">
+                {t("dashboard.noTasksYet")}
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -254,13 +254,15 @@ export default function DashboardPage() {
         {/* Recent Boards Section */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Your Boards</h3>
+            <h3 className="text-lg font-semibold text-gray-900">
+              {t("dashboard.yourBoards")}
+            </h3>
             <CreateBoardDialog
               onBoardCreated={handleBoardCreated}
               trigger={
                 <Button variant="outline" size="sm">
                   <Plus className="w-4 h-4 mr-2" />
-                  New Board
+                  {t("dashboard.newBoard")}
                 </Button>
               }
             />
@@ -285,18 +287,17 @@ export default function DashboardPage() {
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Kanban className="h-12 w-12 text-gray-400 mb-4" />
                 <h4 className="text-lg font-medium text-gray-900 mb-2">
-                  No boards yet
+                  {t("dashboard.noBoardsYet")}
                 </h4>
                 <p className="text-gray-600 text-center mb-6 max-w-sm">
-                  Create your first Kanban board to start organizing your
-                  projects and tasks.
+                  {t("dashboard.noBoardsDescription")}
                 </p>
                 <CreateBoardDialog
                   onBoardCreated={handleBoardCreated}
                   trigger={
                     <Button>
                       <Plus className="w-4 h-4 mr-2" />
-                      Create Board
+                      {t("boards.createBoard")}
                     </Button>
                   }
                 />

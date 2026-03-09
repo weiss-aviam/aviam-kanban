@@ -16,6 +16,7 @@ import {
 import { Alert, AlertDescription } from "../../../components/ui/alert";
 import { Kanban, Lock, Loader2 } from "lucide-react";
 import { createClient } from "../../../lib/supabase/client";
+import { t } from "../../../lib/i18n";
 
 function ResetPasswordInner() {
   const [password, setPassword] = useState("");
@@ -69,9 +70,7 @@ function ResetPasswordInner() {
 
             if (error) {
               console.error("Error setting session:", error);
-              setError(
-                "Invalid or expired reset link. Please request a new one.",
-              );
+              setError(t("resetPassword.invalidLink"));
               setIsInitializing(false);
               return;
             }
@@ -81,22 +80,18 @@ function ResetPasswordInner() {
             return;
           } catch (err) {
             console.error("Session setup error:", err);
-            setError(
-              "Failed to establish session. Please try the reset link again.",
-            );
+            setError(t("resetPassword.failedToEstablishSession"));
             setIsInitializing(false);
             return;
           }
         }
 
         // No session and no recovery tokens
-        setError(
-          "Please use the password reset link from your email to access this page.",
-        );
+        setError(t("resetPassword.useLinkFromEmail"));
         setIsInitializing(false);
       } catch (err) {
         console.error("Session check error:", err);
-        setError("Failed to verify session. Please try the reset link again.");
+        setError(t("resetPassword.failedToVerify"));
         setIsInitializing(false);
       }
     };
@@ -125,13 +120,13 @@ function ResetPasswordInner() {
     setError("");
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError(t("resetPassword.passwordsDoNotMatch"));
       setIsLoading(false);
       return;
     }
 
     if (password.length < 6) {
-      setError("Password must be at least 6 characters long");
+      setError(t("resetPassword.passwordMinLength"));
       setIsLoading(false);
       return;
     }
@@ -148,13 +143,13 @@ function ResetPasswordInner() {
 
       console.log("Password updated successfully:", data);
 
-      setSuccess("Password updated successfully! Redirecting to dashboard...");
+      setSuccess(t("resetPassword.passwordUpdated"));
 
       setTimeout(() => {
         router.push("/dashboard");
       }, 2000);
     } catch (_err) {
-      setError("An unexpected error occurred. Please try again.");
+      setError(t("resetPassword.unexpectedError"));
     } finally {
       setIsLoading(false);
     }
@@ -168,7 +163,7 @@ function ResetPasswordInner() {
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
               <Loader2 className="h-12 w-12 text-blue-600 mb-4 animate-spin" />
-              <p className="text-gray-600">Initializing password reset...</p>
+              <p className="text-gray-600">{t("resetPassword.initializing")}</p>
             </CardContent>
           </Card>
         </div>
@@ -184,34 +179,36 @@ function ResetPasswordInner() {
           <div className="flex items-center justify-center space-x-2 mb-4">
             <Kanban className="h-8 w-8 text-blue-600" />
             <span className="text-2xl font-bold text-gray-900">
-              Aviam Kanban
+              {t("resetPassword.aviamKanban")}
             </span>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Reset Password
+            {t("resetPassword.title")}
           </h1>
-          <p className="text-gray-600">Enter your new password below</p>
+          <p className="text-gray-600">{t("resetPassword.subtitle")}</p>
         </div>
 
         {/* Reset Password Form */}
         <Card>
           <CardHeader>
-            <CardTitle>Set New Password</CardTitle>
+            <CardTitle>{t("resetPassword.setNewPassword")}</CardTitle>
             <CardDescription>
-              Choose a strong password for your account
+              {t("resetPassword.chooseStrongPassword")}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleResetPassword} className="space-y-4">
               {/* New Password Field */}
               <div className="space-y-2">
-                <Label htmlFor="password">New Password</Label>
+                <Label htmlFor="password">
+                  {t("resetPassword.newPasswordLabel")}
+                </Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
                     id="password"
                     type="password"
-                    placeholder="Enter new password"
+                    placeholder={t("resetPassword.newPasswordPlaceholder")}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10"
@@ -223,13 +220,15 @@ function ResetPasswordInner() {
 
               {/* Confirm Password Field */}
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                <Label htmlFor="confirmPassword">
+                  {t("resetPassword.confirmPasswordLabel")}
+                </Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
                     id="confirmPassword"
                     type="password"
-                    placeholder="Confirm new password"
+                    placeholder={t("resetPassword.confirmPasswordPlaceholder")}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className="pl-10"
@@ -238,7 +237,7 @@ function ResetPasswordInner() {
                   />
                 </div>
                 <p className="text-xs text-gray-500">
-                  Password must be at least 6 characters long
+                  {t("resetPassword.passwordMinLength")}
                 </p>
               </div>
 
@@ -264,10 +263,10 @@ function ResetPasswordInner() {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Updating Password...
+                    {t("resetPassword.updatingPassword")}
                   </>
                 ) : (
-                  "Update Password"
+                  t("resetPassword.updatePassword")
                 )}
               </Button>
             </form>
@@ -275,12 +274,12 @@ function ResetPasswordInner() {
             {/* Back to Login Link */}
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
-                Remember your password?{" "}
+                {t("resetPassword.rememberPassword")}{" "}
                 <Link
                   href="/auth/login"
                   className="text-blue-600 hover:text-blue-700 font-medium"
                 >
-                  Sign in
+                  {t("resetPassword.signIn")}
                 </Link>
               </p>
             </div>

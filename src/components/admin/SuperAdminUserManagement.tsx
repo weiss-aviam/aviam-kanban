@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatRelativeDate } from "@/lib/date-format";
+import { t } from "@/lib/i18n";
 import { Loader2, Pencil, RefreshCw, Search, UserPlus } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -95,7 +96,7 @@ function EditUserDialog({
       const responseData = await response.json();
 
       if (!response.ok) {
-        throw new Error(responseData.error || "Failed to update user");
+        throw new Error(responseData.error || t("superAdmin.failedToUpdate"));
       }
 
       await onSaved();
@@ -104,7 +105,7 @@ function EditUserDialog({
       setError(
         requestError instanceof Error
           ? requestError.message
-          : "Failed to update user",
+          : t("superAdmin.failedToUpdate"),
       );
     } finally {
       setSaving(false);
@@ -115,7 +116,7 @@ function EditUserDialog({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Edit user details</DialogTitle>
+          <DialogTitle>{t("superAdmin.editUserTitle")}</DialogTitle>
         </DialogHeader>
 
         <form className="space-y-4" onSubmit={handleSubmit}>
@@ -127,14 +128,16 @@ function EditUserDialog({
 
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <Label>Email</Label>
-              <Badge variant="outline">Read only</Badge>
+              <Label>{t("superAdmin.emailLabel")}</Label>
+              <Badge variant="outline">
+                {t("superAdmin.editUserEmailReadOnly")}
+              </Badge>
             </div>
             <Input disabled value={user?.email ?? ""} />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="edit-user-name">Display name</Label>
+            <Label htmlFor="edit-user-name">{t("superAdmin.nameLabel")}</Label>
             <Input
               id="edit-user-name"
               maxLength={100}
@@ -150,11 +153,12 @@ function EditUserDialog({
               onClick={onClose}
               disabled={saving}
             >
-              Cancel
+              {t("superAdmin.cancelButton")}
             </Button>
             <Button type="submit" disabled={saving}>
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Save changes
+              {saving
+                ? t("superAdmin.savingChanges")
+                : t("superAdmin.saveChanges")}
             </Button>
           </DialogFooter>
         </form>
@@ -207,7 +211,7 @@ export function SuperAdminUserManagement() {
       const responseData = await response.json();
 
       if (!response.ok) {
-        throw new Error(responseData.error || "Failed to fetch users");
+        throw new Error(responseData.error || t("superAdmin.failedToFetch"));
       }
 
       setUsers(responseData.users ?? []);
@@ -216,7 +220,7 @@ export function SuperAdminUserManagement() {
       setError(
         requestError instanceof Error
           ? requestError.message
-          : "Failed to fetch users",
+          : t("superAdmin.failedToFetch"),
       );
     } finally {
       setLoading(false);
@@ -253,7 +257,7 @@ export function SuperAdminUserManagement() {
               .join(" ")
           : undefined;
         throw new Error(
-          details || responseData.error || "Failed to create user",
+          details || responseData.error || t("superAdmin.failedToCreate"),
         );
       }
 
@@ -267,7 +271,7 @@ export function SuperAdminUserManagement() {
       setCreateError(
         requestError instanceof Error
           ? requestError.message
-          : "Failed to create user",
+          : t("superAdmin.failedToCreate"),
       );
     } finally {
       setCreating(false);
@@ -280,11 +284,10 @@ export function SuperAdminUserManagement() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <UserPlus className="h-5 w-5" />
-            Create user
+            {t("superAdmin.createUserTitle")}
           </CardTitle>
           <CardDescription>
-            Provision a new Aviam account with an initial password and optional
-            display name.
+            {t("superAdmin.createUserDescription")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -293,7 +296,9 @@ export function SuperAdminUserManagement() {
             onSubmit={handleCreateUser}
           >
             <div className="space-y-2">
-              <Label htmlFor="create-user-email">Email</Label>
+              <Label htmlFor="create-user-email">
+                {t("superAdmin.emailLabel")}
+              </Label>
               <Input
                 id="create-user-email"
                 type="email"
@@ -303,7 +308,9 @@ export function SuperAdminUserManagement() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="create-user-name">Display name</Label>
+              <Label htmlFor="create-user-name">
+                {t("superAdmin.nameLabel")}
+              </Label>
               <Input
                 id="create-user-name"
                 value={createName}
@@ -311,7 +318,9 @@ export function SuperAdminUserManagement() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="create-user-password">Initial password</Label>
+              <Label htmlFor="create-user-password">
+                {t("superAdmin.passwordLabel")}
+              </Label>
               <Input
                 id="create-user-password"
                 type="password"
@@ -333,8 +342,9 @@ export function SuperAdminUserManagement() {
                 </Alert>
               ) : null}
               <Button type="submit" disabled={creating}>
-                {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                Create user
+                {creating
+                  ? t("superAdmin.creatingUser")
+                  : t("superAdmin.createUserButton")}
               </Button>
             </div>
           </form>
@@ -343,10 +353,9 @@ export function SuperAdminUserManagement() {
 
       <Card>
         <CardHeader>
-          <CardTitle>All users</CardTitle>
+          <CardTitle>{t("superAdmin.allUsersTitle")}</CardTitle>
           <CardDescription>
-            Review every user account across Aviam and update supported profile
-            fields.
+            {t("superAdmin.allUsersDescription")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -355,7 +364,7 @@ export function SuperAdminUserManagement() {
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <Input
                 className="pl-9"
-                placeholder="Search by name or email"
+                placeholder={t("superAdmin.searchPlaceholder")}
                 value={search}
                 onChange={(event) => {
                   setSearch(event.target.value);
@@ -375,17 +384,29 @@ export function SuperAdminUserManagement() {
                   <SelectValue placeholder="Sort users" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="createdAt-desc">Newest first</SelectItem>
-                  <SelectItem value="createdAt-asc">Oldest first</SelectItem>
-                  <SelectItem value="name-asc">Name A-Z</SelectItem>
-                  <SelectItem value="name-desc">Name Z-A</SelectItem>
-                  <SelectItem value="email-asc">Email A-Z</SelectItem>
-                  <SelectItem value="email-desc">Email Z-A</SelectItem>
+                  <SelectItem value="createdAt-desc">
+                    {t("superAdmin.sortNewest")}
+                  </SelectItem>
+                  <SelectItem value="createdAt-asc">
+                    {t("superAdmin.sortOldest")}
+                  </SelectItem>
+                  <SelectItem value="name-asc">
+                    {t("superAdmin.sortNameAZ")}
+                  </SelectItem>
+                  <SelectItem value="name-desc">
+                    {t("superAdmin.sortNameZA")}
+                  </SelectItem>
+                  <SelectItem value="email-asc">
+                    {t("superAdmin.sortEmailAZ")}
+                  </SelectItem>
+                  <SelectItem value="email-desc">
+                    {t("superAdmin.sortEmailZA")}
+                  </SelectItem>
                 </SelectContent>
               </Select>
               <Button variant="outline" onClick={() => void fetchUsers()}>
                 <RefreshCw className="h-4 w-4" />
-                Refresh
+                {t("superAdmin.refresh")}
               </Button>
             </div>
           </div>
@@ -400,9 +421,15 @@ export function SuperAdminUserManagement() {
             <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-50 text-left text-gray-600">
                 <tr>
-                  <th className="px-4 py-3 font-medium">User</th>
-                  <th className="px-4 py-3 font-medium">Created</th>
-                  <th className="px-4 py-3 font-medium">Actions</th>
+                  <th className="px-4 py-3 font-medium">
+                    {t("superAdmin.userColumn")}
+                  </th>
+                  <th className="px-4 py-3 font-medium">
+                    {t("superAdmin.createdColumn")}
+                  </th>
+                  <th className="px-4 py-3 font-medium">
+                    {t("superAdmin.actionsColumn")}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -414,7 +441,7 @@ export function SuperAdminUserManagement() {
                     >
                       <div className="inline-flex items-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        Loading users…
+                        {t("superAdmin.loadingUsers")}
                       </div>
                     </td>
                   </tr>
@@ -424,7 +451,7 @@ export function SuperAdminUserManagement() {
                       className="px-4 py-8 text-center text-gray-500"
                       colSpan={3}
                     >
-                      No users matched this query.
+                      {t("superAdmin.noUsersFound")}
                     </td>
                   </tr>
                 ) : (
@@ -432,7 +459,7 @@ export function SuperAdminUserManagement() {
                     <tr key={user.id}>
                       <td className="px-4 py-4">
                         <div className="font-medium text-gray-900">
-                          {user.name || "Unnamed user"}
+                          {user.name || t("superAdmin.unnamedUser")}
                         </div>
                         <div className="text-gray-500">{user.email}</div>
                       </td>
@@ -446,7 +473,7 @@ export function SuperAdminUserManagement() {
                           onClick={() => setEditingUser(user)}
                         >
                           <Pencil className="h-4 w-4" />
-                          Edit
+                          {t("superAdmin.editButton")}
                         </Button>
                       </td>
                     </tr>
@@ -458,8 +485,11 @@ export function SuperAdminUserManagement() {
 
           <div className="flex flex-col gap-3 text-sm text-gray-500 md:flex-row md:items-center md:justify-between">
             <span>
-              Showing page {pagination.page} of {pagination.totalPages} ·{" "}
-              {pagination.total} users total
+              {t("superAdmin.paginationInfo", {
+                page: pagination.page,
+                totalPages: pagination.totalPages,
+                total: pagination.total,
+              })}
             </span>
             <div className="flex items-center gap-2">
               <Button
@@ -468,7 +498,7 @@ export function SuperAdminUserManagement() {
                 disabled={!pagination.hasPrev || loading}
                 onClick={() => setPage((current) => Math.max(1, current - 1))}
               >
-                Previous
+                {t("common.previous")}
               </Button>
               <Button
                 variant="outline"
@@ -476,7 +506,7 @@ export function SuperAdminUserManagement() {
                 disabled={!pagination.hasNext || loading}
                 onClick={() => setPage((current) => current + 1)}
               >
-                Next
+                {t("common.next")}
               </Button>
             </div>
           </div>

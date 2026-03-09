@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "../../../lib/supabase/client";
+import { t } from "../../../lib/i18n";
 import { Loader2, CheckCircle, XCircle } from "lucide-react";
 import {
   Card,
@@ -48,9 +49,7 @@ function AuthCallbackInner() {
 
           if (data.user) {
             setStatus("success");
-            setMessage(
-              "Successfully authenticated! Redirecting to dashboard...",
-            );
+            setMessage(t("authCallback.successAuth"));
             setTimeout(() => {
               router.push("/dashboard");
             }, 2000);
@@ -69,18 +68,18 @@ function AuthCallbackInner() {
 
           if (user) {
             setStatus("success");
-            setMessage("Already authenticated! Redirecting to dashboard...");
+            setMessage(t("authCallback.alreadyAuth"));
             setTimeout(() => {
               router.push("/dashboard");
             }, 1000);
           } else {
             setStatus("error");
-            setMessage("No authentication code found");
+            setMessage(t("authCallback.noCodeFound"));
           }
         }
       } catch (err) {
         setStatus("error");
-        setMessage("An unexpected error occurred during authentication");
+        setMessage(t("authCallback.unexpectedError"));
         console.error("Auth callback error:", err);
       }
     };
@@ -105,9 +104,9 @@ function AuthCallbackInner() {
               )}
             </div>
             <CardTitle>
-              {status === "loading" && "Authenticating..."}
-              {status === "success" && "Authentication Successful!"}
-              {status === "error" && "Authentication Failed"}
+              {status === "loading" && t("authCallback.authenticating")}
+              {status === "success" && t("authCallback.successTitle")}
+              {status === "error" && t("authCallback.errorTitle")}
             </CardTitle>
             <CardDescription>{message}</CardDescription>
           </CardHeader>
@@ -115,7 +114,7 @@ function AuthCallbackInner() {
             {status === "loading" && (
               <div className="text-center">
                 <p className="text-sm text-gray-600">
-                  Please wait while we complete your authentication...
+                  {t("authCallback.waitMessage")}
                 </p>
               </div>
             )}
@@ -123,11 +122,12 @@ function AuthCallbackInner() {
             {status === "success" && (
               <div className="text-center space-y-4">
                 <p className="text-sm text-gray-600">
-                  You will be redirected automatically, or you can click below
-                  to continue.
+                  {t("authCallback.successMessage")}
                 </p>
                 <Button asChild className="w-full">
-                  <Link href="/dashboard">Go to Dashboard</Link>
+                  <Link href="/dashboard">
+                    {t("authCallback.goToDashboard")}
+                  </Link>
                 </Button>
               </div>
             )}
@@ -135,14 +135,14 @@ function AuthCallbackInner() {
             {status === "error" && (
               <div className="text-center space-y-4">
                 <p className="text-sm text-gray-600">
-                  Something went wrong during authentication. Please try again.
+                  {t("authCallback.errorMessage")}
                 </p>
                 <div className="flex flex-col space-y-2">
                   <Button asChild variant="default">
-                    <Link href="/auth/login">Try Again</Link>
+                    <Link href="/auth/login">{t("authCallback.tryAgain")}</Link>
                   </Button>
                   <Button asChild variant="outline">
-                    <Link href="/">Back to Home</Link>
+                    <Link href="/">{t("authCallback.backToHome")}</Link>
                   </Button>
                 </div>
               </div>

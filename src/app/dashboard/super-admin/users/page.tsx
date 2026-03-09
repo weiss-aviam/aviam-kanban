@@ -6,6 +6,7 @@ import { AppHeader } from "@/components/layout/AppHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { requireSuperAdmin } from "@/lib/auth";
+import { t } from "@/lib/i18n";
 
 export default async function SuperAdminUsersPage() {
   try {
@@ -21,19 +22,19 @@ export default async function SuperAdminUsersPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <AppHeader
-        title="Super Admin User Management"
-        subtitle="Create Aviam users and update global profile details from one secure control panel."
+        title={t("superAdmin.title")}
+        subtitle={t("superAdmin.subtitle")}
         actions={
           <>
             <Button asChild variant="outline" size="sm">
               <Link href="/dashboard">
                 <ArrowLeft className="h-4 w-4" />
-                Back to Dashboard
+                {t("superAdmin.backToDashboard")}
               </Link>
             </Button>
             <Badge>
               <Shield className="h-3 w-3" />
-              Super Admin
+              {t("superAdmin.superAdminBadge")}
             </Badge>
           </>
         }

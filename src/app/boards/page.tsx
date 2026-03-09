@@ -38,6 +38,7 @@ import { formatDisplayDate } from "../../lib/date-format";
 import { getRoleBadgeClasses, getRoleLabel } from "../../lib/role-colors";
 import { AppHeader } from "../../components/layout/AppHeader";
 import { HeaderMenu } from "../../components/layout/HeaderMenu";
+import { t } from "../../lib/i18n";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -197,7 +198,7 @@ export default function BoardsPage() {
       setDeletingBoard(null);
     } catch (err) {
       console.error("Delete board failed:", err);
-      alert("Could not delete board");
+      window.alert(t("boardsPage.deleteFailed"));
     }
   };
 
@@ -222,7 +223,7 @@ export default function BoardsPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading boards...</p>
+          <p className="text-gray-600">{t("boardsPage.loading")}</p>
         </div>
       </div>
     );
@@ -231,8 +232,8 @@ export default function BoardsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <AppHeader
-        title="All Boards"
-        subtitle="Browse, search, and organize all of your boards"
+        title={t("boardsPage.title")}
+        subtitle={t("boardsPage.subtitle")}
         actions={<HeaderMenu />}
       />
 
@@ -245,7 +246,7 @@ export default function BoardsPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
-                  placeholder="Search boards..."
+                  placeholder={t("boardsPage.searchPlaceholder")}
                   value={state.searchQuery}
                   onChange={(e) =>
                     setState((prev) => ({
@@ -262,10 +263,22 @@ export default function BoardsPage() {
               {/* Filter Buttons */}
               <div className="flex items-center space-x-1 bg-white rounded-lg border p-1">
                 {[
-                  { key: "all", label: "All", icon: null },
-                  { key: "owned", label: "Owned", icon: Star },
-                  { key: "member", label: "Member", icon: Users },
-                  { key: "archived", label: "Archived", icon: Archive },
+                  { key: "all", label: t("boardsPage.filterAll"), icon: null },
+                  {
+                    key: "owned",
+                    label: t("boardsPage.filterOwned"),
+                    icon: Star,
+                  },
+                  {
+                    key: "member",
+                    label: t("boardsPage.filterMember"),
+                    icon: Users,
+                  },
+                  {
+                    key: "archived",
+                    label: t("boardsPage.filterArchived"),
+                    icon: Archive,
+                  },
                 ].map(({ key, label, icon: Icon }) => (
                   <Button
                     key={key}
@@ -317,7 +330,7 @@ export default function BoardsPage() {
                 trigger={
                   <Button>
                     <Plus className="w-4 h-4 mr-2" />
-                    New Board
+                    {t("boardsPage.newBoard")}
                   </Button>
                 }
               />
@@ -337,13 +350,13 @@ export default function BoardsPage() {
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               {state.searchQuery || state.filterBy !== "all"
-                ? "No boards found"
-                : "No boards yet"}
+                ? t("boardsPage.noBoardsFound")
+                : t("boardsPage.noBoardsYet")}
             </h3>
             <p className="text-gray-600 mb-6">
               {state.searchQuery || state.filterBy !== "all"
-                ? "Try adjusting your search or filters"
-                : "Get started by creating your first Kanban board"}
+                ? t("boardsPage.tryFilters")
+                : t("boardsPage.getStarted")}
             </p>
             {!state.searchQuery && state.filterBy === "all" && (
               <CreateBoardDialog
@@ -351,7 +364,7 @@ export default function BoardsPage() {
                 trigger={
                   <Button>
                     <Plus className="w-4 h-4 mr-2" />
-                    Create Your First Board
+                    {t("boardsPage.createFirstBoard")}
                   </Button>
                 }
               />
@@ -424,7 +437,7 @@ function BoardCard({ board, viewMode, onEdit, onDelete }: BoardCardProps) {
                       {board.name}
                     </h3>
                     <p className="text-sm text-gray-600 line-clamp-1">
-                      {board.description || "No description"}
+                      {board.description || t("boardsPage.noDescription")}
                     </p>
                   </div>
                 </div>
@@ -455,12 +468,12 @@ function BoardCard({ board, viewMode, onEdit, onDelete }: BoardCardProps) {
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={onEdit}>
                   <Edit className="mr-2 h-4 w-4" />
-                  Edit Board
+                  {t("boardsPage.editBoard")}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={onDelete} className="text-red-600">
                   <Trash2 className="mr-2 h-4 w-4" />
-                  Delete Board
+                  {t("boardsPage.deleteBoard")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -480,7 +493,7 @@ function BoardCard({ board, viewMode, onEdit, onDelete }: BoardCardProps) {
                 {board.name}
               </CardTitle>
               <CardDescription className="mt-2 line-clamp-2">
-                {board.description || "No description"}
+                {board.description || t("boardsPage.noDescription")}
               </CardDescription>
             </div>
             <DropdownMenu>
@@ -502,7 +515,7 @@ function BoardCard({ board, viewMode, onEdit, onDelete }: BoardCardProps) {
                   }}
                 >
                   <Edit className="mr-2 h-4 w-4" />
-                  Edit Board
+                  {t("boardsPage.editBoard")}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -513,7 +526,7 @@ function BoardCard({ board, viewMode, onEdit, onDelete }: BoardCardProps) {
                   className="text-red-600"
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
-                  Delete Board
+                  {t("boardsPage.deleteBoard")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -528,7 +541,9 @@ function BoardCard({ board, viewMode, onEdit, onDelete }: BoardCardProps) {
               >
                 {getRoleLabel(board.role)}
               </Badge>
-              {board.isArchived && <Badge variant="secondary">Archived</Badge>}
+              {board.isArchived && (
+                <Badge variant="secondary">{t("board.archived")}</Badge>
+              )}
             </div>
             <div className="flex items-center space-x-3">
               <span className="flex items-center space-x-1">

@@ -42,11 +42,18 @@ export function getRoleBadgeClasses(role: string): string {
   return `${colors.background} ${colors.text} ${colors.border}`;
 }
 
+const ROLE_LABELS: Record<string, string> = {
+  owner: "Eigentümer",
+  admin: "Administrator",
+  member: "Mitglied",
+  viewer: "Beobachter",
+};
+
 /**
- * Get capitalized role label
+ * Get German role label
  */
 export function getRoleLabel(role: string): string {
-  return role.charAt(0).toUpperCase() + role.slice(1);
+  return ROLE_LABELS[role] || role.charAt(0).toUpperCase() + role.slice(1);
 }
 
 /**

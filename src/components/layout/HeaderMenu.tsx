@@ -13,6 +13,7 @@ import {
 import { Menu, Kanban, User, Settings, LogOut } from "lucide-react";
 import { createClient } from "../../lib/supabase/client";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
+import { t } from "../../lib/i18n";
 
 const SUPER_ADMIN_ROLE_VALUES = new Set([
   "super_admin",
@@ -65,30 +66,30 @@ export function HeaderMenu() {
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm">
           <Menu className="w-4 h-4 mr-2" />
-          Menu
+          {t("header.menu")}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuItem onClick={() => router.push("/boards")}>
           <Kanban className="mr-2 h-4 w-4" />
-          All Boards
+          {t("header.allBoards")}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => router.push("/profile")}>
           <User className="mr-2 h-4 w-4" />
-          Profile
+          {t("header.profile")}
         </DropdownMenuItem>
         {isSuperAdmin && (
           <DropdownMenuItem
             onClick={() => router.push("/dashboard/super-admin/users")}
           >
             <Settings className="mr-2 h-4 w-4" />
-            Settings
+            {t("header.settings")}
           </DropdownMenuItem>
         )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut} className="text-red-600">
           <LogOut className="mr-2 h-4 w-4" />
-          Sign Out
+          {t("header.signOut")}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
