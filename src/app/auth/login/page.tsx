@@ -15,7 +15,7 @@ import {
   CardTitle,
 } from "../../../components/ui/card";
 import { Alert, AlertDescription } from "../../../components/ui/alert";
-import { Mail, Lock, Loader2, Link2, KeyRound, X } from "lucide-react";
+import { Mail, Lock, Loader2 } from "lucide-react";
 import { createClient } from "../../../lib/supabase/client";
 
 const AUTH_ERRORS: Record<string, string> = {
@@ -44,7 +44,6 @@ export default function LoginPage() {
   >(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [showForgotOptions, setShowForgotOptions] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
@@ -104,7 +103,6 @@ export default function LoginPage() {
         setSuccess(
           "Magischer Anmeldelink wurde gesendet. Bitte prüfen Sie Ihr Postfach.",
         );
-        setShowForgotOptions(false);
       }
     } catch (_err) {
       setError(
@@ -138,7 +136,6 @@ export default function LoginPage() {
         setSuccess(
           "E-Mail zum Zurücksetzen des Passworts wurde gesendet. Bitte prüfen Sie Ihr Postfach.",
         );
-        setShowForgotOptions(false);
       }
     } catch (_err) {
       setError(
@@ -206,84 +203,30 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <div className="flex justify-end">
+              <div className="flex justify-between">
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowForgotOptions((v) => !v);
-                    setError("");
-                    setSuccess("");
-                  }}
+                  onClick={handlePasswordReset}
+                  className="cursor-pointer text-sm text-gray-500 hover:text-gray-700"
+                  disabled={isLoading}
+                >
+                  {loadingAction === "reset" ? (
+                    <Loader2 className="inline mr-1 h-3 w-3 animate-spin" />
+                  ) : null}
+                  Passwort zurücksetzen
+                </button>
+                <button
+                  type="button"
+                  onClick={handleMagicLink}
                   className="cursor-pointer text-sm text-blue-600 hover:text-blue-700"
                   disabled={isLoading}
                 >
+                  {loadingAction === "magic" ? (
+                    <Loader2 className="inline mr-1 h-3 w-3 animate-spin" />
+                  ) : null}
                   Passwort vergessen?
                 </button>
               </div>
-
-              {/* Forgot password options panel */}
-              {showForgotOptions && (
-                <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-gray-700">
-                      Wie möchten Sie fortfahren?
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => setShowForgotOptions(false)}
-                      className="cursor-pointer text-gray-400 hover:text-gray-600"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="justify-start gap-2 bg-white"
-                      onClick={handleMagicLink}
-                      disabled={isLoading}
-                    >
-                      {loadingAction === "magic" ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Link2 className="h-4 w-4" />
-                      )}
-                      <span className="flex flex-col items-start text-left">
-                        <span className="font-medium">
-                          Magischen Anmeldelink senden
-                        </span>
-                        <span className="text-xs text-gray-500 font-normal">
-                          Einmaligen Link zum direkten Einloggen erhalten
-                        </span>
-                      </span>
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="justify-start gap-2 bg-white"
-                      onClick={handlePasswordReset}
-                      disabled={isLoading}
-                    >
-                      {loadingAction === "reset" ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <KeyRound className="h-4 w-4" />
-                      )}
-                      <span className="flex flex-col items-start text-left">
-                        <span className="font-medium">
-                          Passwort zurücksetzen
-                        </span>
-                        <span className="text-xs text-gray-500 font-normal">
-                          Link zum Festlegen eines neuen Passworts erhalten
-                        </span>
-                      </span>
-                    </Button>
-                  </div>
-                </div>
-              )}
 
               {error && (
                 <Alert variant="destructive">
