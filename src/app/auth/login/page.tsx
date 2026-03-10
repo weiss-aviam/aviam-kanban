@@ -39,9 +39,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [loadingAction, setLoadingAction] = useState<
-    "signin" | "magic" | "reset" | null
-  >(null);
+  const [isResetting, setIsResetting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const router = useRouter();
@@ -50,7 +48,6 @@ export default function LoginPage() {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setLoadingAction("signin");
     setError("");
     setSuccess("");
 
@@ -74,43 +71,6 @@ export default function LoginPage() {
       );
     } finally {
       setIsLoading(false);
-      setLoadingAction(null);
-    }
-  };
-
-  const handleMagicLink = async () => {
-    if (!email) {
-      setError("Bitte geben Sie zuerst Ihre E-Mail-Adresse ein.");
-      return;
-    }
-
-    setIsLoading(true);
-    setLoadingAction("magic");
-    setError("");
-    setSuccess("");
-
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: `${window.location.origin}${process.env.NEXT_PUBLIC_BASE_PATH || ""}/dashboard`,
-        },
-      });
-
-      if (error) {
-        setError(translateError(error.message));
-      } else {
-        setSuccess(
-          "Magischer Anmeldelink wurde gesendet. Bitte prüfen Sie Ihr Postfach.",
-        );
-      }
-    } catch (_err) {
-      setError(
-        "Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut.",
-      );
-    } finally {
-      setIsLoading(false);
-      setLoadingAction(null);
     }
   };
 
@@ -120,8 +80,7 @@ export default function LoginPage() {
       return;
     }
 
-    setIsLoading(true);
-    setLoadingAction("reset");
+    setIsResetting(true);
     setError("");
     setSuccess("");
 
@@ -142,8 +101,7 @@ export default function LoginPage() {
         "Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut.",
       );
     } finally {
-      setIsLoading(false);
-      setLoadingAction(null);
+      setIsResetting(false);
     }
   };
 
@@ -203,25 +161,14 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <div className="flex justify-between">
+              <div className="flex justify-end">
                 <button
                   type="button"
                   onClick={handlePasswordReset}
                   className="cursor-pointer text-sm text-gray-500 hover:text-gray-700"
-                  disabled={isLoading}
+                  disabled={isLoading || isResetting}
                 >
-                  {loadingAction === "reset" ? (
-                    <Loader2 className="inline mr-1 h-3 w-3 animate-spin" />
-                  ) : null}
-                  Passwort zurücksetzen
-                </button>
-                <button
-                  type="button"
-                  onClick={handleMagicLink}
-                  className="cursor-pointer text-sm text-blue-600 hover:text-blue-700"
-                  disabled={isLoading}
-                >
-                  {loadingAction === "magic" ? (
+                  {isResetting ? (
                     <Loader2 className="inline mr-1 h-3 w-3 animate-spin" />
                   ) : null}
                   Passwort vergessen?
@@ -240,8 +187,12 @@ export default function LoginPage() {
                 </Alert>
               )}
 
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {loadingAction === "signin" ? (
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isLoading || isResetting}
+              >
+                {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Anmelden...
