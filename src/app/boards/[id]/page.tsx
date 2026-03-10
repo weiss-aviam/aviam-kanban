@@ -69,5 +69,15 @@ export default function BoardPage() {
     );
   }
 
-  return <BoardDetailPage boardId={boardId} currentUser={user} />;
+  const currentUser = {
+    id: user.id,
+    email: user.email ?? null,
+    name:
+      (user.user_metadata?.name as string | undefined) ??
+      (user.user_metadata?.full_name as string | undefined) ??
+      null,
+    avatarUrl: (user.user_metadata?.avatar_url as string | undefined) ?? null,
+  };
+
+  return <BoardDetailPage boardId={boardId} currentUser={currentUser} />;
 }

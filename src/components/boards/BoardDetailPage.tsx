@@ -50,7 +50,12 @@ import { t } from "@/lib/i18n";
 interface BoardDetailPageProps {
   boardId: string;
   initialBoard?: BoardWithDetails;
-  currentUser?: { id: string; name?: string | null; email?: string } | null;
+  currentUser?: {
+    id: string;
+    name?: string | null;
+    email?: string | null;
+    avatarUrl?: string | null;
+  } | null;
 }
 
 export function BoardDetailPage({

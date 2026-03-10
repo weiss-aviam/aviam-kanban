@@ -1,6 +1,6 @@
 "use client";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import type { BoardPresenceMember } from "@/hooks/useBoardPresence";
 import { t } from "@/lib/i18n";
@@ -59,6 +59,10 @@ function PresenceAvatarStack({
           aria-label={getPresenceMemberLabel(member, currentUserId)}
           className="h-7 w-7 border-2 border-white shadow-sm"
         >
+          <AvatarImage
+            src={member.avatarUrl ?? ""}
+            alt={member.name || member.email || ""}
+          />
           <AvatarFallback className="bg-emerald-600 text-[11px] font-semibold text-white">
             {getUserInitials(member.name || "", member.email || "")}
           </AvatarFallback>

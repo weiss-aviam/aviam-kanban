@@ -33,6 +33,7 @@ describe("useBoardPresence", () => {
             userId: "user-1",
             name: "Alex",
             email: "alex@example.com",
+            avatarUrl: null,
             role: "member",
             activity: { type: "viewing-board" },
             connectedAt: "2026-03-07T10:00:00.000Z",
@@ -45,6 +46,7 @@ describe("useBoardPresence", () => {
             userId: "user-1",
             name: "Alex",
             email: "alex@example.com",
+            avatarUrl: null,
             role: "member",
             activity: {
               type: "editing-card",
@@ -61,6 +63,7 @@ describe("useBoardPresence", () => {
         userId: "user-1",
         name: "Alex",
         email: "alex@example.com",
+        avatarUrl: null,
         role: "member",
         activity: {
           type: "editing-card",
@@ -82,6 +85,7 @@ describe("useBoardPresence", () => {
           userId: "user-2",
           name: "Riley",
           email: "riley@example.com",
+          avatarUrl: null,
           role: "viewer",
           activity: { type: "viewing-board" as const },
           connectedAt: "2026-03-07T09:55:00.000Z",
@@ -100,10 +104,12 @@ describe("useBoardPresence", () => {
       },
     );
     const channel = {
-      on: vi.fn((_type: string, filter: { event: string }, handler: () => void) => {
-        presenceHandlers[filter.event] = handler;
-        return channel;
-      }),
+      on: vi.fn(
+        (_type: string, filter: { event: string }, handler: () => void) => {
+          presenceHandlers[filter.event] = handler;
+          return channel;
+        },
+      ),
       subscribe,
       track,
       untrack,
@@ -156,6 +162,7 @@ describe("useBoardPresence", () => {
           userId: "user-2",
           name: "Riley",
           email: "riley@example.com",
+          avatarUrl: null,
           role: "viewer",
           activity: { type: "viewing-board" },
           connectedAt: "2026-03-07T09:55:00.000Z",

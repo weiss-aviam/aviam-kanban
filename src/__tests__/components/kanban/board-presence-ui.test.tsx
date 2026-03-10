@@ -13,6 +13,7 @@ const members: BoardPresenceMember[] = [
     userId: "user-1",
     name: "Ada Lovelace",
     email: "ada@example.com",
+    avatarUrl: null,
     role: "member",
     activity: { type: "viewing-board" },
     connectedAt: "2026-03-07T12:00:00.000Z",
@@ -23,6 +24,7 @@ const members: BoardPresenceMember[] = [
     userId: "user-2",
     name: "Grace Hopper",
     email: "grace@example.com",
+    avatarUrl: null,
     role: "admin",
     activity: {
       type: "editing-card",

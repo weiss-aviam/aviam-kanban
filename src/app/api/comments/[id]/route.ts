@@ -54,7 +54,7 @@ export async function PATCH(
     // Update the comment using Supabase (respects RLS)
     const { data: updatedComment, error: updateError } = await supabase
       .from("comments")
-      .update({ body: commentBody })
+      .update({ body: commentBody, edited_at: new Date().toISOString() })
       .eq("id", commentId)
       .select(
         `
@@ -63,6 +63,8 @@ export async function PATCH(
         author_id,
         body,
         created_at,
+        edited_at,
+        deleted_at,
         users!inner(id, email, name)
       `,
       )
@@ -83,6 +85,12 @@ export async function PATCH(
       authorId: updatedComment.author_id,
       body: updatedComment.body,
       createdAt: updatedComment.created_at,
+      editedAt:
+        (updatedComment as unknown as { edited_at?: string | null })
+          .edited_at ?? null,
+      deletedAt:
+        (updatedComment as unknown as { deleted_at?: string | null })
+          .deleted_at ?? null,
       author: (() => {
         const u = (updatedComment as unknown as { users?: unknown }).users as
           | { id: string; email: string; name: string | null }
@@ -135,10 +143,11 @@ export async function DELETE(
       );
     }
 
-    // Delete the comment using Supabase (respects RLS)
+    // Soft-delete: set deleted_at instead of removing the row so the thread position is preserved
+    const deletedAt = new Date().toISOString();
     const { error: deleteError } = await supabase
       .from("comments")
-      .delete()
+      .update({ deleted_at: deletedAt })
       .eq("id", commentId);
 
     if (deleteError) {
@@ -149,7 +158,7 @@ export async function DELETE(
       );
     }
 
-    return NextResponse.json({ message: "Comment deleted successfully" });
+    return NextResponse.json({ deletedAt });
   } catch (error) {
     console.error("Delete comment error:", error);
     return NextResponse.json(

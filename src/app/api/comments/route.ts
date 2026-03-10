@@ -164,6 +164,8 @@ export async function GET(request: NextRequest) {
         author_id,
         body,
         created_at,
+        edited_at,
+        deleted_at,
         users!inner(id, email, name)
       `,
       )
@@ -185,6 +187,11 @@ export async function GET(request: NextRequest) {
       authorId: comment.author_id,
       body: comment.body,
       createdAt: comment.created_at,
+      editedAt:
+        (comment as unknown as { edited_at?: string | null }).edited_at ?? null,
+      deletedAt:
+        (comment as unknown as { deleted_at?: string | null }).deleted_at ??
+        null,
       author: (() => {
         const u = (
           comment as unknown as {

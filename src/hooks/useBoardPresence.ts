@@ -14,6 +14,7 @@ export interface BoardPresencePayload {
   userId: string;
   name: string | null;
   email: string | null;
+  avatarUrl: string | null;
   role: BoardMemberRole | null;
   activity: BoardPresenceActivity;
   connectedAt: string;
@@ -24,6 +25,7 @@ export interface BoardPresenceMember {
   userId: string;
   name: string | null;
   email: string | null;
+  avatarUrl: string | null;
   role: BoardMemberRole | null;
   activity: BoardPresenceActivity;
   connectedAt: string;
@@ -42,6 +44,7 @@ interface UseBoardPresenceOptions {
     id: string;
     name?: string | null;
     email?: string | null;
+    avatarUrl?: string | null;
   } | null;
   currentUserRole?: BoardMemberRole | null;
 }
@@ -58,7 +61,6 @@ function createPresenceSessionId() {
   ) {
     return crypto.randomUUID();
   }
-
   return `presence-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
@@ -86,6 +88,7 @@ export function normalizeBoardPresenceState(state: RawPresenceState) {
           userId: entry.userId,
           name: entry.name,
           email: entry.email,
+          avatarUrl: entry.avatarUrl ?? null,
           role: entry.role,
           activity: entry.activity,
           connectedAt: entry.connectedAt,
@@ -108,6 +111,7 @@ export function normalizeBoardPresenceState(state: RawPresenceState) {
         userId: existing.userId,
         name: existing.name ?? entry.name,
         email: existing.email ?? entry.email,
+        avatarUrl: existing.avatarUrl ?? entry.avatarUrl ?? null,
         role: existing.role ?? entry.role,
         activity: shouldReplaceActivity ? entry.activity : existing.activity,
         connectedAt:
@@ -126,11 +130,7 @@ export function normalizeBoardPresenceState(state: RawPresenceState) {
   return [...membersByUser.values()].sort((left, right) => {
     const priorityDiff =
       getActivityPriority(right.activity) - getActivityPriority(left.activity);
-
-    if (priorityDiff !== 0) {
-      return priorityDiff;
-    }
-
+    if (priorityDiff !== 0) return priorityDiff;
     return getPresenceSortLabel(left).localeCompare(
       getPresenceSortLabel(right),
     );
@@ -143,11 +143,26 @@ export function useBoardPresence({
   currentUserRole = null,
 }: UseBoardPresenceOptions) {
   const supabase = useMemo(() => createClient(), []);
-  const currentUserId = currentUser?.id ?? null;
-  const currentUserName = currentUser?.name ?? null;
-  const currentUserEmail = currentUser?.email ?? null;
+
+  // Use a stable session ID and connection time for this browser session
   const sessionIdRef = useRef(createPresenceSessionId());
   const connectedAtRef = useRef(new Date().toISOString());
+
+  // Keep latest user info in refs so the channel never has to reconnect when
+  // profile data (name, avatarUrl, role) changes — only boardId / userId
+  // changes should trigger a reconnect.
+  const userIdRef = useRef(currentUser?.id ?? null);
+  const userNameRef = useRef(currentUser?.name ?? null);
+  const userEmailRef = useRef(currentUser?.email ?? null);
+  const userAvatarUrlRef = useRef(currentUser?.avatarUrl ?? null);
+  const userRoleRef = useRef(currentUserRole);
+
+  userIdRef.current = currentUser?.id ?? null;
+  userNameRef.current = currentUser?.name ?? null;
+  userEmailRef.current = currentUser?.email ?? null;
+  userAvatarUrlRef.current = currentUser?.avatarUrl ?? null;
+  userRoleRef.current = currentUserRole;
+
   const activeActivityRef = useRef<BoardPresenceActivity>(
     VIEWING_BOARD_ACTIVITY,
   );
@@ -157,67 +172,61 @@ export function useBoardPresence({
   const [members, setMembers] = useState<BoardPresenceMember[]>([]);
   const [status, setStatus] = useState<BoardPresenceStatus>("idle");
 
+  // Stable — reads everything from refs, no deps needed
   const buildPresencePayload = useCallback(
     (activity: BoardPresenceActivity): BoardPresencePayload | null => {
-      if (!currentUserId) {
-        return null;
-      }
-
+      const userId = userIdRef.current;
+      if (!userId) return null;
       return {
         sessionId: sessionIdRef.current,
-        userId: currentUserId,
-        name: currentUserName,
-        email: currentUserEmail,
-        role: currentUserRole,
+        userId,
+        name: userNameRef.current,
+        email: userEmailRef.current,
+        avatarUrl: userAvatarUrlRef.current,
+        role: userRoleRef.current,
         activity,
         connectedAt: connectedAtRef.current,
         updatedAt: new Date().toISOString(),
       };
     },
-    [currentUserEmail, currentUserId, currentUserName, currentUserRole],
+    [], // intentionally empty — uses refs
+  );
+
+  // Stable — only depends on the stable buildPresencePayload
+  const trackActivity = useCallback(
+    async (activity: BoardPresenceActivity) => {
+      activeActivityRef.current = activity;
+      const channel = channelRef.current;
+      if (!channel || !isSubscribedRef.current) return;
+      const payload = buildPresencePayload(activity);
+      if (!payload) return;
+      await channel.track(payload);
+    },
+    [buildPresencePayload],
   );
 
   const cleanupChannel = useCallback(
     async (channel: RealtimeChannel | null = channelRef.current) => {
-      if (!channel) {
-        return;
-      }
-
+      if (!channel) return;
       const isCurrentChannel = channelRef.current === channel;
       if (isCurrentChannel) {
         channelRef.current = null;
         isSubscribedRef.current = false;
         setMembers([]);
       }
-
       try {
         await channel.untrack();
       } catch {
-        // Best-effort cleanup only.
+        // best-effort
       }
-
+      // Guard: if a newer channel was set up during the async gap above, skip
+      // removeChannel. Supabase channels share a Phoenix topic by name — calling
+      // removeChannel on the old channel while the new one is live would close
+      // the shared WebSocket subscription and immediately CLOSE the new channel.
+      if (channelRef.current !== null) return;
       await supabase.removeChannel(channel);
     },
     [supabase],
-  );
-
-  const trackActivity = useCallback(
-    async (activity: BoardPresenceActivity) => {
-      activeActivityRef.current = activity;
-
-      const channel = channelRef.current;
-      if (!channel || !isSubscribedRef.current) {
-        return;
-      }
-
-      const payload = buildPresencePayload(activity);
-      if (!payload) {
-        return;
-      }
-
-      await channel.track(payload);
-    },
-    [buildPresencePayload],
   );
 
   const setViewingBoardActivity = useCallback(async () => {
@@ -235,6 +244,9 @@ export function useBoardPresence({
     [trackActivity],
   );
 
+  // Only reconnect when boardId or userId changes — NOT when profile data changes
+  const currentUserId = currentUser?.id ?? null;
+
   useEffect(() => {
     if (!boardId || !currentUserId) {
       setStatus("idle");
@@ -249,20 +261,13 @@ export function useBoardPresence({
     setStatus("joining");
 
     const channel = supabase.channel(getBoardPresenceChannelName(boardId), {
-      config: {
-        presence: {
-          key: sessionIdRef.current,
-        },
-      },
+      config: { presence: { key: sessionIdRef.current } },
     });
 
     channelRef.current = channel;
 
     const syncPresence = () => {
-      if (channelRef.current !== channel) {
-        return;
-      }
-
+      if (channelRef.current !== channel) return;
       setMembers(
         normalizeBoardPresenceState(
           channel.presenceState() as RawPresenceState,
@@ -275,10 +280,7 @@ export function useBoardPresence({
     channel.on("presence", { event: "leave" }, syncPresence);
 
     channel.subscribe(async (nextStatus) => {
-      if (channelRef.current !== channel) {
-        return;
-      }
-
+      if (channelRef.current !== channel) return;
       switch (nextStatus) {
         case "SUBSCRIBED":
           isSubscribedRef.current = true;
@@ -312,7 +314,7 @@ export function useBoardPresence({
       subscription.unsubscribe();
       void cleanupChannel(channel);
     };
-  }, [boardId, cleanupChannel, currentUserId, supabase, trackActivity]);
+  }, [boardId, currentUserId, cleanupChannel, trackActivity, supabase]);
 
   return {
     channelName: getBoardPresenceChannelName(boardId),

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -45,7 +45,12 @@ import { t } from "@/lib/i18n";
 interface KanbanBoardProps {
   boardData: BoardWithDetails;
   onBoardDataChange?: (data: BoardWithDetails) => void;
-  currentUser: { id: string; name?: string | null; email?: string } | null;
+  currentUser: {
+    id: string;
+    name?: string | null;
+    email?: string | null;
+    avatarUrl?: string | null;
+  } | null;
   presenceMembers?: BoardPresenceMember[];
   onEditingCardChange?: (card: BoardPresenceEditingTarget | null) => void;
   userRole?: BoardMemberRole;
@@ -346,15 +351,15 @@ export function KanbanBoard({
   const handleCardClick = (card: CardType) => {
     setEditingCard(card);
     setShowEditDialog(true);
+    onEditingCardChange?.({ id: card.id, title: card.title });
   };
 
-  useEffect(() => {
-    onEditingCardChange?.(
-      showEditDialog && editingCard
-        ? { id: editingCard.id, title: editingCard.title }
-        : null,
-    );
-  }, [editingCard, onEditingCardChange, showEditDialog]);
+  const handleEditDialogOpenChange = (open: boolean) => {
+    setShowEditDialog(open);
+    if (!open) {
+      onEditingCardChange?.(null);
+    }
+  };
 
   const handleCardUpdated = (updatedCard: CardType) => {
     console.log("KanbanBoard - handleCardUpdated called with:", updatedCard);
@@ -550,7 +555,7 @@ export function KanbanBoard({
       {/* Edit Card Dialog */}
       <EditCardDialog
         open={showEditDialog}
-        onOpenChange={setShowEditDialog}
+        onOpenChange={handleEditDialogOpenChange}
         card={editingCard}
         columns={boardData.columns}
         boardMembers={boardData.members?.map((m) => m.user) || []}

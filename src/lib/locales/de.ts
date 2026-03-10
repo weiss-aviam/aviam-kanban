@@ -358,6 +358,10 @@ export const de = {
     failedToUpdate: "Karte konnte nicht aktualisiert werden",
     failedToDelete: "Karte konnte nicht gelöscht werden",
     failedToAddComment: "Kommentar konnte nicht hinzugefügt werden",
+    failedToEditComment: "Kommentar konnte nicht bearbeitet werden",
+    failedToDeleteComment: "Kommentar konnte nicht gelöscht werden",
+    commentDeleted: "Kommentar gelöscht",
+    commentEdited: "bearbeitet",
   },
 
   admin: {
