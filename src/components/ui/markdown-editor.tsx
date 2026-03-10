@@ -51,7 +51,7 @@ function ToolbarButton({
         onClick();
       }}
       className={cn(
-        "inline-flex h-7 w-7 items-center justify-center rounded text-sm transition-colors",
+        "inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded text-sm transition-colors",
         active
           ? "bg-muted text-foreground"
           : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -292,7 +292,7 @@ export function MarkdownEditor({
             mode === "wysiwyg" ? switchToMarkdown() : switchToWysiwyg();
           }}
           className={cn(
-            "inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium transition-colors",
+            "inline-flex cursor-pointer items-center gap-1 rounded px-2 py-0.5 text-xs font-medium transition-colors",
             mode === "markdown"
               ? "bg-primary text-primary-foreground"
               : "text-muted-foreground hover:bg-muted hover:text-foreground",

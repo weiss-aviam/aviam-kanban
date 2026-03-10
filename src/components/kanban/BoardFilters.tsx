@@ -328,7 +328,7 @@ export function BoardFilters({
                 {config.label}
                 <button
                   onClick={() => handlePriorityToggle(priority)}
-                  className="ml-1 hover:bg-black/10 rounded-full p-0.5"
+                  className="ml-1 cursor-pointer hover:bg-black/10 rounded-full p-0.5"
                 >
                   <X className="w-2 h-2" />
                 </button>

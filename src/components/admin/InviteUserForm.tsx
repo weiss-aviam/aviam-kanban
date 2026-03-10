@@ -238,7 +238,7 @@ export function InviteUserForm({
                     <button
                       key={user.id}
                       type="button"
-                      className={`w-full rounded-md border px-3 py-2 text-left transition ${
+                      className={`w-full cursor-pointer rounded-md border px-3 py-2 text-left transition ${
                         isSelected
                           ? "border-blue-500 bg-blue-50"
                           : "border-transparent hover:border-gray-200 hover:bg-gray-50"
