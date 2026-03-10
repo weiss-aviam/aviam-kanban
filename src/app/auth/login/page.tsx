@@ -15,7 +15,7 @@ import {
   CardTitle,
 } from "../../../components/ui/card";
 import { Alert, AlertDescription } from "../../../components/ui/alert";
-import { Mail, Lock, Loader2 } from "lucide-react";
+import { Mail, Lock, Loader2, Link2, KeyRound, X } from "lucide-react";
 import { createClient } from "../../../lib/supabase/client";
 
 const AUTH_ERRORS: Record<string, string> = {
@@ -39,14 +39,19 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingAction, setLoadingAction] = useState<
+    "signin" | "magic" | "reset" | null
+  >(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [showForgotOptions, setShowForgotOptions] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setLoadingAction("signin");
     setError("");
     setSuccess("");
 
@@ -70,16 +75,55 @@ export default function LoginPage() {
       );
     } finally {
       setIsLoading(false);
+      setLoadingAction(null);
     }
   };
 
-  const handleForgotPassword = async () => {
+  const handleMagicLink = async () => {
     if (!email) {
       setError("Bitte geben Sie zuerst Ihre E-Mail-Adresse ein.");
       return;
     }
 
     setIsLoading(true);
+    setLoadingAction("magic");
+    setError("");
+    setSuccess("");
+
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}${process.env.NEXT_PUBLIC_BASE_PATH || ""}/dashboard`,
+        },
+      });
+
+      if (error) {
+        setError(translateError(error.message));
+      } else {
+        setSuccess(
+          "Magischer Anmeldelink wurde gesendet. Bitte prüfen Sie Ihr Postfach.",
+        );
+        setShowForgotOptions(false);
+      }
+    } catch (_err) {
+      setError(
+        "Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut.",
+      );
+    } finally {
+      setIsLoading(false);
+      setLoadingAction(null);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    if (!email) {
+      setError("Bitte geben Sie zuerst Ihre E-Mail-Adresse ein.");
+      return;
+    }
+
+    setIsLoading(true);
+    setLoadingAction("reset");
     setError("");
     setSuccess("");
 
@@ -94,6 +138,7 @@ export default function LoginPage() {
         setSuccess(
           "E-Mail zum Zurücksetzen des Passworts wurde gesendet. Bitte prüfen Sie Ihr Postfach.",
         );
+        setShowForgotOptions(false);
       }
     } catch (_err) {
       setError(
@@ -101,6 +146,7 @@ export default function LoginPage() {
       );
     } finally {
       setIsLoading(false);
+      setLoadingAction(null);
     }
   };
 
@@ -163,13 +209,81 @@ export default function LoginPage() {
               <div className="flex justify-end">
                 <button
                   type="button"
-                  onClick={handleForgotPassword}
-                  className="text-sm text-blue-600 hover:text-blue-700"
+                  onClick={() => {
+                    setShowForgotOptions((v) => !v);
+                    setError("");
+                    setSuccess("");
+                  }}
+                  className="cursor-pointer text-sm text-blue-600 hover:text-blue-700"
                   disabled={isLoading}
                 >
                   Passwort vergessen?
                 </button>
               </div>
+
+              {/* Forgot password options panel */}
+              {showForgotOptions && (
+                <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium text-gray-700">
+                      Wie möchten Sie fortfahren?
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotOptions(false)}
+                      className="cursor-pointer text-gray-400 hover:text-gray-600"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="justify-start gap-2 bg-white"
+                      onClick={handleMagicLink}
+                      disabled={isLoading}
+                    >
+                      {loadingAction === "magic" ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Link2 className="h-4 w-4" />
+                      )}
+                      <span className="flex flex-col items-start text-left">
+                        <span className="font-medium">
+                          Magischen Anmeldelink senden
+                        </span>
+                        <span className="text-xs text-gray-500 font-normal">
+                          Einmaligen Link zum direkten Einloggen erhalten
+                        </span>
+                      </span>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="justify-start gap-2 bg-white"
+                      onClick={handlePasswordReset}
+                      disabled={isLoading}
+                    >
+                      {loadingAction === "reset" ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <KeyRound className="h-4 w-4" />
+                      )}
+                      <span className="flex flex-col items-start text-left">
+                        <span className="font-medium">
+                          Passwort zurücksetzen
+                        </span>
+                        <span className="text-xs text-gray-500 font-normal">
+                          Link zum Festlegen eines neuen Passworts erhalten
+                        </span>
+                      </span>
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               {error && (
                 <Alert variant="destructive">
@@ -184,7 +298,7 @@ export default function LoginPage() {
               )}
 
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? (
+                {loadingAction === "signin" ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Anmelden...
