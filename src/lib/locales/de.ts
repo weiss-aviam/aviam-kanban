@@ -238,6 +238,8 @@ export const de = {
     nameLabel: "Board-Name",
     namePlaceholder: "Board-Namen eingeben...",
     nameRequired: "Board-Name ist erforderlich",
+    descriptionLabel: "Beschreibung",
+    descriptionPlaceholder: "Board-Beschreibung eingeben (optional)...",
     updateError: "Board konnte nicht aktualisiert werden",
     description: "Board-Namen und Einstellungen aktualisieren.",
     submit: "Board aktualisieren",

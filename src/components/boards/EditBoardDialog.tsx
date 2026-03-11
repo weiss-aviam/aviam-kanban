@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
+import { Textarea } from "../ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -14,16 +15,19 @@ import {
 } from "../ui/dialog";
 import { Edit, Loader2 } from "lucide-react";
 import { t } from "@/lib/i18n";
-// import { BoardWithDetails } from '@/types/database';
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 interface EditBoardDialogProps {
-  board: { id: string; name: string } | null;
+  board: { id: string; name: string; description?: string | null } | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onBoardUpdated?: (board: { id: string; name: string }) => void;
+  onBoardUpdated?: (board: {
+    id: string;
+    name: string;
+    description?: string | null;
+  }) => void;
 }
 
 export function EditBoardDialog({
@@ -37,6 +41,7 @@ export function EditBoardDialog({
 
   const schema = z.object({
     name: z.string().min(1, t("editBoard.nameRequired")),
+    description: z.string().optional(),
   });
   type FormValues = z.infer<typeof schema>;
   const {
@@ -45,14 +50,17 @@ export function EditBoardDialog({
     reset,
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { name: "" },
+    defaultValues: { name: "", description: "" },
   });
 
   useEffect(() => {
-    reset({ name: board?.name ?? "" });
+    reset({
+      name: board?.name ?? "",
+      description: board?.description ?? "",
+    });
   }, [board, reset]);
 
-  const onSubmit = async ({ name }: FormValues) => {
+  const onSubmit = async ({ name, description }: FormValues) => {
     if (!board) return;
 
     setIsLoading(true);
@@ -64,7 +72,10 @@ export function EditBoardDialog({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ name: name.trim() }),
+        body: JSON.stringify({
+          name: name.trim(),
+          description: description?.trim() || null,
+        }),
       });
 
       if (!response.ok) {
@@ -74,12 +85,14 @@ export function EditBoardDialog({
 
       const { board: updatedBoard } = await response.json();
 
-      // Close dialog
       onOpenChange(false);
 
-      // Notify parent component
       if (onBoardUpdated) {
-        onBoardUpdated({ id: updatedBoard.id, name: updatedBoard.name });
+        onBoardUpdated({
+          id: updatedBoard.id,
+          name: updatedBoard.name,
+          description: updatedBoard.description ?? null,
+        });
       }
     } catch (err) {
       setError(
@@ -115,6 +128,19 @@ export function EditBoardDialog({
               autoFocus
               className="h-11"
               {...register("name")}
+            />
+          </div>
+
+          <div className="space-y-3">
+            <Label htmlFor="description" className="text-base font-medium">
+              {t("editBoard.descriptionLabel")}
+            </Label>
+            <Textarea
+              id="description"
+              placeholder={t("editBoard.descriptionPlaceholder")}
+              disabled={isLoading}
+              rows={3}
+              {...register("description")}
             />
           </div>
 
