@@ -90,11 +90,16 @@ describe("KanbanCard assignee display", () => {
     expect(screen.getByText("Ada Lovelace")).toBeInTheDocument();
   });
 
-  it("renders the unassigned state when no assignee data exists", () => {
+  it("renders the card without an assignee footer when no assignee data exists", () => {
     render(
       <KanbanCard card={createCard()} boardMembers={[]} currentUser={null} />,
     );
 
-    expect(screen.getByText(t("editCard.noAssignee"))).toBeInTheDocument();
+    // Card title should be present
+    expect(screen.getByText("Investigate assignee bug")).toBeInTheDocument();
+    // No assignee name displayed in the footer
+    expect(
+      screen.queryByText(t("editCard.noAssignee")),
+    ).not.toBeInTheDocument();
   });
 });

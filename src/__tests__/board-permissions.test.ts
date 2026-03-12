@@ -26,9 +26,10 @@ describe("board-permissions", () => {
     });
 
     it("formats deadline values for compact card display", () => {
-      expect(formatDueDate("2026-03-10T12:00:00Z")).toBe("10.03.2026");
+      // formatDueDate uses Intl.DateTimeFormat("de-DE", { day: "numeric", month: "long", year: "2-digit" })
+      expect(formatDueDate("2026-03-10T12:00:00Z")).toBe("10. März 26");
       expect(formatDueDate(new Date("2026-03-06T12:00:00Z"))).toBe(
-        "06.03.2026",
+        "6. März 26",
       );
     });
   });

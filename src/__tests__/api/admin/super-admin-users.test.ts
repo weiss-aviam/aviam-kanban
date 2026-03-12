@@ -116,12 +116,14 @@ describe("Super Admin user management routes", () => {
       },
       error: null,
     });
+    const updateUserById = vi.fn().mockResolvedValue({ error: null });
     const upsert = vi.fn().mockResolvedValue({ error: null });
 
     mockCreateAdminClient.mockReturnValue({
       auth: {
         admin: {
           createUser,
+          updateUserById,
         },
       },
       from: vi.fn((table: string) => {
@@ -140,7 +142,7 @@ describe("Super Admin user management routes", () => {
         body: JSON.stringify({
           email: "new.user@example.com",
           name: "New User",
-          password: "StrongPass1",
+          password: "StrongPass1!",
         }),
       }),
     );
@@ -148,14 +150,19 @@ describe("Super Admin user management routes", () => {
     expect(response.status).toBe(201);
     expect(createUser).toHaveBeenCalledWith({
       email: "new.user@example.com",
-      password: "StrongPass1",
+      password: "StrongPass1!",
       email_confirm: true,
+      app_metadata: { admin_created: true },
       user_metadata: { name: "New User" },
+    });
+    expect(updateUserById).toHaveBeenCalledWith(TARGET_USER_ID, {
+      ban_duration: "none",
     });
     expect(upsert).toHaveBeenCalledWith({
       id: TARGET_USER_ID,
       email: "new.user@example.com",
       name: "New User",
+      status: "active",
     });
     expect(mockLogAdminAction).toHaveBeenCalledWith(
       expect.objectContaining({
