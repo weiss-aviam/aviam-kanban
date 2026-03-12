@@ -701,6 +701,7 @@ export const de = {
     loadingUsers: "Benutzer werden geladen...",
     noUsersFound: "Keine Benutzer gefunden.",
     noPendingUsers: "Keine ausstehenden Registrierungen.",
+    emailNotConfirmed: "E-Mail nicht bestätigt",
     noDeactivatedUsers: "Keine deaktivierten Benutzer.",
     paginationInfo: "Seite {page} von {totalPages} · {total} gesamt",
     // Edit dialog

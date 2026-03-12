@@ -45,7 +45,7 @@ interface ManagedUser {
   email: string;
   name: string | null;
   createdAt: string;
-  status: UserStatus;
+  status: UserStatus | "unconfirmed";
 }
 
 interface PaginationState {
@@ -514,6 +514,11 @@ function UserTable({
                       {user.name || t("superAdmin.unnamedUser")}
                     </div>
                     <div className="text-gray-500 text-xs">{user.email}</div>
+                    {user.status === "unconfirmed" && (
+                      <span className="mt-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                        {t("superAdmin.emailNotConfirmed")}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-4 text-gray-600 text-sm">
                     {formatRelativeDate(user.createdAt)}

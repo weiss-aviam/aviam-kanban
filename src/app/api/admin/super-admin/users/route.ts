@@ -71,7 +71,13 @@ export async function GET(request: NextRequest) {
     }
 
     if (status) {
-      query = query.eq("status", status);
+      // Include 'unconfirmed' users alongside 'pending' — both are awaiting
+      // admin review and should be visible in the pending tab.
+      if (status === "pending") {
+        query = query.in("status", ["pending", "unconfirmed"]);
+      } else {
+        query = query.eq("status", status);
+      }
     }
 
     const { data, error, count } = await query
