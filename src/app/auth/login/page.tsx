@@ -82,18 +82,22 @@ function LoginForm() {
         const confirmRes = await fetch("/api/auth/confirm-email", {
           method: "POST",
         });
-        const confirmData = await confirmRes.json();
-        const userStatus: string = confirmData.status ?? "active";
 
-        if (userStatus === "pending" || userStatus === "unconfirmed") {
-          await supabase.auth.signOut();
-          setError(t("login.pendingMessage"));
-          return;
+        let userStatus = "pending"; // default: block unless we get explicit "active"
+        try {
+          const confirmData = await confirmRes.json();
+          userStatus = confirmData.status ?? "pending";
+        } catch {
+          // JSON parse failed — block login
         }
 
-        if (userStatus === "deactivated" || !confirmRes.ok) {
+        if (userStatus !== "active") {
           await supabase.auth.signOut();
-          setError(t("login.deactivatedMessage"));
+          setError(
+            userStatus === "deactivated"
+              ? t("login.deactivatedMessage")
+              : t("login.pendingMessage"),
+          );
           return;
         }
 

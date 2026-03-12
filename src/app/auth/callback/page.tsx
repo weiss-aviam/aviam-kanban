@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
+import type { EmailOtpType } from "@supabase/supabase-js";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "../../../lib/supabase/client";
 import { t } from "../../../lib/i18n";
@@ -37,43 +38,59 @@ function AuthCallbackInner() {
           return;
         }
 
-        if (code) {
-          const { data, error: exchangeError } =
-            await supabase.auth.exchangeCodeForSession(code);
+        const tokenHash = searchParams.get("token_hash");
+        const tokenType = searchParams.get("type");
 
-          if (exchangeError) {
+        // Prefer token_hash verification (works in any browser, no PKCE state
+        // needed) over the PKCE code flow. token_hash is available when the
+        // Supabase email template is configured to link directly to the app
+        // rather than routing through the Supabase verify endpoint.
+        const sessionResult =
+          tokenHash && tokenType
+            ? await supabase.auth.verifyOtp({
+                token_hash: tokenHash,
+                type: tokenType as EmailOtpType,
+              })
+            : code
+              ? await supabase.auth.exchangeCodeForSession(code)
+              : null;
+
+        if (sessionResult) {
+          if (sessionResult.error) {
             setStatus("error");
-            // PKCE code verifier is stored in the browser that initiated the
-            // sign-up. Opening the link in a different browser loses the
-            // verifier — give a clear hint instead of a cryptic error.
+            const msg = sessionResult.error.message;
             const isPkceError =
-              exchangeError.message.toLowerCase().includes("pkce") ||
-              exchangeError.message.toLowerCase().includes("code verifier") ||
-              exchangeError.message.toLowerCase().includes("verifier");
-            setMessage(
-              isPkceError ? t("authCallback.pkceError") : exchangeError.message,
-            );
+              msg.toLowerCase().includes("pkce") ||
+              msg.toLowerCase().includes("code verifier") ||
+              msg.toLowerCase().includes("verifier");
+            setMessage(isPkceError ? t("authCallback.pkceError") : msg);
             return;
           }
 
-          if (data.user) {
+          if (sessionResult.data.user) {
             // Promote unconfirmed users to pending and ban them at the auth
             // layer. For admin-created / already-active users this is a no-op.
             const confirmRes = await fetch("/api/auth/confirm-email", {
               method: "POST",
             });
-            const confirmData = await confirmRes.json();
-            const userStatus: string = confirmData.status ?? "active";
 
-            if (userStatus === "pending" || userStatus === "unconfirmed") {
-              // Sign out so they can't use the just-obtained session
+            let userStatus = "pending"; // default: block unless explicit "active"
+            try {
+              const confirmData = await confirmRes.json();
+              userStatus = confirmData.status ?? "pending";
+            } catch {
+              // JSON parse failed — treat as pending
+            }
+
+            if (userStatus !== "active") {
               await supabase.auth.signOut();
-              setStatus("pending");
-              setMessage(t("authCallback.pendingApprovalMessage"));
-            } else if (userStatus === "deactivated" || !confirmRes.ok) {
-              await supabase.auth.signOut();
-              setStatus("error");
-              setMessage(t("authCallback.errorMessage"));
+              if (userStatus === "deactivated") {
+                setStatus("error");
+                setMessage(t("authCallback.errorMessage"));
+              } else {
+                setStatus("pending");
+                setMessage(t("authCallback.pendingApprovalMessage"));
+              }
             } else {
               setStatus("success");
               setMessage(t("authCallback.successAuth"));
