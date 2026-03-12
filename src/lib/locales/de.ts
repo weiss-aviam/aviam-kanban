@@ -612,20 +612,48 @@ export const de = {
   superAdmin: {
     title: "Super-Admin Benutzerverwaltung",
     subtitle:
-      "Erstellen und verwalten Sie Aviam-Benutzer aus einer sicheren Steuerzentrale.",
+      "Registrierungen freigeben, Benutzer verwalten und Konten deaktivieren.",
     backToDashboard: "Zurück zum Dashboard",
     superAdminBadge: "Super-Admin",
-    createUserTitle: "Benutzer erstellen",
+    // Tabs
+    tabPending: "Ausstehend",
+    tabActive: "Aktiv",
+    tabDeactivated: "Deaktiviert",
+    // Create user
+    createUserButton: "Benutzer erstellen",
+    createUserTitle: "Neuen Benutzer erstellen",
     createUserDescription:
-      "Neues Aviam-Konto mit Anfangspasswort und optionalem Anzeigenamen erstellen.",
+      "Neues Konto direkt erstellen – wird sofort als aktiv markiert.",
     emailLabel: "E-Mail",
     nameLabel: "Anzeigename",
     passwordLabel: "Anfangspasswort",
-    createUserButton: "Benutzer erstellen",
     creatingUser: "Wird erstellt...",
-    allUsersTitle: "Alle Benutzer",
-    allUsersDescription:
-      "Alle Benutzerkonten in Aviam prüfen und unterstützte Profilfelder aktualisieren.",
+    createUserSubmit: "Benutzer erstellen",
+    // Table columns
+    userColumn: "Benutzer",
+    createdColumn: "Registriert",
+    deactivatedColumn: "Deaktiviert",
+    actionsColumn: "Aktionen",
+    // Actions
+    approveButton: "Freigeben",
+    rejectButton: "Ablehnen",
+    editButton: "Bearbeiten",
+    deactivateButton: "Deaktivieren",
+    reactivateButton: "Reaktivieren",
+    approvingUser: "Wird freigegeben...",
+    rejectingUser: "Wird abgelehnt...",
+    deactivatingUser: "Wird deaktiviert...",
+    reactivatingUser: "Wird reaktiviert...",
+    // Confirm dialogs
+    deactivateConfirmTitle: "Benutzer deaktivieren",
+    deactivateConfirmDescription:
+      "Der Benutzer kann sich nicht mehr anmelden. Alle Daten bleiben erhalten und können durch Reaktivierung wiederhergestellt werden.",
+    deactivateConfirm: "Deaktivieren",
+    rejectConfirmTitle: "Registrierung ablehnen",
+    rejectConfirmDescription:
+      "Die Registrierung wird abgelehnt. Der Benutzer kann sich nicht anmelden.",
+    rejectConfirm: "Ablehnen",
+    // State
     searchPlaceholder: "Nach Name oder E-Mail suchen",
     sortNewest: "Neueste zuerst",
     sortOldest: "Älteste zuerst",
@@ -634,21 +662,24 @@ export const de = {
     sortEmailAZ: "E-Mail A-Z",
     sortEmailZA: "E-Mail Z-A",
     refresh: "Aktualisieren",
-    userColumn: "Benutzer",
-    createdColumn: "Erstellt",
-    actionsColumn: "Aktionen",
     loadingUsers: "Benutzer werden geladen...",
-    noUsersFound: "Keine Benutzer für diese Suche gefunden.",
-    editButton: "Bearbeiten",
-    paginationInfo: "Seite {page} von {totalPages} · {total} Benutzer gesamt",
+    noUsersFound: "Keine Benutzer gefunden.",
+    noPendingUsers: "Keine ausstehenden Registrierungen.",
+    noDeactivatedUsers: "Keine deaktivierten Benutzer.",
+    paginationInfo: "Seite {page} von {totalPages} · {total} gesamt",
+    // Edit dialog
     editUserTitle: "Benutzerdetails bearbeiten",
     editUserEmailReadOnly: "Schreibgeschützt",
     cancelButton: "Abbrechen",
     saveChanges: "Änderungen speichern",
     savingChanges: "Wird gespeichert...",
+    // Errors
     failedToCreate: "Benutzer konnte nicht erstellt werden",
     failedToFetch: "Benutzer konnten nicht geladen werden",
     failedToUpdate: "Benutzer konnte nicht aktualisiert werden",
+    failedToApprove: "Freigabe fehlgeschlagen",
+    failedToDeactivate: "Deaktivierung fehlgeschlagen",
+    failedToReactivate: "Reaktivierung fehlgeschlagen",
     unnamedUser: "Unbenannter Benutzer",
   },
 

@@ -155,6 +155,7 @@ export const superAdminUserListQuerySchema = z.object({
   search: z.string().trim().optional(),
   sortBy: z.enum(["name", "email", "createdAt"]).default("createdAt"),
   sortOrder: z.enum(["asc", "desc"]).default("desc"),
+  status: z.enum(["pending", "active", "deactivated"]).optional(),
 });
 
 export type SuperAdminUserListQueryInput = z.infer<
@@ -180,9 +181,10 @@ export type SuperAdminCreateUserInput = z.infer<
 export const superAdminUpdateUserSchema = z
   .object({
     name: nameSchema.optional(),
+    status: z.enum(["pending", "active", "deactivated"]).optional(),
   })
-  .refine((data) => data.name !== undefined, {
-    message: "At least one field (name) must be provided",
+  .refine((data) => data.name !== undefined || data.status !== undefined, {
+    message: "At least one field must be provided",
   });
 
 export type SuperAdminUpdateUserInput = z.infer<

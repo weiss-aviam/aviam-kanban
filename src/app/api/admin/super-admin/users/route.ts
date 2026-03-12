@@ -22,6 +22,7 @@ type UserRow = {
   email: string;
   name: string | null;
   created_at: string;
+  status: string;
 };
 
 function getAuthErrorResponse(error: unknown) {
@@ -56,16 +57,21 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { page, limit, search, sortBy, sortOrder } = queryValidation.data;
+    const { page, limit, search, sortBy, sortOrder, status } =
+      queryValidation.data;
     const offset = (page - 1) * limit;
     const adminClient = createAdminClient();
 
     let query = adminClient
       .from("users")
-      .select("id, email, name, created_at", { count: "exact" });
+      .select("id, email, name, created_at, status", { count: "exact" });
 
     if (search) {
       query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`);
+    }
+
+    if (status) {
+      query = query.eq("status", status);
     }
 
     const { data, error, count } = await query
@@ -87,6 +93,7 @@ export async function GET(request: NextRequest) {
       email: user.email,
       name: user.name,
       createdAt: user.created_at,
+      status: user.status ?? "active",
     }));
 
     return NextResponse.json({
@@ -165,10 +172,12 @@ export async function POST(request: NextRequest) {
     }
 
     const createdUser = data.user;
+    // Admin-created users are immediately active (no approval needed)
     const { error: syncError } = await adminClient.from("users").upsert({
       id: createdUser.id,
       email: createdUser.email ?? email,
       name: name ?? null,
+      status: "active",
     });
 
     if (syncError) {
@@ -203,6 +212,7 @@ export async function POST(request: NextRequest) {
           email: createdUser.email ?? email,
           name: name ?? null,
           createdAt: createdUser.created_at,
+          status: "active",
         },
       },
       { status: 201 },

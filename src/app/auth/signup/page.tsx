@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
@@ -15,11 +14,10 @@ import {
   CardTitle,
 } from "../../../components/ui/card";
 import { Alert, AlertDescription } from "../../../components/ui/alert";
-import { Mail, Lock, User, Loader2 } from "lucide-react";
+import { Mail, Lock, User, Loader2, CheckCircle } from "lucide-react";
 import {
-  AVIAM_EMAIL_DOMAIN,
-  getAviamEmailError,
-  isAviamEmail,
+  isAllowedEmail,
+  getEmailError,
   normalizeEmail,
 } from "../../../lib/auth-email";
 import { createClient } from "../../../lib/supabase/client";
@@ -47,27 +45,25 @@ export default function SignUpPage() {
   const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const router = useRouter();
+  const [registered, setRegistered] = useState(false);
   const supabase = createClient();
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setSuccess("");
 
     const normalizedEmail = normalizeEmail(email);
     setEmail(normalizedEmail);
 
-    if (!isAviamEmail(normalizedEmail)) {
-      setError(getAviamEmailError());
+    if (!isAllowedEmail(normalizedEmail)) {
+      setError(getEmailError());
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email: normalizedEmail,
         password,
         options: {
@@ -80,13 +76,7 @@ export default function SignUpPage() {
         return;
       }
 
-      if (data.user && !data.user.email_confirmed_at) {
-        setSuccess(
-          "Bitte prüfen Sie Ihr Postfach und bestätigen Sie Ihre E-Mail-Adresse.",
-        );
-      } else {
-        router.push("/dashboard");
-      }
+      setRegistered(true);
     } catch (_err) {
       setError(
         "Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut.",
@@ -96,10 +86,54 @@ export default function SignUpPage() {
     }
   };
 
+  if (registered) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="flex justify-center mb-8">
+            <Image
+              src="/aviam_logo.svg"
+              alt="Aviam"
+              width={180}
+              height={53}
+              priority
+            />
+          </div>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex flex-col items-center text-center space-y-4">
+                <CheckCircle className="h-12 w-12 text-green-500" />
+                <div className="space-y-2">
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    Registrierung eingegangen
+                  </h2>
+                  <p className="text-gray-600 text-sm leading-relaxed">
+                    Vielen Dank für Ihre Registrierung. Ihr Konto wird von einem
+                    Administrator geprüft. Sie erhalten Zugang, sobald Ihre
+                    Registrierung freigegeben wurde.
+                  </p>
+                  <p className="text-gray-500 text-sm">
+                    Bitte prüfen Sie ggf. auch Ihr Postfach für eine
+                    E-Mail-Bestätigung.
+                  </p>
+                </div>
+                <Link
+                  href="/auth/login"
+                  className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                >
+                  Zurück zur Anmeldung
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Logo */}
         <div className="flex justify-center mb-8">
           <Image
             src="/aviam_logo.svg"
@@ -110,13 +144,13 @@ export default function SignUpPage() {
           />
         </div>
 
-        {/* Sign Up Form */}
         <Card>
           <CardHeader>
             <CardTitle>Konto erstellen</CardTitle>
             <CardDescription>
-              Erstellen Sie Ihr Konto. Nur @{AVIAM_EMAIL_DOMAIN}-Adressen sind
-              zugelassen.
+              Registrieren Sie sich mit Ihrer geschäftlichen E-Mail-Adresse. Ihr
+              Konto wird nach der Registrierung von einem Administrator
+              freigegeben.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -138,13 +172,13 @@ export default function SignUpPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email">E-Mail</Label>
+                <Label htmlFor="email">Geschäftliche E-Mail</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
                     id="email"
                     type="email"
-                    placeholder={`name@${AVIAM_EMAIL_DOMAIN}`}
+                    placeholder="name@unternehmen.de"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10"
@@ -152,7 +186,8 @@ export default function SignUpPage() {
                   />
                 </div>
                 <p className="text-xs text-gray-500">
-                  Nur @{AVIAM_EMAIL_DOMAIN}-Adressen können sich registrieren.
+                  Kostenlose E-Mail-Anbieter (Gmail, Yahoo etc.) sind nicht
+                  zulässig.
                 </p>
               </div>
 
@@ -179,12 +214,6 @@ export default function SignUpPage() {
               {error && (
                 <Alert variant="destructive">
                   <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
-              {success && (
-                <Alert>
-                  <AlertDescription>{success}</AlertDescription>
                 </Alert>
               )}
 

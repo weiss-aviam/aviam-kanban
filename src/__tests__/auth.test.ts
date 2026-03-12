@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  AVIAM_EMAIL_DOMAIN,
-  getAviamEmailError,
-  isAviamEmail,
+  isAllowedEmail,
+  getEmailError,
   normalizeEmail,
 } from "@/lib/auth-email";
 import type { User } from "@supabase/supabase-js";
@@ -10,22 +9,28 @@ import type { User } from "@supabase/supabase-js";
 import { isSuperAdminUser } from "@/lib/auth";
 
 describe("auth email restrictions", () => {
-  it("normalizes registration emails before validation", () => {
-    expect(normalizeEmail("  USER@AVIAM.AG ")).toBe("user@aviam.ag");
+  it("normalizes registration emails", () => {
+    expect(normalizeEmail("  USER@COMPANY.COM ")).toBe("user@company.com");
   });
 
-  it("accepts aviam.ag addresses regardless of case", () => {
-    expect(isAviamEmail("USER@AVIAM.AG")).toBe(true);
+  it("accepts business email addresses", () => {
+    expect(isAllowedEmail("user@company.com")).toBe(true);
+    expect(isAllowedEmail("user@aviam.ag")).toBe(true);
+    expect(isAllowedEmail("user@startup.io")).toBe(true);
   });
 
-  it("rejects non-aviam registration domains", () => {
-    expect(isAviamEmail("user@example.com")).toBe(false);
+  it("rejects generic consumer email providers", () => {
+    expect(isAllowedEmail("user@gmail.com")).toBe(false);
+    expect(isAllowedEmail("user@yahoo.com")).toBe(false);
+    expect(isAllowedEmail("user@hotmail.com")).toBe(false);
+    expect(isAllowedEmail("user@outlook.com")).toBe(false);
+    expect(isAllowedEmail("user@icloud.com")).toBe(false);
+    expect(isAllowedEmail("user@web.de")).toBe(false);
+    expect(isAllowedEmail("user@gmx.de")).toBe(false);
   });
 
   it("returns the expected validation message", () => {
-    expect(getAviamEmailError()).toBe(
-      `Only @${AVIAM_EMAIL_DOMAIN} email addresses can register.`,
-    );
+    expect(getEmailError()).toContain("geschäftliche E-Mail");
   });
 });
 

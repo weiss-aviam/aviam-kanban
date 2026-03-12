@@ -63,6 +63,31 @@ export default function LoginPage() {
       }
 
       if (data.user) {
+        // Check account status before granting access
+        const { data: profile } = await supabase
+          .from("users")
+          .select("status")
+          .eq("id", data.user.id)
+          .single();
+
+        const status = (profile as { status?: string } | null)?.status;
+
+        if (status === "pending") {
+          await supabase.auth.signOut();
+          setError(
+            "Ihr Konto wartet noch auf Freigabe durch einen Administrator. Bitte haben Sie etwas Geduld.",
+          );
+          return;
+        }
+
+        if (status === "deactivated") {
+          await supabase.auth.signOut();
+          setError(
+            "Ihr Konto wurde deaktiviert. Bitte wenden Sie sich an den Administrator.",
+          );
+          return;
+        }
+
         router.push("/dashboard");
       }
     } catch (_err) {

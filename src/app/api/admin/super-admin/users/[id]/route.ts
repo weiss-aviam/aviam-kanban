@@ -16,14 +16,17 @@ type UserRow = {
   email: string;
   name: string | null;
   created_at: string;
+  status: string;
 };
+
+// Effectively permanent ban (~100 years)
+const BAN_DURATION = "876600h";
 
 function getAuthErrorResponse(error: unknown) {
   if (error instanceof Error) {
     if (error.message === "Authentication required") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
     if (error.message === "Super Admin access required") {
       return NextResponse.json(
         { error: "Super Admin access required" },
@@ -31,7 +34,6 @@ function getAuthErrorResponse(error: unknown) {
       );
     }
   }
-
   return null;
 }
 
@@ -67,19 +69,13 @@ export async function PATCH(
     }
 
     const targetUserId = userIdValidation.data;
-    const { name } = validation.data;
-    if (typeof name !== "string") {
-      return NextResponse.json(
-        { error: "Display name is required" },
-        { status: 400 },
-      );
-    }
+    const { name, status } = validation.data;
 
     const adminClient = createAdminClient();
 
     const { data: existingUser, error: existingUserError } = await adminClient
       .from("users")
-      .select("id, email, name, created_at")
+      .select("id, email, name, created_at, status")
       .eq("id", targetUserId)
       .single();
 
@@ -87,60 +83,55 @@ export async function PATCH(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const currentName = (existingUser as UserRow).name ?? null;
-    if (name === currentName) {
-      return NextResponse.json({
-        message: "No changes applied",
-        user: {
-          id: (existingUser as UserRow).id,
-          email: (existingUser as UserRow).email,
-          name: currentName,
-          createdAt: (existingUser as UserRow).created_at,
-        },
-      });
-    }
+    const row = existingUser as UserRow;
+    const updateData: Record<string, unknown> = {};
+    const changes: Record<string, unknown> = {};
 
-    const { data: authUserData, error: authUserError } =
-      await adminClient.auth.admin.getUserById(targetUserId);
+    if (name !== undefined && name !== row.name) {
+      updateData.name = name;
+      changes.name = { from: row.name, to: name };
 
-    if (authUserError || !authUserData.user) {
-      console.error("Error loading target auth user:", authUserError);
-      return NextResponse.json(
-        { error: "Failed to load auth user" },
-        { status: 500 },
-      );
-    }
-
-    const existingMetadata =
-      (authUserData.user.user_metadata as
-        | Record<string, unknown>
-        | undefined) ?? {};
-
-    const { error: authUpdateError } =
+      // Also update auth metadata
+      const { data: authUserData } =
+        await adminClient.auth.admin.getUserById(targetUserId);
+      const existingMeta =
+        (authUserData?.user?.user_metadata as Record<string, unknown>) ?? {};
       await adminClient.auth.admin.updateUserById(targetUserId, {
-        user_metadata: {
-          ...existingMetadata,
-          name,
-        },
+        user_metadata: { ...existingMeta, name },
       });
-
-    if (authUpdateError) {
-      console.error("Error updating auth metadata:", authUpdateError);
-      return NextResponse.json(
-        { error: "Failed to update user name" },
-        { status: 500 },
-      );
     }
 
-    const { error: profileUpdateError } = await adminClient
+    if (status !== undefined && status !== row.status) {
+      updateData.status = status;
+      changes.status = { from: row.status, to: status };
+
+      if (status === "deactivated") {
+        updateData.deactivated_at = new Date().toISOString();
+        // Ban in Supabase auth to invalidate sessions
+        await adminClient.auth.admin.updateUserById(targetUserId, {
+          ban_duration: BAN_DURATION,
+        });
+      } else if (status === "active") {
+        // Unban in Supabase auth
+        await adminClient.auth.admin.updateUserById(targetUserId, {
+          ban_duration: "none",
+        });
+      }
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ message: "No changes applied", user: row });
+    }
+
+    const { error: updateError } = await adminClient
       .from("users")
-      .update({ name })
+      .update(updateData)
       .eq("id", targetUserId);
 
-    if (profileUpdateError) {
-      console.error("Error updating user profile:", profileUpdateError);
+    if (updateError) {
+      console.error("Error updating user:", updateError);
       return NextResponse.json(
-        { error: "Failed to update user profile" },
+        { error: "Failed to update user" },
         { status: 500 },
       );
     }
@@ -152,12 +143,7 @@ export async function PATCH(
       adminUserId: currentUser.id,
       targetUserId,
       action: "update_global_user",
-      details: {
-        nameChanged: {
-          from: currentName,
-          to: name,
-        },
-      },
+      details: changes,
       ...(clientIP ? { ipAddress: clientIP } : {}),
       ...(userAgent ? { userAgent } : {}),
       category: "system",
@@ -166,19 +152,101 @@ export async function PATCH(
     return NextResponse.json({
       message: "User updated successfully",
       user: {
-        id: (existingUser as UserRow).id,
-        email: (existingUser as UserRow).email,
-        name,
-        createdAt: (existingUser as UserRow).created_at,
+        id: row.id,
+        email: row.email,
+        name: name ?? row.name,
+        createdAt: row.created_at,
+        status: status ?? row.status,
       },
     });
   } catch (error) {
     const authError = getAuthErrorResponse(error);
-    if (authError) {
-      return authError;
-    }
+    if (authError) return authError;
 
     console.error("Error in PATCH /api/admin/super-admin/users/[id]:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
+  }
+}
+
+// DELETE = deactivate (data is preserved, login is blocked)
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const currentUser = await requireSuperAdmin();
+    const { id } = await params;
+
+    const userIdValidation = userIdSchema.safeParse(id);
+    if (!userIdValidation.success) {
+      return NextResponse.json({ error: "Invalid user ID" }, { status: 400 });
+    }
+
+    const targetUserId = userIdValidation.data;
+
+    if (targetUserId === currentUser.id) {
+      return NextResponse.json(
+        { error: "You cannot deactivate your own account" },
+        { status: 400 },
+      );
+    }
+
+    const adminClient = createAdminClient();
+
+    const { data: existingUser, error: existingUserError } = await adminClient
+      .from("users")
+      .select("id, email, name, status")
+      .eq("id", targetUserId)
+      .single();
+
+    if (existingUserError || !existingUser) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Deactivate in public.users
+    const { error: updateError } = await adminClient
+      .from("users")
+      .update({
+        status: "deactivated",
+        deactivated_at: new Date().toISOString(),
+      })
+      .eq("id", targetUserId);
+
+    if (updateError) {
+      console.error("Error deactivating user:", updateError);
+      return NextResponse.json(
+        { error: "Failed to deactivate user" },
+        { status: 500 },
+      );
+    }
+
+    // Ban in Supabase auth to invalidate sessions immediately
+    await adminClient.auth.admin.updateUserById(targetUserId, {
+      ban_duration: BAN_DURATION,
+    });
+
+    const clientIP = getClientIP(request);
+    const userAgent = getUserAgent(request);
+
+    await logAdminAction({
+      adminUserId: currentUser.id,
+      targetUserId,
+      action: "deactivate_global_user",
+      details: { email: (existingUser as UserRow).email },
+      ...(clientIP ? { ipAddress: clientIP } : {}),
+      ...(userAgent ? { userAgent } : {}),
+      category: "system",
+    });
+
+    return NextResponse.json({ message: "User deactivated successfully" });
+  } catch (error) {
+    const authError = getAuthErrorResponse(error);
+    if (authError) return authError;
+
+    console.error("Error in DELETE /api/admin/super-admin/users/[id]:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },
