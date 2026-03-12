@@ -653,6 +653,16 @@ export const de = {
     rejectConfirmDescription:
       "Die Registrierung wird abgelehnt. Der Benutzer kann sich nicht anmelden.",
     rejectConfirm: "Ablehnen",
+    // Purge (permanent delete)
+    purgeButton: "Endgültig löschen",
+    purgeConfirmTitle: "Benutzer unwiderruflich löschen",
+    purgeConfirmDescription:
+      "Diese Aktion ist NICHT rückgängig zu machen. Folgendes wird dauerhaft gelöscht: alle Boards, Spalten, Karten und Anhänge im Eigentum dieses Benutzers. Kommentare und Dateien auf fremden Boards bleiben erhalten. Das Benutzerkonto wird vollständig entfernt.",
+    purgeConfirmLabel: "Endgültig löschen",
+    purgeEmailPrompt: "Geben Sie zur Bestätigung die E-Mail-Adresse ein:",
+    purgeEmailMismatch: "E-Mail-Adresse stimmt nicht überein.",
+    purgeSuccess: "Benutzer wurde dauerhaft gelöscht.",
+    purgeFailed: "Löschen fehlgeschlagen.",
     // State
     searchPlaceholder: "Nach Name oder E-Mail suchen",
     sortNewest: "Neueste zuerst",

@@ -10,6 +10,8 @@ import {
   Plus,
   RefreshCw,
   Search,
+  Trash2,
+  TriangleAlert,
   UserMinus,
   UserPlus,
   X,
@@ -202,6 +204,98 @@ function ConfirmDialog({
   );
 }
 
+// ── Purge (permanent delete) dialog ─────────────────────────────────────────
+
+function PurgeConfirmDialog({
+  user,
+  onConfirm,
+  onCancel,
+  loading,
+}: {
+  user: ManagedUser | null;
+  onConfirm: () => void;
+  onCancel: () => void;
+  loading: boolean;
+}) {
+  const [emailInput, setEmailInput] = useState("");
+  const [mismatch, setMismatch] = useState(false);
+
+  const handleConfirm = () => {
+    if (emailInput.trim().toLowerCase() !== user?.email.toLowerCase()) {
+      setMismatch(true);
+      return;
+    }
+    setMismatch(false);
+    onConfirm();
+  };
+
+  return (
+    <Dialog open={Boolean(user)} onOpenChange={(o) => !o && onCancel()}>
+      <DialogContent className="sm:max-w-lg border-red-300">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-red-700">
+            <TriangleAlert className="h-5 w-5 flex-shrink-0" />
+            {t("superAdmin.purgeConfirmTitle")}
+          </DialogTitle>
+          <DialogDescription className="text-gray-700">
+            {t("superAdmin.purgeConfirmDescription")}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800 space-y-1">
+          <p className="font-semibold">{user?.name || user?.email}</p>
+          <p className="text-red-600">{user?.email}</p>
+        </div>
+
+        <div className="space-y-2">
+          <Label
+            htmlFor="purge-email-confirm"
+            className="text-sm text-gray-700"
+          >
+            {t("superAdmin.purgeEmailPrompt")}
+          </Label>
+          <Input
+            id="purge-email-confirm"
+            type="email"
+            value={emailInput}
+            onChange={(e) => {
+              setEmailInput(e.target.value);
+              setMismatch(false);
+            }}
+            placeholder={user?.email ?? ""}
+            className={mismatch ? "border-red-500" : ""}
+            disabled={loading}
+          />
+          {mismatch && (
+            <p className="text-xs text-red-600">
+              {t("superAdmin.purgeEmailMismatch")}
+            </p>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onCancel} disabled={loading}>
+            {t("superAdmin.cancelButton")}
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={handleConfirm}
+            disabled={loading || !emailInput.trim()}
+            className="bg-red-700 hover:bg-red-800"
+          >
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <Trash2 className="h-4 w-4 mr-2" />
+            )}
+            {t("superAdmin.purgeConfirmLabel")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ── Create user dialog ───────────────────────────────────────────────────────
 
 function CreateUserDialog({
@@ -352,6 +446,7 @@ function UserTable({
   onReject,
   onDeactivate,
   onReactivate,
+  onPurge,
   actionLoading,
   emptyMessage,
 }: {
@@ -365,6 +460,7 @@ function UserTable({
   onReject?: (user: ManagedUser) => void;
   onDeactivate?: (user: ManagedUser) => void;
   onReactivate?: (user: ManagedUser) => void;
+  onPurge?: (user: ManagedUser) => void;
   actionLoading: string | null;
   emptyMessage: string;
 }) {
@@ -475,20 +571,32 @@ function UserTable({
                         </>
                       )}
                       {status === "deactivated" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => onReactivate?.(user)}
-                          disabled={actionLoading === user.id}
-                          className="text-green-600 border-green-200 hover:bg-green-50"
-                        >
-                          {actionLoading === user.id ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <UserPlus className="h-3 w-3" />
-                          )}
-                          {t("superAdmin.reactivateButton")}
-                        </Button>
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => onReactivate?.(user)}
+                            disabled={actionLoading === user.id}
+                            className="text-green-600 border-green-200 hover:bg-green-50"
+                          >
+                            {actionLoading === user.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <UserPlus className="h-3 w-3" />
+                            )}
+                            {t("superAdmin.reactivateButton")}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => onPurge?.(user)}
+                            disabled={actionLoading === user.id}
+                            className="text-red-700 border-red-300 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                            {t("superAdmin.purgeButton")}
+                          </Button>
+                        </>
                       )}
                     </div>
                   </td>
@@ -614,6 +722,7 @@ export function SuperAdminUserManagement() {
     user: ManagedUser;
     action: "reject" | "deactivate";
   } | null>(null);
+  const [purgeUser, setPurgeUser] = useState<ManagedUser | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const currentTab =
@@ -687,6 +796,25 @@ export function SuperAdminUserManagement() {
 
   const handleReactivate = async (user: ManagedUser) => {
     await patchStatus(user, "active");
+  };
+
+  const handlePurgeConfirm = async () => {
+    if (!purgeUser) return;
+    setActionLoading(purgeUser.id);
+    try {
+      const response = await fetch(
+        `/api/admin/super-admin/users/${purgeUser.id}/purge`,
+        { method: "DELETE" },
+      );
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || t("superAdmin.purgeFailed"));
+      }
+      await deactivated.refresh();
+    } finally {
+      setActionLoading(null);
+      setPurgeUser(null);
+    }
   };
 
   const SortControls = ({ tab }: { tab: ReturnType<typeof useUserTab> }) => (
@@ -808,6 +936,7 @@ export function SuperAdminUserManagement() {
                 pagination={deactivated.pagination}
                 onPageChange={deactivated.setPage}
                 onReactivate={handleReactivate}
+                onPurge={setPurgeUser}
                 actionLoading={actionLoading}
                 emptyMessage={t("superAdmin.noDeactivatedUsers")}
               />
@@ -849,6 +978,14 @@ export function SuperAdminUserManagement() {
         onConfirm={() => void handleDeactivateConfirm()}
         onCancel={() => setConfirmDialog(null)}
         loading={actionLoading === confirmDialog?.user.id}
+      />
+
+      <PurgeConfirmDialog
+        key={purgeUser?.id ?? "none"}
+        user={purgeUser}
+        onConfirm={() => void handlePurgeConfirm()}
+        onCancel={() => setPurgeUser(null)}
+        loading={actionLoading === purgeUser?.id}
       />
     </div>
   );
