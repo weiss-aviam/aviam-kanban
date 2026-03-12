@@ -45,24 +45,51 @@ export async function updateSession(request: NextRequest) {
       ? pathname.slice(basePath.length)
       : pathname;
 
-  const protectedPaths = ["/boards", "/dashboard"];
+  const protectedPaths = ["/boards", "/dashboard", "/admin"];
   const isProtectedPath = protectedPaths.some((path) =>
     pathNoBase.startsWith(path),
   );
 
-  if (isProtectedPath && !user) {
-    // Redirect to login if accessing protected route without authentication
-    const url = request.nextUrl.clone();
-    url.pathname = `${basePath}/auth/login`;
-    url.searchParams.set("redirectTo", request.nextUrl.pathname);
-    return NextResponse.redirect(url);
-  }
-
-  // Redirect authenticated users away from auth pages
   const authPaths = ["/auth/login", "/auth/signup"];
   const isAuthPath = authPaths.some((path) => pathNoBase.startsWith(path));
 
-  if (isAuthPath && user) {
+  // For authenticated users on protected or auth paths, verify their status in
+  // public.users. Non-active users must not access protected routes and must
+  // not be silently redirected to /dashboard from auth pages.
+  let userStatus: string | null = null;
+  if (user && (isProtectedPath || isAuthPath)) {
+    const { data: profile } = await supabase
+      .from("users")
+      .select("status")
+      .eq("id", user.id)
+      .single();
+    userStatus = profile?.status ?? null;
+  }
+
+  const isActive = userStatus === "active";
+
+  if (isProtectedPath) {
+    if (!user) {
+      // Not authenticated — redirect to login
+      const url = request.nextUrl.clone();
+      url.pathname = `${basePath}/auth/login`;
+      url.searchParams.set("redirectTo", request.nextUrl.pathname);
+      return NextResponse.redirect(url);
+    }
+
+    if (!isActive) {
+      // Authenticated but not yet approved (pending/unconfirmed) or deactivated.
+      // Redirect to login with a reason so the page can show a helpful message.
+      const reason = userStatus === "deactivated" ? "deactivated" : "pending";
+      const url = request.nextUrl.clone();
+      url.pathname = `${basePath}/auth/login`;
+      url.search = `?reason=${reason}`;
+      return NextResponse.redirect(url);
+    }
+  }
+
+  // Redirect authenticated ACTIVE users away from auth pages
+  if (isAuthPath && user && isActive) {
     const url = request.nextUrl.clone();
     url.pathname = `${basePath}/dashboard`;
     return NextResponse.redirect(url);

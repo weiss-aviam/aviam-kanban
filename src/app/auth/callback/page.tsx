@@ -43,7 +43,16 @@ function AuthCallbackInner() {
 
           if (exchangeError) {
             setStatus("error");
-            setMessage(exchangeError.message);
+            // PKCE code verifier is stored in the browser that initiated the
+            // sign-up. Opening the link in a different browser loses the
+            // verifier — give a clear hint instead of a cryptic error.
+            const isPkceError =
+              exchangeError.message.toLowerCase().includes("pkce") ||
+              exchangeError.message.toLowerCase().includes("code verifier") ||
+              exchangeError.message.toLowerCase().includes("verifier");
+            setMessage(
+              isPkceError ? t("authCallback.pkceError") : exchangeError.message,
+            );
             return;
           }
 

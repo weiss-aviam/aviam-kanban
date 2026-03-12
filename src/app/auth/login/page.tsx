@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
@@ -17,6 +17,7 @@ import {
 import { Alert, AlertDescription } from "../../../components/ui/alert";
 import { Mail, Lock, Loader2 } from "lucide-react";
 import { createClient } from "../../../lib/supabase/client";
+import { t } from "../../../lib/i18n";
 
 const AUTH_ERRORS: Record<string, string> = {
   "Invalid login credentials":
@@ -37,7 +38,7 @@ function translateError(msg: string): string {
   return "Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut.";
 }
 
-export default function LoginPage() {
+function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -45,7 +46,17 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
+
+  // Show message when redirected here by middleware for non-active session
+  const reason = searchParams.get("reason");
+  const sessionMessage =
+    reason === "pending"
+      ? t("login.sessionExpiredPending")
+      : reason === "deactivated"
+        ? t("login.sessionExpiredDeactivated")
+        : null;
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,6 +76,27 @@ export default function LoginPage() {
       }
 
       if (data.user) {
+        // Check user status before granting access — a user whose email was
+        // confirmed but who never went through the callback (e.g. opened the
+        // link in a different browser) would otherwise bypass the approval gate.
+        const confirmRes = await fetch("/api/auth/confirm-email", {
+          method: "POST",
+        });
+        const confirmData = await confirmRes.json();
+        const userStatus: string = confirmData.status ?? "active";
+
+        if (userStatus === "pending" || userStatus === "unconfirmed") {
+          await supabase.auth.signOut();
+          setError(t("login.pendingMessage"));
+          return;
+        }
+
+        if (userStatus === "deactivated" || !confirmRes.ok) {
+          await supabase.auth.signOut();
+          setError(t("login.deactivatedMessage"));
+          return;
+        }
+
         router.push("/dashboard");
       }
     } catch (_err) {
@@ -130,6 +162,11 @@ export default function LoginPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {sessionMessage && (
+              <Alert className="mb-4">
+                <AlertDescription>{sessionMessage}</AlertDescription>
+              </Alert>
+            )}
             <form onSubmit={handleSignIn} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">E-Mail</Label>
@@ -220,5 +257,13 @@ export default function LoginPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }

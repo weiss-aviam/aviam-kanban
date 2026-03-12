@@ -774,6 +774,18 @@ export const de = {
     pendingApprovalMessage:
       "Ihre E-Mail-Adresse wurde erfolgreich bestätigt. Ihr Konto wartet nun auf Freigabe durch einen Administrator. Sie werden benachrichtigt, sobald der Zugang gewährt wird.",
     pendingApprovalAction: "Zurück zur Anmeldung",
+    pkceError:
+      "Der Bestätigungslink muss im selben Browser geöffnet werden, in dem Sie sich registriert haben. Bitte melden Sie sich direkt an.",
+  },
+  login: {
+    pendingMessage:
+      "Ihr Konto wartet auf Freigabe durch einen Administrator. Sie werden benachrichtigt, sobald der Zugang gewährt wird.",
+    deactivatedMessage:
+      "Ihr Konto wurde deaktiviert. Bitte wenden Sie sich an den Administrator.",
+    sessionExpiredPending:
+      "Ihr Konto wartet noch auf Freigabe durch einen Administrator.",
+    sessionExpiredDeactivated:
+      "Ihr Konto wurde deaktiviert. Bitte wenden Sie sich an den Administrator.",
   },
 } as const;
 
