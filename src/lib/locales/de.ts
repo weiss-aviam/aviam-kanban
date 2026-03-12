@@ -744,6 +744,10 @@ export const de = {
     noCodeFound: "Kein Authentifizierungscode gefunden",
     unexpectedError:
       "Ein unerwarteter Fehler bei der Authentifizierung ist aufgetreten",
+    pendingApprovalTitle: "E-Mail-Adresse bestätigt!",
+    pendingApprovalMessage:
+      "Ihre E-Mail-Adresse wurde erfolgreich bestätigt. Ihr Konto wartet nun auf Freigabe durch einen Administrator. Sie werden benachrichtigt, sobald der Zugang gewährt wird.",
+    pendingApprovalAction: "Zurück zur Anmeldung",
   },
 } as const;
 

@@ -76,6 +76,7 @@ export default function SignUpPage() {
         email: normalizedEmail,
         password,
         options: {
+          emailRedirectTo: `${window.location.origin}${process.env.NEXT_PUBLIC_BASE_PATH || ""}/auth/callback`,
           data: { name },
         },
       });
@@ -114,16 +115,17 @@ export default function SignUpPage() {
                 <CheckCircle className="h-12 w-12 text-green-500" />
                 <div className="space-y-2">
                   <h2 className="text-xl font-semibold text-gray-900">
-                    Registrierung eingegangen
+                    Bitte bestätigen Sie Ihre E-Mail
                   </h2>
                   <p className="text-gray-600 text-sm leading-relaxed">
-                    Vielen Dank für Ihre Registrierung. Ihr Konto wird von einem
-                    Administrator geprüft. Sie erhalten Zugang, sobald Ihre
-                    Registrierung freigegeben wurde.
+                    Wir haben eine Bestätigungsmail an{" "}
+                    <span className="font-medium">{email}</span> gesendet. Bitte
+                    klicken Sie auf den Link in der E-Mail, um Ihre Adresse zu
+                    bestätigen.
                   </p>
                   <p className="text-gray-500 text-sm">
-                    Bitte prüfen Sie ggf. auch Ihr Postfach für eine
-                    E-Mail-Bestätigung.
+                    Nach der Bestätigung wird Ihr Konto von einem Administrator
+                    geprüft und freigegeben.
                   </p>
                 </div>
                 <Link

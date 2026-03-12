@@ -873,8 +873,13 @@ export function SuperAdminUserManagement() {
                   </Badge>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="deactivated">
+              <TabsTrigger value="deactivated" className="gap-2">
                 {t("superAdmin.tabDeactivated")}
+                {deactivated.pagination.total > 0 && (
+                  <Badge variant="secondary" className="text-xs px-1.5 py-0">
+                    {deactivated.pagination.total}
+                  </Badge>
+                )}
               </TabsTrigger>
             </TabsList>
 

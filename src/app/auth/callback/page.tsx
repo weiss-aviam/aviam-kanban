@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "../../../lib/supabase/client";
 import { t } from "../../../lib/i18n";
-import { Loader2, CheckCircle, XCircle } from "lucide-react";
+import { Loader2, CheckCircle, Clock, XCircle } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -16,9 +16,9 @@ import { Button } from "../../../components/ui/button";
 import Link from "next/link";
 
 function AuthCallbackInner() {
-  const [status, setStatus] = useState<"loading" | "success" | "error">(
-    "loading",
-  );
+  const [status, setStatus] = useState<
+    "loading" | "success" | "pending" | "error"
+  >("loading");
   const [message, setMessage] = useState("");
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -48,11 +48,20 @@ function AuthCallbackInner() {
           }
 
           if (data.user) {
-            setStatus("success");
-            setMessage(t("authCallback.successAuth"));
-            setTimeout(() => {
-              router.push("/dashboard");
-            }, 2000);
+            // Verify the user is actually accessible (not banned/pending approval)
+            const {
+              data: { user: verifiedUser },
+            } = await supabase.auth.getUser();
+
+            if (!verifiedUser) {
+              // Email confirmed but user is now pending admin approval
+              setStatus("pending");
+              setMessage(t("authCallback.pendingApprovalMessage"));
+            } else {
+              setStatus("success");
+              setMessage(t("authCallback.successAuth"));
+              setTimeout(() => router.push("/dashboard"), 2000);
+            }
           }
         } else {
           const {
@@ -99,6 +108,9 @@ function AuthCallbackInner() {
               {status === "success" && (
                 <CheckCircle className="h-12 w-12 text-green-600" />
               )}
+              {status === "pending" && (
+                <Clock className="h-12 w-12 text-amber-500" />
+              )}
               {status === "error" && (
                 <XCircle className="h-12 w-12 text-red-600" />
               )}
@@ -106,6 +118,7 @@ function AuthCallbackInner() {
             <CardTitle>
               {status === "loading" && t("authCallback.authenticating")}
               {status === "success" && t("authCallback.successTitle")}
+              {status === "pending" && t("authCallback.pendingApprovalTitle")}
               {status === "error" && t("authCallback.errorTitle")}
             </CardTitle>
             <CardDescription>{message}</CardDescription>
@@ -127,6 +140,16 @@ function AuthCallbackInner() {
                 <Button asChild className="w-full">
                   <Link href="/dashboard">
                     {t("authCallback.goToDashboard")}
+                  </Link>
+                </Button>
+              </div>
+            )}
+
+            {status === "pending" && (
+              <div className="text-center space-y-4">
+                <Button asChild variant="outline" className="w-full">
+                  <Link href="/auth/login">
+                    {t("authCallback.pendingApprovalAction")}
                   </Link>
                 </Button>
               </div>
