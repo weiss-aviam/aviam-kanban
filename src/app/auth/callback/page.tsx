@@ -48,15 +48,23 @@ function AuthCallbackInner() {
           }
 
           if (data.user) {
-            // Verify the user is actually accessible (not banned/pending approval)
-            const {
-              data: { user: verifiedUser },
-            } = await supabase.auth.getUser();
+            // Promote unconfirmed users to pending and ban them at the auth
+            // layer. For admin-created / already-active users this is a no-op.
+            const confirmRes = await fetch("/api/auth/confirm-email", {
+              method: "POST",
+            });
+            const confirmData = await confirmRes.json();
+            const userStatus: string = confirmData.status ?? "active";
 
-            if (!verifiedUser) {
-              // Email confirmed but user is now pending admin approval
+            if (userStatus === "pending" || userStatus === "unconfirmed") {
+              // Sign out so they can't use the just-obtained session
+              await supabase.auth.signOut();
               setStatus("pending");
               setMessage(t("authCallback.pendingApprovalMessage"));
+            } else if (userStatus === "deactivated" || !confirmRes.ok) {
+              await supabase.auth.signOut();
+              setStatus("error");
+              setMessage(t("authCallback.errorMessage"));
             } else {
               setStatus("success");
               setMessage(t("authCallback.successAuth"));

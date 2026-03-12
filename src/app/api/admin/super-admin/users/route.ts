@@ -164,6 +164,14 @@ export async function POST(request: NextRequest) {
     const { data, error } =
       await adminClient.auth.admin.createUser(createUserPayload);
 
+    // Explicitly lift any ban that may have been applied by a trigger or prior
+    // code path — admin-created users must be able to log in immediately.
+    if (data?.user && !error) {
+      await adminClient.auth.admin.updateUserById(data.user.id, {
+        ban_duration: "none",
+      });
+    }
+
     if (error || !data.user) {
       console.error("Error creating Super Admin managed user:", error);
       return NextResponse.json(
