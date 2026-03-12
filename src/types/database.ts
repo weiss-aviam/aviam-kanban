@@ -57,7 +57,6 @@ export type BoardWithDetails = Board & {
   // Additional computed fields
   memberCount?: number;
   isArchived?: boolean;
-  description?: string;
 };
 
 export type CardWithDetails = Card & {

@@ -98,10 +98,20 @@ export default function DashboardPage() {
     setBoards((prev) => [newBoard as unknown as Board, ...prev]);
   };
 
-  const handleBoardUpdated = (updated: { id: string; name: string }) => {
+  const handleBoardUpdated = (updated: {
+    id: string;
+    name: string;
+    description?: string | null;
+  }) => {
     setBoards((prev) =>
       prev.map((board) =>
-        board.id === updated.id ? { ...board, name: updated.name } : board,
+        board.id === updated.id
+          ? {
+              ...board,
+              name: updated.name,
+              description: updated.description ?? null,
+            }
+          : board,
       ),
     );
   };
