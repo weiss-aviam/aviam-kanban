@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "../ui/button";
 // Removed unused Card imports
@@ -67,6 +67,8 @@ export function BoardDetailPage({
   const [board, setBoard] = useState<BoardWithDetails | null>(
     initialBoard || null,
   );
+  const boardRef = useRef(board);
+  boardRef.current = board;
   const [showCreateColumn, setShowCreateColumn] = useState(false);
   const [showDeleteBoard, setShowDeleteBoard] = useState(false);
   const [showEditBoard, setShowEditBoard] = useState(false);
@@ -116,12 +118,11 @@ export function BoardDetailPage({
 
   const handleRealtimeBoardChange = useCallback(
     (updater: (prev: BoardWithDetails) => BoardWithDetails) => {
-      setBoard((prev) => {
-        if (!prev) return prev;
-        const updated = updater(prev);
-        setCurrentBoard(updated);
-        return updated;
-      });
+      const prev = boardRef.current;
+      if (!prev) return;
+      const updated = updater(prev);
+      setBoard(updated);
+      setCurrentBoard(updated);
     },
     [setCurrentBoard],
   );
