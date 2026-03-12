@@ -113,9 +113,10 @@ describe("POST /api/auth/confirm-email", () => {
     expect(update).toHaveBeenCalledWith({ status: "pending" });
     expect(updateEq).toHaveBeenCalledWith("id", USER_ID);
 
-    // Should ban at the auth layer
+    // Should ban at the auth layer and record status in app_metadata
     expect(updateUserById).toHaveBeenCalledWith(USER_ID, {
       ban_duration: expect.any(String),
+      app_metadata: { status: "pending" },
     });
   });
 

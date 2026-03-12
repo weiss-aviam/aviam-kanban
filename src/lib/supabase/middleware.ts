@@ -53,18 +53,12 @@ export async function updateSession(request: NextRequest) {
   const authPaths = ["/auth/login", "/auth/signup"];
   const isAuthPath = authPaths.some((path) => pathNoBase.startsWith(path));
 
-  // For authenticated users on protected or auth paths, verify their status in
-  // public.users. Non-active users must not access protected routes and must
-  // not be silently redirected to /dashboard from auth pages.
-  let userStatus: string | null = null;
-  if (user && (isProtectedPath || isAuthPath)) {
-    const { data: profile } = await supabase
-      .from("users")
-      .select("status")
-      .eq("id", user.id)
-      .single();
-    userStatus = profile?.status ?? null;
-  }
+  // Determine user status from app_metadata (set at the auth layer on every
+  // status transition — no DB query needed). Legacy users who predate this
+  // field are assumed active because banned users cannot pass getUser() above.
+  const userStatus = user
+    ? ((user.app_metadata?.status as string | undefined) ?? "active")
+    : null;
 
   const isActive = userStatus === "active";
 

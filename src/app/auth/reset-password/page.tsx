@@ -39,7 +39,26 @@ function ResetPasswordInner() {
         const { error } = await supabase.auth.exchangeCodeForSession(code);
         if (error) {
           setError(t("resetPassword.invalidLink"));
+          setIsInitializing(false);
+          return;
         }
+
+        // Ensure the account is active — pending/deactivated users must not
+        // obtain a working session through the password-reset flow.
+        const confirmRes = await fetch("/api/auth/confirm-email", {
+          method: "POST",
+        });
+        const confirmData = await confirmRes.json();
+        const accountStatus: string = confirmData.status ?? "active";
+        if (accountStatus !== "active") {
+          await supabase.auth.signOut();
+          setError(
+            accountStatus === "deactivated"
+              ? t("login.deactivatedMessage")
+              : t("login.pendingMessage"),
+          );
+        }
+
         setIsInitializing(false);
         return;
       }

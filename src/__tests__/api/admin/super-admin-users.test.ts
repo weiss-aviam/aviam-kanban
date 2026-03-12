@@ -152,11 +152,12 @@ describe("Super Admin user management routes", () => {
       email: "new.user@example.com",
       password: "StrongPass1!",
       email_confirm: true,
-      app_metadata: { admin_created: true },
+      app_metadata: { admin_created: true, status: "active" },
       user_metadata: { name: "New User" },
     });
     expect(updateUserById).toHaveBeenCalledWith(TARGET_USER_ID, {
       ban_duration: "none",
+      app_metadata: { admin_created: true, status: "active" },
     });
     expect(upsert).toHaveBeenCalledWith({
       id: TARGET_USER_ID,

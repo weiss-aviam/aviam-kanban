@@ -107,15 +107,17 @@ export async function PATCH(
 
       if (status === "deactivated") {
         updateData.deactivated_at = new Date().toISOString();
-        // Ban in Supabase auth and immediately revoke all active sessions
+        // Ban in Supabase auth, record status in app_metadata, revoke sessions
         await adminClient.auth.admin.updateUserById(targetUserId, {
           ban_duration: BAN_DURATION,
+          app_metadata: { status: "deactivated" },
         });
         await adminClient.auth.admin.signOut(targetUserId, "global");
       } else if (status === "active") {
-        // Unban in Supabase auth
+        // Unban in Supabase auth and mark active in app_metadata
         await adminClient.auth.admin.updateUserById(targetUserId, {
           ban_duration: "none",
+          app_metadata: { status: "active" },
         });
       }
     }
@@ -224,9 +226,10 @@ export async function DELETE(
       );
     }
 
-    // Ban in Supabase auth and immediately revoke all active sessions
+    // Ban in Supabase auth, record status in app_metadata, revoke sessions
     await adminClient.auth.admin.updateUserById(targetUserId, {
       ban_duration: BAN_DURATION,
+      app_metadata: { status: "deactivated" },
     });
     await adminClient.auth.admin.signOut(targetUserId, "global");
 

@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
       email,
       password,
       email_confirm: true,
-      app_metadata: { admin_created: true },
+      app_metadata: { admin_created: true, status: "active" },
       ...(name ? { user_metadata: { name } } : {}),
     };
 
@@ -175,6 +175,7 @@ export async function POST(request: NextRequest) {
     if (data?.user && !error) {
       await adminClient.auth.admin.updateUserById(data.user.id, {
         ban_duration: "none",
+        app_metadata: { admin_created: true, status: "active" },
       });
     }
 

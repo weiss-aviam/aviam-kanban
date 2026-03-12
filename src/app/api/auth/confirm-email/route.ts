@@ -44,9 +44,11 @@ export async function POST() {
         .update({ status: "pending" })
         .eq("id", user.id);
 
-      // Ban at the auth layer — user must wait for admin approval
+      // Ban at the auth layer and record status in app_metadata (JWT-readable,
+      // no DB query required by middleware or other auth checks).
       await adminClient.auth.admin.updateUserById(user.id, {
         ban_duration: PENDING_BAN_DURATION,
+        app_metadata: { status: "pending" },
       });
 
       return NextResponse.json({ status: "pending" });
