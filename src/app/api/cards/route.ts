@@ -139,6 +139,19 @@ export async function POST(request: NextRequest) {
       comments: [],
     };
 
+    // Record the initial deadline in the history for full transparency
+    if (newCard.due_date) {
+      await supabase.from("card_deadline_requests").insert({
+        card_id: newCard.id,
+        requested_by: user.id,
+        suggested_due_date: newCard.due_date,
+        status: "applied",
+        change_type: "direct",
+        resolved_by: user.id,
+        resolved_at: new Date().toISOString(),
+      });
+    }
+
     return NextResponse.json({ card: transformedCard }, { status: 201 });
   } catch (error) {
     console.error("Create card error:", error);

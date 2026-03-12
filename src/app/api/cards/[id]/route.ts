@@ -183,6 +183,29 @@ export async function PATCH(
       );
     }
 
+    // Record direct deadline changes in history for full transparency.
+    // Only log when the due_date value actually changed.
+    if (dueDate !== undefined) {
+      const prevDate = existingCard.due_date
+        ? new Date(existingCard.due_date as string).toISOString()
+        : null;
+      const nextDate = updatedCard.due_date
+        ? new Date(updatedCard.due_date).toISOString()
+        : null;
+      if (prevDate !== nextDate) {
+        const now = new Date().toISOString();
+        await supabase.from("card_deadline_requests").insert({
+          card_id: cardId,
+          requested_by: user.id,
+          suggested_due_date: nextDate, // null = deadline removed
+          status: "applied",
+          change_type: "direct",
+          resolved_by: user.id,
+          resolved_at: now,
+        });
+      }
+    }
+
     // Transform response to match expected format
     const transformedCard = {
       id: updatedCard.id,

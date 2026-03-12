@@ -45,7 +45,7 @@ export async function GET(
     const { data: requests, error: reqError } = await supabase
       .from("card_deadline_requests")
       .select(
-        `id, suggested_due_date, note, status, created_at, resolved_at,
+        `id, suggested_due_date, note, status, change_type, created_at, resolved_at,
          requested_by, resolved_by,
          requester:requested_by(id, name, email),
          resolver:resolved_by(id, name)`,
@@ -164,7 +164,7 @@ export async function POST(
         status: "pending",
       })
       .select(
-        `id, suggested_due_date, note, status, created_at, resolved_at,
+        `id, suggested_due_date, note, status, change_type, created_at, resolved_at,
          requester:requested_by(id, name, email),
          resolver:resolved_by(id, name)`,
       )

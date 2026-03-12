@@ -27,9 +27,10 @@ import { formatDisplayDate, formatDateTime } from "@/lib/date-format";
 
 type DeadlineRequest = {
   id: string;
-  suggested_due_date: string;
+  suggested_due_date: string | null;
   note: string | null;
-  status: "pending" | "approved" | "rejected";
+  status: "pending" | "approved" | "rejected" | "applied";
+  change_type: "suggestion" | "direct";
   created_at: string;
   resolved_at: string | null;
   requester: { id: string; name: string | null; email: string } | null;
@@ -79,7 +80,7 @@ const getCalendarFieldValue = (date: Date | undefined): string => {
 function StatusBadge({
   status,
 }: {
-  status: "pending" | "approved" | "rejected";
+  status: "pending" | "approved" | "rejected" | "applied";
 }) {
   if (status === "pending") {
     return (
@@ -408,26 +409,60 @@ export function DeadlineSection({
               </p>
             ) : (
               requests.map((req) => {
+                const isDirect = req.change_type === "direct";
                 const suggestedDate = parseCalendarDate(req.suggested_due_date);
+                const actorName =
+                  req.requester?.name ||
+                  req.requester?.email ||
+                  t("common.unknown");
+
+                // Label for direct entries
+                let directLabel: string;
+                if (isDirect) {
+                  if (!req.suggested_due_date) {
+                    directLabel = t("editCard.deadlineDirectRemoved");
+                  } else {
+                    directLabel = t("editCard.deadlineDirectSet");
+                  }
+                }
+
                 return (
                   <div
                     key={req.id}
-                    className="rounded-md border bg-muted/20 p-2.5 space-y-1.5"
+                    className={cn(
+                      "rounded-md border p-2.5 space-y-1.5",
+                      isDirect
+                        ? "bg-blue-50/50 border-blue-100 dark:bg-blue-950/20 dark:border-blue-900/40"
+                        : "bg-muted/20",
+                    )}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="space-y-0.5 min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-xs font-medium">
-                            {suggestedDate
-                              ? formatDisplayDate(suggestedDate)
-                              : req.suggested_due_date}
-                          </span>
-                          <StatusBadge status={req.status} />
+                          {isDirect ? (
+                            <>
+                              <span className="text-xs font-medium text-blue-700 dark:text-blue-400">
+                                {directLabel!}
+                              </span>
+                              {req.suggested_due_date && suggestedDate && (
+                                <span className="text-xs font-semibold">
+                                  {formatDisplayDate(suggestedDate)}
+                                </span>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-xs font-medium">
+                                {suggestedDate
+                                  ? formatDisplayDate(suggestedDate)
+                                  : "—"}
+                              </span>
+                              <StatusBadge status={req.status} />
+                            </>
+                          )}
                         </div>
                         <p className="text-[11px] text-muted-foreground">
-                          {req.requester?.name ||
-                            req.requester?.email ||
-                            t("common.unknown")}
+                          {actorName}
                           {" · "}
                           {formatDateTime(new Date(req.created_at))}
                         </p>
@@ -436,7 +471,7 @@ export function DeadlineSection({
                             {req.note}
                           </p>
                         )}
-                        {req.resolver && req.resolved_at && (
+                        {!isDirect && req.resolver && req.resolved_at && (
                           <p className="text-[11px] text-muted-foreground">
                             {req.status === "approved"
                               ? t("editCard.deadlineStatusApproved")

@@ -338,7 +338,10 @@ export const de = {
     invalidDueDate: "Bitte ein gültiges Fälligkeitsdatum eingeben",
     // Deadline suggestion workflow
     deadlineHistoryTitle: "Terminverlauf",
-    deadlineNoHistory: "Noch keine Terminvorschläge.",
+    deadlineNoHistory: "Noch keine Terminänderungen.",
+    deadlineDirectSet: "Termin gesetzt",
+    deadlineDirectChanged: "Termin geändert",
+    deadlineDirectRemoved: "Termin entfernt",
     deadlineSuggestButton: "Neuen Termin vorschlagen",
     deadlineSuggestFormTitle: "Terminsvorschlag einreichen",
     deadlineSuggestedDateLabel: "Vorgeschlagenes Datum",

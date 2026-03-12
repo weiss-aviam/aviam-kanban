@@ -168,12 +168,17 @@ export const cardDeadlineRequests = pgTable(
     }),
     suggestedDueDate: timestamp("suggested_due_date", {
       withTimezone: true,
-    }).notNull(),
+    }),
     note: text("note"),
     status: varchar("status", {
-      enum: ["pending", "approved", "rejected"],
+      enum: ["pending", "approved", "rejected", "applied"],
     })
       .default("pending")
+      .notNull(),
+    changeType: varchar("change_type", {
+      enum: ["suggestion", "direct"],
+    })
+      .default("suggestion")
       .notNull(),
     resolvedBy: varchar("resolved_by").references(() => users.id, {
       onDelete: "set null",
