@@ -357,7 +357,7 @@ export const de = {
     deadlineBy: "von",
     deadlineResolvedBy: "von",
     deadlineCreatorOnly:
-      "Nur der Ersteller oder ein Board-Admin kann den Termin direkt bearbeiten.",
+      "Nur der Kartenersteller kann den Termin direkt bearbeiten.",
     deadlinePendingRequestsHint: "Es gibt ausstehende Terminvorschläge.",
     deadlineAlreadyPending:
       "Sie haben bereits einen ausstehenden Vorschlag für diese Karte.",

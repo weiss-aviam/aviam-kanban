@@ -63,15 +63,13 @@ export async function PATCH(
       );
     }
 
-    // Only creator or board owner/admin may resolve
+    // Only the card creator may approve or reject deadline suggestions.
     const isCreator = card.created_by === user.id;
-    const isOwnerOrAdmin =
-      authorization.role === "owner" || authorization.role === "admin";
-    if (!isCreator && !isOwnerOrAdmin) {
+    if (!isCreator) {
       return NextResponse.json(
         {
           error:
-            "Only the card creator or a board admin can approve or reject deadline suggestions.",
+            "Only the card creator can approve or reject deadline suggestions.",
         },
         { status: 403 },
       );

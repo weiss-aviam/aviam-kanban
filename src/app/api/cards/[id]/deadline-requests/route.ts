@@ -122,11 +122,10 @@ export async function POST(
       );
     }
 
-    // Creators and board owners/admins should just edit the due_date directly
+    // Only the card creator edits the deadline directly — everyone else suggests,
+    // including board owners and admins.
     const isCreator = card.created_by === user.id;
-    const isOwnerOrAdmin =
-      authorization.role === "owner" || authorization.role === "admin";
-    if (isCreator || isOwnerOrAdmin) {
+    if (isCreator) {
       return NextResponse.json(
         {
           error: "You can edit the deadline directly — no suggestion needed.",

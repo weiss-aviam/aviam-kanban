@@ -668,10 +668,7 @@ export function EditCardDialog({
       }
 
       if (card) {
-        const canEditDirectly =
-          card.createdBy === currentUser?.id ||
-          userRole === "owner" ||
-          userRole === "admin";
+        const canEditDirectly = card.createdBy === currentUser?.id;
         const patchBody: Record<string, unknown> = {
           title: values.title.trim(),
           description: values.description.trim() || null,
@@ -1023,9 +1020,7 @@ export function EditCardDialog({
                         control={control}
                         render={({ field }) => {
                           const canEditDirectly =
-                            card?.createdBy === currentUser?.id ||
-                            userRole === "owner" ||
-                            userRole === "admin";
+                            card?.createdBy === currentUser?.id;
                           return (
                             <DeadlineSection
                               cardId={card!.id}
