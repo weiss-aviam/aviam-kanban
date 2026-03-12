@@ -151,6 +151,7 @@ export async function GET(
           due_date,
           priority,
           created_at,
+          created_by,
           assignee_id,
           users:assignee_id (
             id,
@@ -188,6 +189,9 @@ export async function GET(
         dueDate: card.due_date,
         priority: card.priority || "medium",
         createdAt: card.created_at,
+        createdBy:
+          (card as unknown as { created_by?: string | null }).created_by ??
+          null,
         assigneeId: card.assignee_id,
         assignee: (() => {
           type U = {
