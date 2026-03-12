@@ -27,6 +27,7 @@ import {
   useBoardPresence,
   type BoardPresenceEditingTarget,
 } from "@/hooks/useBoardPresence";
+import { useBoardRealtime } from "@/hooks/useBoardRealtime";
 import { KanbanBoard } from "../kanban/KanbanBoard";
 import { HeaderMenu } from "../layout/HeaderMenu";
 import { DeleteBoardDialog } from "./DeleteBoardDialog";
@@ -112,6 +113,20 @@ export function BoardDetailPage({
     },
     [setEditingCardActivity, setViewingBoardActivity],
   );
+
+  const handleRealtimeBoardChange = useCallback(
+    (updater: (prev: BoardWithDetails) => BoardWithDetails) => {
+      setBoard((prev) => {
+        if (!prev) return prev;
+        const updated = updater(prev);
+        setCurrentBoard(updated);
+        return updated;
+      });
+    },
+    [setCurrentBoard],
+  );
+
+  useBoardRealtime({ boardId, onBoardChange: handleRealtimeBoardChange });
 
   useEffect(() => {
     if (!initialBoard) {
