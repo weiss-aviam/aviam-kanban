@@ -693,8 +693,10 @@ export const de = {
     newPasswordPlaceholder: "Neues Passwort eingeben",
     confirmPasswordLabel: "Neues Passwort bestätigen",
     confirmPasswordPlaceholder: "Neues Passwort bestätigen",
-    passwordMinLength: "Passwort muss mindestens 6 Zeichen lang sein",
+    passwordMinLength: "Passwort muss mindestens 10 Zeichen lang sein",
     passwordsDoNotMatch: "Passwörter stimmen nicht überein",
+    passwordRequirements:
+      "Mindestens 10 Zeichen, Groß- und Kleinbuchstaben, eine Zahl und ein Sonderzeichen.",
     updatePassword: "Passwort aktualisieren",
     updatingPassword: "Passwort wird aktualisiert...",
     passwordUpdated:

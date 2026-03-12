@@ -17,6 +17,7 @@ import {
 import { Alert, AlertDescription } from "../../../components/ui/alert";
 import { Lock, Loader2 } from "lucide-react";
 import { createClient } from "../../../lib/supabase/client";
+import { validatePassword } from "../../../lib/password";
 import { t } from "../../../lib/i18n";
 
 function ResetPasswordInner() {
@@ -68,8 +69,9 @@ function ResetPasswordInner() {
       return;
     }
 
-    if (password.length < 6) {
-      setError(t("resetPassword.passwordMinLength"));
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
+      setError(t("resetPassword.passwordRequirements"));
       return;
     }
 
@@ -140,11 +142,13 @@ function ResetPasswordInner() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10"
-                    minLength={6}
                     required
                     disabled={!!error && !password}
                   />
                 </div>
+                <p className="text-xs text-gray-500">
+                  {t("resetPassword.passwordRequirements")}
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -160,7 +164,6 @@ function ResetPasswordInner() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className="pl-10"
-                    minLength={6}
                     required
                     disabled={!!error && !password}
                   />

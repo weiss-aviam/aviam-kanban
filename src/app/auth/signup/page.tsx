@@ -20,6 +20,7 @@ import {
   getEmailError,
   normalizeEmail,
 } from "../../../lib/auth-email";
+import { validatePassword } from "../../../lib/password";
 import { createClient } from "../../../lib/supabase/client";
 
 const AUTH_ERRORS: Record<string, string> = {
@@ -57,6 +58,14 @@ export default function SignUpPage() {
 
     if (!isAllowedEmail(normalizedEmail)) {
       setError(getEmailError());
+      return;
+    }
+
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
+      setError(
+        "Das Passwort erfüllt nicht die Sicherheitsanforderungen. Mindestens 10 Zeichen, Groß- und Kleinbuchstaben, eine Zahl und ein Sonderzeichen.",
+      );
       return;
     }
 
@@ -202,12 +211,12 @@ export default function SignUpPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10"
-                    minLength={6}
                     required
                   />
                 </div>
                 <p className="text-xs text-gray-500">
-                  Das Passwort muss mindestens 6 Zeichen lang sein.
+                  Mindestens 10 Zeichen, Groß- und Kleinbuchstaben, eine Zahl
+                  und ein Sonderzeichen.
                 </p>
               </div>
 
