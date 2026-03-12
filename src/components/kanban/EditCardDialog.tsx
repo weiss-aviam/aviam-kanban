@@ -55,6 +55,7 @@ import { MarkdownEditor } from "@/components/ui/markdown-editor";
 import { PrioritySelector } from "@/components/ui/priority-selector";
 import { getUserInitials, getUserAvatarColor } from "@/lib/role-colors";
 import { createClient as createSupabaseClient } from "@/lib/supabase/client";
+import { DeadlineSection } from "./DeadlineSection";
 
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -667,17 +668,24 @@ export function EditCardDialog({
       }
 
       if (card) {
+        const canEditDirectly =
+          card.createdBy === currentUser?.id ||
+          userRole === "owner" ||
+          userRole === "admin";
+        const patchBody: Record<string, unknown> = {
+          title: values.title.trim(),
+          description: values.description.trim() || null,
+          columnId: parseInt(values.columnId),
+          assigneeId: values.assigneeId === "none" ? null : values.assigneeId,
+          priority: values.priority,
+        };
+        if (canEditDirectly) {
+          patchBody.dueDate = dueDate;
+        }
         const response = await fetch(`/api/cards/${card.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: values.title.trim(),
-            description: values.description.trim() || null,
-            columnId: parseInt(values.columnId),
-            assigneeId: values.assigneeId === "none" ? null : values.assigneeId,
-            dueDate,
-            priority: values.priority,
-          }),
+          body: JSON.stringify(patchBody),
         });
         if (!response.ok) {
           const errorData = await response.json();
@@ -1010,72 +1018,27 @@ export function EditCardDialog({
                   <div className="grid grid-cols-2 gap-6">
                     {/* Due Date */}
                     <div className="flex flex-col gap-2">
-                      <Label htmlFor="dueDate" className="text-sm font-medium">
-                        {t("editCard.dueDateLabel")}
-                      </Label>
                       <Controller
                         name="dueDate"
                         control={control}
                         render={({ field }) => {
-                          const selectedDate = parseCalendarDate(field.value);
+                          const canEditDirectly =
+                            card?.createdBy === currentUser?.id ||
+                            userRole === "owner" ||
+                            userRole === "admin";
                           return (
-                            <div className="space-y-1.5">
-                              <div className="flex items-center gap-2">
-                                <Popover>
-                                  <PopoverTrigger asChild>
-                                    <Button
-                                      id="dueDate"
-                                      type="button"
-                                      variant="outline"
-                                      disabled={isLoading || isDeleting}
-                                      className={cn(
-                                        "h-10 flex-1 justify-start text-left font-normal",
-                                        !selectedDate &&
-                                          "text-muted-foreground",
-                                      )}
-                                    >
-                                      <CalendarIcon className="h-4 w-4" />
-                                      <span>
-                                        {selectedDate
-                                          ? formatDisplayDate(selectedDate)
-                                          : t("editCard.dueDatePlaceholder")}
-                                      </span>
-                                    </Button>
-                                  </PopoverTrigger>
-                                  <PopoverContent
-                                    className="w-auto p-0"
-                                    align="start"
-                                  >
-                                    <Calendar
-                                      mode="single"
-                                      selected={selectedDate}
-                                      onSelect={(date) =>
-                                        field.onChange(
-                                          getCalendarFieldValue(date),
-                                        )
-                                      }
-                                      disabled={isLoading || isDeleting}
-                                      initialFocus
-                                    />
-                                  </PopoverContent>
-                                </Popover>
-                                {field.value ? (
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    disabled={isLoading || isDeleting}
-                                    onClick={() => field.onChange("")}
-                                    aria-label={t("editCard.clearDueDate")}
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </Button>
-                                ) : null}
-                              </div>
-                              <p className="text-xs text-muted-foreground">
-                                {t("editCard.dueDateHelper")}
-                              </p>
-                            </div>
+                            <DeadlineSection
+                              cardId={card!.id}
+                              currentDueDate={field.value || undefined}
+                              canEditDirectly={canEditDirectly}
+                              disabled={isLoading || isDeleting}
+                              onDueDateChange={(val) => field.onChange(val)}
+                              onDeadlineApproved={(newDate) => {
+                                field.onChange(
+                                  newDate ? newDate.slice(0, 10) : "",
+                                );
+                              }}
+                            />
                           );
                         }}
                       />

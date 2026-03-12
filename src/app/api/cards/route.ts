@@ -109,6 +109,7 @@ export async function POST(request: NextRequest) {
         due_date: dueDate ? new Date(dueDate).toISOString() : null,
         priority: priority || "medium",
         position: finalPosition,
+        created_by: user.id,
       })
       .select("*")
       .single();
@@ -133,6 +134,7 @@ export async function POST(request: NextRequest) {
       priority: newCard.priority,
       position: newCard.position,
       createdAt: newCard.created_at,
+      createdBy: newCard.created_by,
       labels: [],
       comments: [],
     };

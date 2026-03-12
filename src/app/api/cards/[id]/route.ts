@@ -92,7 +92,7 @@ export async function PATCH(
     // Get the existing card to verify access (using Supabase RLS)
     const { data: existingCard, error: cardError } = await supabase
       .from("cards")
-      .select("id, board_id, column_id")
+      .select("id, board_id, column_id, created_by, due_date")
       .eq("id", cardId)
       .single();
 
@@ -114,6 +114,29 @@ export async function PATCH(
         { error: authorization.error },
         { status: authorization.status },
       );
+    }
+
+    // Guard: only the card creator, board owner, or board admin may change due_date directly
+    if (dueDate !== undefined) {
+      const card = existingCard as {
+        id: string;
+        board_id: string;
+        column_id: number;
+        created_by: string | null;
+        due_date: string | null;
+      };
+      const isCreator = card.created_by === user.id;
+      const isOwnerOrAdmin =
+        authorization.role === "owner" || authorization.role === "admin";
+      if (!isCreator && !isOwnerOrAdmin) {
+        return NextResponse.json(
+          {
+            error:
+              "Only the card creator or a board admin can change the deadline directly. Use the suggestion workflow instead.",
+          },
+          { status: 403 },
+        );
+      }
     }
 
     // If changing column, verify the new column belongs to the same board
@@ -172,6 +195,7 @@ export async function PATCH(
       priority: updatedCard.priority,
       position: updatedCard.position,
       createdAt: updatedCard.created_at,
+      createdBy: updatedCard.created_by,
     };
 
     return NextResponse.json({ card: transformedCard });

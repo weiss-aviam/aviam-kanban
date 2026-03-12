@@ -8,6 +8,7 @@ import {
   integer,
   primaryKey,
   uuid,
+  index,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -76,6 +77,9 @@ export const cards = pgTable("cards", {
   title: varchar("title", { length: 160 }).notNull(),
   description: text("description"),
   assigneeId: varchar("assignee_id").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  createdBy: varchar("created_by").references(() => users.id, {
     onDelete: "set null",
   }),
   dueDate: timestamp("due_date"),
@@ -150,6 +154,39 @@ export const templateColumns = pgTable("template_columns", {
   position: integer("position").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+// Card deadline requests table - tracks deadline suggestions and approvals
+export const cardDeadlineRequests = pgTable(
+  "card_deadline_requests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    cardId: uuid("card_id")
+      .notNull()
+      .references(() => cards.id, { onDelete: "cascade" }),
+    requestedBy: varchar("requested_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    suggestedDueDate: timestamp("suggested_due_date", {
+      withTimezone: true,
+    }).notNull(),
+    note: text("note"),
+    status: varchar("status", {
+      enum: ["pending", "approved", "rejected"],
+    })
+      .default("pending")
+      .notNull(),
+    resolvedBy: varchar("resolved_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    cardIdIdx: index("card_deadline_requests_card_id_idx").on(table.cardId),
+  }),
+);
 
 // Admin audit log table - tracks all admin actions for security and compliance
 export const adminAuditLog = pgTable("admin_audit_log", {
@@ -239,8 +276,13 @@ export const cardsRelations = relations(cards, ({ one, many }) => ({
     fields: [cards.assigneeId],
     references: [users.id],
   }),
+  creator: one(users, {
+    fields: [cards.createdBy],
+    references: [users.id],
+  }),
   labels: many(cardLabels),
   comments: many(comments),
+  deadlineRequests: many(cardDeadlineRequests),
 }));
 
 export const labelsRelations = relations(labels, ({ one, many }) => ({
@@ -318,6 +360,24 @@ export const userInvitationsRelations = relations(
     }),
     inviter: one(users, {
       fields: [userInvitations.invitedBy],
+      references: [users.id],
+    }),
+  }),
+);
+
+export const cardDeadlineRequestsRelations = relations(
+  cardDeadlineRequests,
+  ({ one }) => ({
+    card: one(cards, {
+      fields: [cardDeadlineRequests.cardId],
+      references: [cards.id],
+    }),
+    requester: one(users, {
+      fields: [cardDeadlineRequests.requestedBy],
+      references: [users.id],
+    }),
+    resolver: one(users, {
+      fields: [cardDeadlineRequests.resolvedBy],
       references: [users.id],
     }),
   }),
