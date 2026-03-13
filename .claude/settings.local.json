@@ -15,7 +15,11 @@
       "Bash(grep -n \"SUPABASE\\\\|SERVICE\" /Users/user/aviam/aviam-pm-kanban/.env.local | grep -v \"KEY\\\\s*=\" | head -10\ngrep -n \"SUPABASE_SERVICE\\\\|SERVICE_ROLE\" /Users/user/aviam/aviam-pm-kanban/.env.local 2>/dev/null | sed 's/=.*/=<redacted>/')",
       "Bash(grep:*)",
       "Bash(pnpm add:*)",
-      "Bash(npx vitest:*)"
+      "Bash(npx vitest:*)",
+      "Bash(pnpm vitest:*)",
+      "Bash(find src:*)",
+      "Bash(pnpm test:*)",
+      "Bash(cat /Users/user/aviam/aviam-pm-kanban/src/db/migrations/013_*.sql 2>/dev/null || ls /Users/user/aviam/aviam-pm-kanban/src/db/migrations/)"
     ]
   }
 }
