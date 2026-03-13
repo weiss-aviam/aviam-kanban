@@ -17,6 +17,7 @@ import {
 import { Alert, AlertDescription } from "../../../components/ui/alert";
 import { Lock, Loader2 } from "lucide-react";
 import { createClient } from "../../../lib/supabase/client";
+import type { EmailOtpType } from "@supabase/supabase-js";
 import { validatePassword } from "../../../lib/password";
 import { t } from "../../../lib/i18n";
 
@@ -34,31 +35,28 @@ function ResetPasswordInner() {
   useEffect(() => {
     const initSession = async () => {
       const code = searchParams.get("code");
+      const tokenHash = searchParams.get("token_hash");
+      const tokenType = searchParams.get("type");
+
+      if (tokenHash && tokenType) {
+        // token_hash flow (new email template) — no PKCE state required
+        const { error } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: tokenType as EmailOtpType,
+        });
+        if (error) {
+          setError(t("resetPassword.invalidLink"));
+        }
+        setIsInitializing(false);
+        return;
+      }
 
       if (code) {
+        // PKCE flow (legacy email template)
         const { error } = await supabase.auth.exchangeCodeForSession(code);
         if (error) {
           setError(t("resetPassword.invalidLink"));
-          setIsInitializing(false);
-          return;
         }
-
-        // Ensure the account is active — pending/deactivated users must not
-        // obtain a working session through the password-reset flow.
-        const confirmRes = await fetch("/api/auth/confirm-email", {
-          method: "POST",
-        });
-        const confirmData = await confirmRes.json();
-        const accountStatus: string = confirmData.status ?? "active";
-        if (accountStatus !== "active") {
-          await supabase.auth.signOut();
-          setError(
-            accountStatus === "deactivated"
-              ? t("login.deactivatedMessage")
-              : t("login.pendingMessage"),
-          );
-        }
-
         setIsInitializing(false);
         return;
       }
