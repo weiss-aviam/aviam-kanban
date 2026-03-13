@@ -112,18 +112,34 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're
-  // creating a new response object with NextResponse.next() make sure to:
-  // 1. Pass the request in it, like so:
-  //    const myNewResponse = NextResponse.next({ request })
-  // 2. Copy over the cookies, like so:
-  //    myNewResponse.cookies.setAll(supabaseResponse.cookies.getAll())
-  // 3. Change the myNewResponse object to fit your needs, but avoid changing
-  //    the cookies!
-  // 4. Finally:
-  //    return myNewResponse
-  // If this is not done, you may be causing the browser and server to go out
-  // of sync and terminate the user's session prematurely!
+  // Clean up orphaned Supabase auth-token cookie chunks.
+  //
+  // @supabase/ssr splits large JWTs across multiple cookies:
+  //   sb-<ref>-auth-token.0, sb-<ref>-auth-token.1, …
+  // When a token refresh produces fewer chunks than the previous token,
+  // the surplus old chunks are never deleted and stay in the browser.
+  // Over many refreshes they accumulate, bloating the Cookie header until
+  // nginx rejects the request with a 502 ("upstream sent too big header").
+  //
+  // If Supabase just wrote new auth-token cookies (i.e. a refresh happened),
+  // any request cookie with the same base name that is NOT in the new
+  // response set is an orphaned chunk — expire it immediately.
+  const authCookiePattern = /^sb-[^-]+-auth-token/;
+  const responseAuthCookies = supabaseResponse.cookies
+    .getAll()
+    .filter((c) => authCookiePattern.test(c.name));
+
+  if (responseAuthCookies.length > 0) {
+    const refreshedNames = new Set(responseAuthCookies.map((c) => c.name));
+    for (const cookie of request.cookies.getAll()) {
+      if (
+        authCookiePattern.test(cookie.name) &&
+        !refreshedNames.has(cookie.name)
+      ) {
+        supabaseResponse.cookies.set(cookie.name, "", { maxAge: 0, path: "/" });
+      }
+    }
+  }
 
   return supabaseResponse;
 }
@@ -131,12 +147,12 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * Feel free to modify this pattern to include more paths.
+     * Run on page/auth routes only — exclude:
+     * - /api/*          (API routes handle their own auth; skipping saves
+     *                    one Supabase getUser() call per API request, which
+     *                    was causing hundreds of unnecessary auth requests)
+     * - _next/static, _next/image, favicon, image files
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!api/|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
