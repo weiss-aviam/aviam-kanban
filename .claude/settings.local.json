@@ -19,7 +19,8 @@
       "Bash(pnpm vitest:*)",
       "Bash(find src:*)",
       "Bash(pnpm test:*)",
-      "Bash(cat /Users/user/aviam/aviam-pm-kanban/src/db/migrations/013_*.sql 2>/dev/null || ls /Users/user/aviam/aviam-pm-kanban/src/db/migrations/)"
+      "Bash(cat /Users/user/aviam/aviam-pm-kanban/src/db/migrations/013_*.sql 2>/dev/null || ls /Users/user/aviam/aviam-pm-kanban/src/db/migrations/)",
+      "Bash(find /Users/user/aviam/aviam-pm-kanban -name \"*.conf\" -o -name \"nginx*\" 2>/dev/null | grep -v node_modules | grep -v .next)"
     ]
   }
 }
