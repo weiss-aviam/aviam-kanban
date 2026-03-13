@@ -1,99 +1,237 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>E-Mail-Adresse bestätigen</title>
     <style>
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-          sans-serif;
-        background: #f8fafc;
+      * {
+        box-sizing: border-box;
         margin: 0;
-        padding: 40px 16px;
-        color: #1e293b;
+        padding: 0;
       }
-      .container {
-        max-width: 480px;
+      body {
+        background-color: #f0f4f8;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        font-size: 15px;
+        line-height: 1.6;
+        color: #1a2744;
+        -webkit-font-smoothing: antialiased;
+      }
+      .wrapper {
+        padding: 48px 16px;
+      }
+      .card {
+        max-width: 520px;
         margin: 0 auto;
         background: #ffffff;
-        border-radius: 12px;
-        border: 1px solid #e2e8f0;
-        padding: 40px;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 4px 24px rgba(17, 60, 139, 0.08);
       }
-      .logo {
+      /* Header bar with brand gradient */
+      .header {
+        background: linear-gradient(135deg, #113c8b 0%, #1a52b8 100%);
+        padding: 32px 40px;
+        text-align: center;
+      }
+      .header img {
+        height: 36px;
+        display: inline-block;
+      }
+      /* Accent strip */
+      .accent-strip {
+        height: 4px;
+        background: linear-gradient(90deg, #ad7f6a 0%, #c49882 100%);
+      }
+      /* Body */
+      .body {
+        padding: 40px 40px 32px;
+      }
+      .icon-wrap {
+        width: 56px;
+        height: 56px;
+        background: #eef2fb;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 24px;
+      }
+      .icon-wrap svg {
+        display: block;
+      }
+      h1 {
+        font-size: 22px;
+        font-weight: 700;
+        color: #113c8b;
+        text-align: center;
+        margin-bottom: 12px;
+        letter-spacing: -0.3px;
+      }
+      .subtitle {
+        text-align: center;
+        color: #5a6a8a;
+        font-size: 15px;
+        margin-bottom: 32px;
+      }
+      .cta-wrap {
         text-align: center;
         margin-bottom: 32px;
       }
-      .logo img {
-        height: 40px;
-      }
-      h1 {
-        font-size: 20px;
-        font-weight: 600;
-        margin: 0 0 12px;
-      }
-      p {
-        font-size: 15px;
-        line-height: 1.6;
-        color: #475569;
-        margin: 0 0 24px;
-      }
-      .button {
+      .cta {
         display: inline-block;
-        background: #2563eb;
+        background: #113c8b;
         color: #ffffff !important;
         text-decoration: none;
-        padding: 12px 28px;
-        border-radius: 8px;
         font-size: 15px;
-        font-weight: 500;
+        font-weight: 600;
+        padding: 14px 36px;
+        border-radius: 8px;
+        letter-spacing: 0.2px;
+        transition: background 0.2s;
+      }
+      .info-box {
+        background: #f8f9fc;
+        border: 1px solid #e8ecf4;
+        border-left: 3px solid #ad7f6a;
+        border-radius: 8px;
+        padding: 16px 20px;
+        margin-bottom: 24px;
+      }
+      .info-box p {
+        font-size: 14px;
+        color: #5a6a8a;
+        margin: 0;
+      }
+      .info-box strong {
+        color: #1a2744;
+      }
+      .divider {
+        border: none;
+        border-top: 1px solid #e8ecf4;
+        margin: 24px 0;
       }
       .footer {
-        margin-top: 32px;
+        padding: 0 40px 32px;
+        text-align: center;
+      }
+      .footer p {
         font-size: 13px;
         color: #94a3b8;
-        line-height: 1.5;
+        margin-bottom: 4px;
+      }
+      .footer a {
+        color: #ad7f6a;
+        text-decoration: none;
+      }
+      /* Fallback link */
+      .link-fallback {
+        font-size: 13px;
+        color: #94a3b8;
+        text-align: center;
+        word-break: break-all;
+      }
+      .link-fallback a {
+        color: #113c8b;
+      }
+      @media (max-width: 560px) {
+        .body,
+        .footer {
+          padding-left: 24px;
+          padding-right: 24px;
+        }
+        .header {
+          padding: 24px;
+        }
       }
     </style>
   </head>
   <body>
-    <div class="container">
-      <div class="logo">
-        <img
-          src="{{ .SiteURL }}/aviam_logo.svg"
-          alt="Aviam"
-        />
-      </div>
+    <div class="wrapper">
+      <div class="card">
+        <!-- Header -->
+        <div class="header">
+          <img
+            src="{{ .SiteURL }}/aviam_logo.svg"
+            alt="Aviam"
+          />
+        </div>
+        <div class="accent-strip"></div>
 
-      <h1>E-Mail-Adresse bestätigen</h1>
+        <!-- Body -->
+        <div class="body">
+          <!-- Icon -->
+          <div class="icon-wrap">
+            <svg
+              width="26"
+              height="26"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M20 4H4C2.9 4 2 4.9 2 6V18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V6C22 4.9 21.1 4 20 4Z"
+                stroke="#113c8b"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M22 6L12 13L2 6"
+                stroke="#ad7f6a"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
 
-      <p>
-        Vielen Dank für Ihre Registrierung. Bitte klicken Sie auf den
-        untenstehenden Button, um Ihre E-Mail-Adresse zu bestätigen.
-      </p>
+          <h1>E-Mail-Adresse bestätigen</h1>
+          <p class="subtitle">
+            Bitte bestätigen Sie Ihre E-Mail-Adresse, um Ihre Registrierung
+            abzuschließen.
+          </p>
 
-      <p>
-        <a
-          class="button"
-          href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=email"
-        >
-          E-Mail-Adresse bestätigen
-        </a>
-      </p>
+          <div class="cta-wrap">
+            <a
+              class="cta"
+              href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=email"
+            >
+              E-Mail-Adresse bestätigen
+            </a>
+          </div>
 
-      <p>
-        Nach der Bestätigung wird Ihr Konto von einem Administrator geprüft und
-        freigegeben. Sie erhalten keine weitere Benachrichtigung — bitte wenden
-        Sie sich direkt an Ihren Administrator.
-      </p>
+          <!-- Info box -->
+          <div class="info-box">
+            <p>
+              <strong>Wie geht es weiter?</strong><br />
+              Nach der Bestätigung wird Ihr Konto von einem Administrator
+              geprüft und freigegeben. Wenden Sie sich bei Fragen direkt an
+              Ihren Administrator.
+            </p>
+          </div>
 
-      <div class="footer">
-        <p>
-          Falls Sie diesen Link nicht angefordert haben, können Sie diese E-Mail
-          ignorieren.
-        </p>
-        <p>Dieser Link ist 24 Stunden gültig.</p>
+          <hr class="divider" />
+
+          <!-- Fallback link -->
+          <p class="link-fallback">
+            Button funktioniert nicht? Kopieren Sie diesen Link in Ihren
+            Browser:<br />
+            <a
+              href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=email"
+            >{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=email</a>
+          </p>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+          <p>
+            Sie haben sich nicht registriert? Diese E-Mail einfach ignorieren.
+          </p>
+          <p>Dieser Link ist <strong>24 Stunden</strong> gültig.</p>
+        </div>
       </div>
     </div>
   </body>
