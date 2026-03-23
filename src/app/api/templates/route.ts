@@ -54,6 +54,7 @@ export async function GET(_request: NextRequest) {
         )
       `,
       )
+      .or(`owner_id.eq.${user.id},is_public.eq.true`)
       .order("is_default", { ascending: false })
       .order("name");
 

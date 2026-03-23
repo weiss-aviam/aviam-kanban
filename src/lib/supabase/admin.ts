@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { randomBytes } from "crypto";
 
 /**
  * Create a Supabase client with service role key for admin operations
@@ -197,13 +198,7 @@ export function isValidEmail(email: string): boolean {
  * Generate a secure random token for invitations
  */
 export function generateInvitationToken(): string {
-  const chars =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  let result = "";
-  for (let i = 0; i < 32; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
+  return randomBytes(24).toString("base64url");
 }
 
 /**

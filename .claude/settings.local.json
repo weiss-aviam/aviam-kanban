@@ -23,7 +23,12 @@
       "Bash(find /Users/user/aviam/aviam-pm-kanban -name \"*.conf\" -o -name \"nginx*\" 2>/dev/null | grep -v node_modules | grep -v .next)",
       "Bash(pnpm remove:*)",
       "Bash(find /Users/user/aviam/aviam-pm-kanban/src -name provider* -o -name *provider* -o -name AppProvider*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(wc -l /Users/user/aviam/aviam-pm-kanban/src/app/api/cards/[id]/route.ts)",
+      "Bash(cat /Users/user/aviam/aviam-pm-kanban/src/app/api/cards/[id]/route.ts)",
+      "Bash(pnpm audit:*)",
+      "Bash(pnpm update:*)",
+      "Bash(pnpm install:*)"
     ]
   }
 }

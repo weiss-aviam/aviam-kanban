@@ -3,6 +3,15 @@ import path from "path";
 
 const FROM_ADDRESS = "kanban@aviam-projektentwicklung.de";
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
+}
+
 function readTemplate(filename: string): string {
   return fs.readFileSync(
     path.join(process.cwd(), "supabase", "templates", filename),
@@ -60,11 +69,11 @@ export async function sendNewUserPendingNotification(params: {
 
   let html = readTemplate("new-user-pending.html");
   html = html
-    .replaceAll("{{SITE_URL}}", siteUrl)
-    .replaceAll("{{USER_EMAIL}}", params.userEmail)
-    .replaceAll("{{USER_NAME}}", displayName)
-    .replaceAll("{{REGISTERED_AT}}", params.registeredAt)
-    .replaceAll("{{APPROVAL_URL}}", approvalUrl);
+    .replaceAll("{{SITE_URL}}", escapeHtml(siteUrl))
+    .replaceAll("{{USER_EMAIL}}", escapeHtml(params.userEmail))
+    .replaceAll("{{USER_NAME}}", escapeHtml(displayName))
+    .replaceAll("{{REGISTERED_AT}}", escapeHtml(params.registeredAt))
+    .replaceAll("{{APPROVAL_URL}}", escapeHtml(approvalUrl));
 
   await sendViaResend({
     to,
