@@ -59,66 +59,17 @@ print_info "Installing dependencies (including devDependencies for build)..."
 NODE_ENV=development pnpm install --frozen-lockfile
 print_success "Dependencies installed"
 
-# Step 2: Apply database migrations
-print_info "Checking for database migrations..."
-
-# Check if migration tracker exists and is valid before generating new migrations
-if [ ! -f ".migrations-applied.json" ]; then
-    print_info "Migration tracker not found, initializing..."
-    bash scripts/init-migrations.sh
-    if [ $? -eq 0 ]; then
-        print_success "Migration tracker initialized - all existing migrations marked as applied"
-    else
-        print_error "Failed to initialize migration tracker"
-        exit 1
-    fi
-elif ! node scripts/check-migration-tracker.js >/dev/null 2>&1; then
-    TRACKER_BACKUP=".migrations-applied.json.bak.$(date -u +"%Y%m%dT%H%M%SZ")"
-    print_info "Migration tracker is invalid, backing it up to $TRACKER_BACKUP"
-    mv .migrations-applied.json "$TRACKER_BACKUP"
-
-    print_info "Reinitializing migration tracker from current migration files..."
-    bash scripts/init-migrations.sh
-    if [ $? -eq 0 ]; then
-        print_success "Migration tracker reinitialized successfully"
-    else
-        print_error "Failed to reinitialize migration tracker"
-        exit 1
-    fi
-fi
-
-# Check if there are pending migrations
-if [ -d "src/db/migrations" ] && [ "$(ls -A src/db/migrations)" ]; then
-    print_info "Found migrations directory with files"
-
-    # Generate SQL from Drizzle schema
-    print_info "Generating migration SQL from Drizzle schema..."
-    pnpm db:generate
-
-    # Check if there are new migration files
-    MIGRATION_FILES=$(ls -t src/db/migrations/*.sql 2>/dev/null | head -1)
-    
-    if [ -n "$MIGRATION_FILES" ]; then
-        print_info "Latest migration file: $MIGRATION_FILES"
-        print_info "Applying migrations to Supabase..."
-        
-        # Apply migrations using a custom script
-        node scripts/apply-migrations.js
-        
-        print_success "Database migrations applied"
-    else
-        print_info "No new migrations to apply"
-    fi
-else
-    print_info "No migrations directory found, skipping migration step"
-fi
-
-# Step 3: Build the application
+# Step 2: Build the application
+# NOTE: Migrations are intentionally NOT run here.
+# Production and development share the same database. Migrations must be
+# applied manually by the developer BEFORE deploying using:
+#   node scripts/apply-migrations.js
+# Running them automatically during deployment risks data loss on a live DB.
 print_info "Building Next.js application..."
 pnpm build
 print_success "Application built successfully"
 
-# Step 4: Deploy with PM2
+# Step 3: Deploy with PM2
 print_info "Deploying with PM2..."
 
 # Check if PM2 process is already running
@@ -135,7 +86,7 @@ fi
 # Save PM2 process list
 pm2 save
 
-# Step 5: Show status
+# Step 4: Show status
 print_info "Deployment status:"
 pm2 status
 
