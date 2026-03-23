@@ -1,16 +1,39 @@
 "use client";
 
-import React from "react";
-import MDEditor from "@uiw/react-md-editor";
-import remarkGfm from "remark-gfm";
-import rehypeSanitize from "rehype-sanitize";
+import React, { useEffect } from "react";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import { Markdown } from "tiptap-markdown";
 import { cn } from "@/lib/utils";
 
 interface MarkdownViewerProps {
   content: string;
-  className?: string;
+  className?: string | undefined;
   compact?: boolean;
   maxLines?: number;
+}
+
+function TipTapViewer({
+  content,
+  className,
+}: {
+  content: string;
+  className?: string;
+}) {
+  const editor = useEditor({
+    extensions: [StarterKit, Markdown],
+    content,
+    editable: false,
+    immediatelyRender: false,
+  });
+
+  useEffect(() => {
+    if (editor) {
+      editor.commands.setContent(content);
+    }
+  }, [editor, content]);
+
+  return <EditorContent editor={editor} className={className} />;
 }
 
 export function MarkdownViewer({
@@ -19,7 +42,6 @@ export function MarkdownViewer({
   compact = false,
   maxLines,
 }: MarkdownViewerProps) {
-  // Handle empty or null content
   if (!content || content.trim() === "") {
     return (
       <div
@@ -34,81 +56,17 @@ export function MarkdownViewer({
     );
   }
 
-  const viewerClasses = cn(
-    "markdown-viewer",
-    compact && "markdown-viewer-compact",
-    maxLines && `line-clamp-${maxLines}`,
-    className,
-  );
-
   return (
-    <div className={viewerClasses}>
-      <MDEditor.Markdown
-        source={content}
-        style={{
-          backgroundColor: "transparent",
-          color: "inherit",
-          fontSize: compact ? "0.875rem" : "0.9rem",
-          lineHeight: compact ? "1.4" : "1.6",
-        }}
-        remarkPlugins={[remarkGfm]}
-        rehypePlugins={[
-          [
-            rehypeSanitize,
-            {
-              // Allow common HTML elements and attributes for safe rendering
-              tagNames: [
-                "h1",
-                "h2",
-                "h3",
-                "h4",
-                "h5",
-                "h6",
-                "p",
-                "br",
-                "hr",
-                "strong",
-                "em",
-                "u",
-                "s",
-                "del",
-                "ins",
-                "ul",
-                "ol",
-                "li",
-                "blockquote",
-                "code",
-                "pre",
-                "a",
-                "img",
-                "table",
-                "thead",
-                "tbody",
-                "tr",
-                "th",
-                "td",
-                "div",
-                "span",
-              ],
-              attributes: {
-                "*": ["className", "style"],
-                a: ["href", "title", "target", "rel"],
-                img: ["src", "alt", "title", "width", "height"],
-                code: ["className"],
-                pre: ["className"],
-                table: ["className"],
-                th: ["align"],
-                td: ["align"],
-              },
-              protocols: {
-                href: ["http", "https", "mailto"],
-                src: ["http", "https"],
-              },
-            },
-          ],
-        ]}
-      />
-    </div>
+    <TipTapViewer
+      content={content}
+      className={cn(
+        "markdown-viewer",
+        compact && "markdown-viewer-compact",
+        maxLines === 2 && "markdown-viewer-clamp-2",
+        maxLines === 3 && "markdown-viewer-clamp-3",
+        className,
+      )}
+    />
   );
 }
 
@@ -133,10 +91,9 @@ export function InlineMarkdownViewer({
   content,
   className,
 }: Omit<MarkdownViewerProps, "compact" | "maxLines">) {
-  // For inline viewing, strip markdown and show plain text
   const plainText = content
-    .replace(/[#*_`~\[\]()]/g, "") // Remove markdown characters
-    .replace(/\n/g, " ") // Replace newlines with spaces
+    .replace(/[#*_`~\[\]()]/g, "")
+    .replace(/\n/g, " ")
     .trim();
 
   if (!plainText) {
@@ -157,12 +114,7 @@ export function DetailedMarkdownViewer({
   content,
   className,
 }: Omit<MarkdownViewerProps, "compact" | "maxLines">) {
-  return (
-    <MarkdownViewer
-      content={content}
-      className={cn("prose prose-sm max-w-none", className)}
-    />
-  );
+  return <MarkdownViewer content={content} className={className} />;
 }
 
 // Utility function to extract plain text from markdown
@@ -183,14 +135,14 @@ export function extractPlainText(markdown: string, maxLength?: number): string {
 // Utility function to check if content has markdown formatting
 export function hasMarkdownFormatting(content: string): boolean {
   const markdownPatterns = [
-    /#{1,6}\s/, // Headers
-    /\*\*.*\*\*/, // Bold
-    /\*.*\*/, // Italic
-    /`.*`/, // Code
-    /\[.*\]\(.*\)/, // Links
-    /^[-*+]\s/m, // Lists
-    /^>\s/m, // Blockquotes
-    /```/, // Code blocks
+    /#{1,6}\s/,
+    /\*\*.*\*\*/,
+    /\*.*\*/,
+    /`.*`/,
+    /\[.*\]\(.*\)/,
+    /^[-*+]\s/m,
+    /^>\s/m,
+    /```/,
   ];
 
   return markdownPatterns.some((pattern) => pattern.test(content));

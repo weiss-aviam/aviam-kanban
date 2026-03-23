@@ -204,6 +204,27 @@
   padding: 0.5rem;
 }
 
+/* Line-clamp variants for compact viewer — applied to the inner ProseMirror div */
+.markdown-viewer-clamp-2 .ProseMirror {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.markdown-viewer-clamp-3 .ProseMirror {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+/* Compact ProseMirror viewer inherits font from the page (Barlow) */
+.markdown-viewer .ProseMirror {
+  font-family: inherit;
+  outline: none;
+}
+
 /* Context Menu Styling */
 .context-menu-content {
   min-width: 220px;
