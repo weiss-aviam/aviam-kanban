@@ -28,7 +28,8 @@
       "Bash(cat /Users/user/aviam/aviam-pm-kanban/src/app/api/cards/[id]/route.ts)",
       "Bash(pnpm audit:*)",
       "Bash(pnpm update:*)",
-      "Bash(pnpm install:*)"
+      "Bash(pnpm install:*)",
+      "Bash(find /Users/user/aviam/aviam-pm-kanban/src -name *.test.ts* -o -name *.spec.ts*)"
     ]
   }
 }

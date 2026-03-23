@@ -15,6 +15,7 @@ const {
   readMigrationTracker,
   writeMigrationTracker,
 } = require("./migration-tracker");
+const { checkMigrationsDir } = require("./check-migrations");
 
 // Load environment variables
 // Try .env first (production), then .env.local (development)
@@ -58,9 +59,19 @@ function markMigrationApplied(filename) {
 
 // Main migration function
 async function applyMigrations() {
-  console.log("🔍 Checking for pending migrations...\n");
-
+  // ── Safety check: block any migration that would destroy user data ─────────
   const migrationsDir = path.join(__dirname, "../src/db/migrations");
+  const violations = checkMigrationsDir(migrationsDir);
+  if (violations.length > 0) {
+    console.error("❌ Deployment blocked by migration safety check.\n");
+    console.error(
+      "   Run `node scripts/check-migrations.js` for full details.\n",
+    );
+    process.exit(1);
+  }
+  // ──────────────────────────────────────────────────────────────────────────
+
+  console.log("🔍 Checking for pending migrations...\n");
 
   if (!fs.existsSync(migrationsDir)) {
     console.log("ℹ️  No migrations directory found");

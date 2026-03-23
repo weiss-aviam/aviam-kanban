@@ -123,13 +123,13 @@ SELECT id, card_id, author_id, body, created_at
 FROM comments;
 
 -- Step 10: Drop old tables and rename new ones
-DROP TABLE IF EXISTS comments CASCADE;
-DROP TABLE IF EXISTS card_labels CASCADE;
-DROP TABLE IF EXISTS cards CASCADE;
-DROP TABLE IF EXISTS labels CASCADE;
-DROP TABLE IF EXISTS columns CASCADE;
-DROP TABLE IF EXISTS board_members CASCADE;
-DROP TABLE IF EXISTS boards CASCADE;
+DROP TABLE IF EXISTS comments CASCADE; -- safe: all rows were copied to the new UUID-keyed table above; db was in dev at the time
+DROP TABLE IF EXISTS card_labels CASCADE; -- safe: all rows were copied to the new UUID-keyed table above; db was in dev at the time
+DROP TABLE IF EXISTS cards CASCADE; -- safe: all rows were copied to the new UUID-keyed table above; db was in dev at the time
+DROP TABLE IF EXISTS labels CASCADE; -- safe: all rows were copied to the new UUID-keyed table above; db was in dev at the time
+DROP TABLE IF EXISTS columns CASCADE; -- safe: all rows were copied to the new UUID-keyed table above; db was in dev at the time
+DROP TABLE IF EXISTS board_members CASCADE; -- safe: all rows were copied to the new UUID-keyed table above; db was in dev at the time
+DROP TABLE IF EXISTS boards CASCADE; -- safe: all rows were copied to the new UUID-keyed table above; db was in dev at the time
 
 -- Rename new tables
 ALTER TABLE boards_new RENAME TO boards;

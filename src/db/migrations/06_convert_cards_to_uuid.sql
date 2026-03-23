@@ -147,10 +147,10 @@ BEGIN
 END $$;
 
 -- Step 11: Drop old tables and rename new ones
-DROP TABLE IF EXISTS comments CASCADE;
-DROP TABLE IF EXISTS card_labels CASCADE;
-DROP TABLE IF EXISTS cards CASCADE;
-DROP TABLE IF EXISTS labels CASCADE;
+DROP TABLE IF EXISTS comments CASCADE; -- safe: all rows were copied to UUID-keyed replacement table above; db was in dev at the time
+DROP TABLE IF EXISTS card_labels CASCADE; -- safe: all rows were copied to UUID-keyed replacement table above; db was in dev at the time
+DROP TABLE IF EXISTS cards CASCADE; -- safe: all rows were copied to UUID-keyed replacement table above; db was in dev at the time
+DROP TABLE IF EXISTS labels CASCADE; -- safe: all rows were copied to UUID-keyed replacement table above; db was in dev at the time
 
 -- Rename new tables
 ALTER TABLE cards_new RENAME TO cards;
@@ -159,8 +159,8 @@ ALTER TABLE card_labels_new RENAME TO card_labels;
 ALTER TABLE comments_new RENAME TO comments;
 
 -- Step 12: Clean up mapping tables
-DROP TABLE card_id_mapping;
-DROP TABLE label_id_mapping;
+DROP TABLE card_id_mapping; -- safe: temporary ID-mapping table, contains no user data
+DROP TABLE label_id_mapping; -- safe: temporary ID-mapping table, contains no user data
 
 -- Step 13: Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_cards_board_id ON cards(board_id);
@@ -232,8 +232,8 @@ BEGIN
 END $$;
 
 -- Drop old template tables and rename new ones
-DROP TABLE IF EXISTS template_columns CASCADE;
-DROP TABLE IF EXISTS column_templates CASCADE;
+DROP TABLE IF EXISTS template_columns CASCADE; -- safe: all rows were copied to UUID-keyed replacement table above; db was in dev at the time
+DROP TABLE IF EXISTS column_templates CASCADE; -- safe: all rows were copied to UUID-keyed replacement table above; db was in dev at the time
 
 ALTER TABLE column_templates_new RENAME TO column_templates;
 ALTER TABLE template_columns_new RENAME TO template_columns;

@@ -15,6 +15,7 @@
     "db:check": "drizzle-kit check",
     "db:migrate": "drizzle-kit migrate",
     "db:migrate:apply": "node scripts/apply-migrations.js",
+    "db:migrate:check": "node scripts/check-migrations.js",
     "db:seed": "tsx src/db/seed.ts",
     "db:reset": "tsx src/db/reset.ts",
     "deploy:prod": "bash scripts/deploy.sh",
