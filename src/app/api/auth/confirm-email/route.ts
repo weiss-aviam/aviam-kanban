@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sendNewUserPendingNotification } from "@/lib/mailer";
 
 // How long to ban pending-approval users (same as deactivation duration).
 const PENDING_BAN_DURATION = "876600h";
@@ -50,6 +51,23 @@ export async function POST() {
         ban_duration: PENDING_BAN_DURATION,
         app_metadata: { status: "pending" },
       });
+
+      // Notify superadmin — fire-and-forget, never block the response.
+      const registeredAt = new Date().toLocaleString("de-DE", {
+        timeZone: "Europe/Berlin",
+        dateStyle: "long",
+        timeStyle: "short",
+      });
+      sendNewUserPendingNotification({
+        userEmail: user.email ?? "",
+        userName: (user.user_metadata?.name as string | null) ?? null,
+        registeredAt,
+      }).catch((err) =>
+        console.error(
+          "[confirm-email] Failed to send superadmin notification:",
+          err,
+        ),
+      );
 
       return NextResponse.json({ status: "pending" });
     }

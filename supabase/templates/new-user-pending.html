@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="de" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Neue Registrierung – Freigabe erforderlich</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background-color: #eef2f7;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        font-size: 15px;
+        line-height: 1.6;
+        color: #1a2744;
+        -webkit-font-smoothing: antialiased;
+      }
+      .wrapper {
+        padding: 48px 16px;
+      }
+      .card {
+        max-width: 540px;
+        margin: 0 auto;
+        background: #ffffff;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 8px 40px rgba(17, 60, 139, 0.10);
+      }
+
+      /* ── Header ─────────────────────────────────────────────────────────── */
+      .header {
+        background: linear-gradient(140deg, #0d3278 0%, #1a52b8 60%, #2563cc 100%);
+        padding: 36px 44px 32px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+      }
+      /* Subtle geometric background shape */
+      .header::before {
+        content: "";
+        position: absolute;
+        top: -40px;
+        right: -40px;
+        width: 180px;
+        height: 180px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.05);
+      }
+      .header::after {
+        content: "";
+        position: absolute;
+        bottom: -60px;
+        left: -30px;
+        width: 220px;
+        height: 220px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.04);
+      }
+      .header img {
+        height: 38px;
+        display: inline-block;
+        position: relative;
+        z-index: 1;
+      }
+      .header-badge {
+        display: inline-block;
+        margin-top: 14px;
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        border-radius: 100px;
+        padding: 4px 14px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.90);
+        position: relative;
+        z-index: 1;
+      }
+
+      /* ── Accent strip ───────────────────────────────────────────────────── */
+      .accent-strip {
+        height: 3px;
+        background: linear-gradient(90deg, #ad7f6a 0%, #c9a08a 50%, #ad7f6a 100%);
+      }
+
+      /* ── Body ───────────────────────────────────────────────────────────── */
+      .body {
+        padding: 44px 44px 36px;
+      }
+
+      /* Alert icon row */
+      .alert-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 28px;
+      }
+      .alert-icon {
+        flex-shrink: 0;
+        width: 52px;
+        height: 52px;
+        background: linear-gradient(135deg, #fff4ee 0%, #ffeade 100%);
+        border: 1.5px solid #f0d5c0;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .alert-text h1 {
+        font-size: 20px;
+        font-weight: 700;
+        color: #0d3278;
+        letter-spacing: -0.4px;
+        margin-bottom: 2px;
+        text-align: left;
+      }
+      .alert-text p {
+        font-size: 13.5px;
+        color: #6b7fa3;
+        text-align: left;
+      }
+
+      /* ── User info card ─────────────────────────────────────────────────── */
+      .user-card {
+        background: #f7f9fd;
+        border: 1px solid #dde4f0;
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 28px;
+      }
+      .user-card-header {
+        background: #eef2fb;
+        border-bottom: 1px solid #dde4f0;
+        padding: 10px 20px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.9px;
+        color: #7a90bb;
+      }
+      .user-card-body {
+        padding: 20px;
+      }
+      .user-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 9px 0;
+        border-bottom: 1px solid #edf0f7;
+        font-size: 14px;
+      }
+      .user-row:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+      }
+      .user-row:first-child {
+        padding-top: 0;
+      }
+      .user-row-icon {
+        margin-top: 1px;
+        flex-shrink: 0;
+        opacity: 0.45;
+      }
+      .user-row-label {
+        min-width: 90px;
+        color: #8899bb;
+        font-size: 13px;
+        flex-shrink: 0;
+      }
+      .user-row-value {
+        color: #1a2744;
+        font-weight: 500;
+        word-break: break-all;
+      }
+
+      /* ── CTA button ─────────────────────────────────────────────────────── */
+      .cta-wrap {
+        text-align: center;
+        margin-bottom: 28px;
+      }
+      .cta {
+        display: inline-block;
+        background: linear-gradient(135deg, #113c8b 0%, #1a52b8 100%);
+        color: #ffffff !important;
+        text-decoration: none;
+        font-size: 15px;
+        font-weight: 600;
+        padding: 14px 40px;
+        border-radius: 10px;
+        letter-spacing: 0.1px;
+        box-shadow: 0 4px 16px rgba(17, 60, 139, 0.30);
+      }
+
+      /* ── Info note ──────────────────────────────────────────────────────── */
+      .info-note {
+        display: flex;
+        gap: 12px;
+        background: #fffaf7;
+        border: 1px solid #f0dfd0;
+        border-radius: 10px;
+        padding: 14px 18px;
+        margin-bottom: 28px;
+      }
+      .info-note-icon {
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+      .info-note p {
+        font-size: 13px;
+        color: #8a6a54;
+        line-height: 1.5;
+      }
+
+      /* ── Divider ────────────────────────────────────────────────────────── */
+      .divider {
+        border: none;
+        border-top: 1px solid #e8ecf6;
+        margin: 0 0 22px;
+      }
+
+      /* ── Fallback link ──────────────────────────────────────────────────── */
+      .fallback {
+        font-size: 12px;
+        color: #a0aabf;
+        text-align: center;
+        word-break: break-all;
+        line-height: 1.6;
+      }
+      .fallback a {
+        color: #113c8b;
+        text-decoration: none;
+      }
+
+      /* ── Footer ─────────────────────────────────────────────────────────── */
+      .footer {
+        background: #f7f9fd;
+        border-top: 1px solid #e8ecf6;
+        padding: 20px 44px;
+        text-align: center;
+      }
+      .footer p {
+        font-size: 12px;
+        color: #a0aabf;
+        line-height: 1.6;
+      }
+
+      @media (max-width: 580px) {
+        .body,
+        .footer {
+          padding-left: 24px;
+          padding-right: 24px;
+        }
+        .header {
+          padding: 28px 24px;
+        }
+        .alert-row {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 10px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="card">
+
+        <!-- ── Header ──────────────────────────────────────────────────── -->
+        <div class="header">
+          <img src="{{SITE_URL}}/aviam_logo_white.svg" alt="Aviam"
+               onerror="this.style.display='none'" />
+          <div class="header-badge">Super-Admin &middot; Benachrichtigung</div>
+        </div>
+        <div class="accent-strip"></div>
+
+        <!-- ── Body ────────────────────────────────────────────────────── -->
+        <div class="body">
+
+          <!-- Alert row -->
+          <div class="alert-row">
+            <div class="alert-icon">
+              <!-- user-clock icon -->
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
+                   xmlns="http://www.w3.org/2000/svg">
+                <path d="M16 11C16 13.2091 14.2091 15 12 15C9.79086 15 8 13.2091 8 11C8 8.79086 9.79086 7 12 7C14.2091 7 16 8.79086 16 11Z"
+                      stroke="#ad7f6a" stroke-width="1.8"
+                      stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M5.5 19.5C5.5 17.567 8.46243 16 12 16"
+                      stroke="#ad7f6a" stroke-width="1.8"
+                      stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="18.5" cy="18.5" r="3.5" stroke="#113c8b"
+                        stroke-width="1.5"/>
+                <path d="M18.5 17V18.5L19.5 19.5"
+                      stroke="#113c8b" stroke-width="1.3"
+                      stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="alert-text">
+              <h1>Neue Registrierung</h1>
+              <p>Ein Benutzer wartet auf Ihre Freigabe</p>
+            </div>
+          </div>
+
+          <!-- User info card -->
+          <div class="user-card">
+            <div class="user-card-header">Benutzerdetails</div>
+            <div class="user-card-body">
+
+              <div class="user-row">
+                <span class="user-row-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                       xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="8" r="4" stroke="#1a2744" stroke-width="2"
+                            stroke-linecap="round"/>
+                    <path d="M4 20C4 17.7909 7.58172 16 12 16C16.4183 16 20 17.7909 20 20"
+                          stroke="#1a2744" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                </span>
+                <span class="user-row-label">Name</span>
+                <span class="user-row-value">{{USER_NAME}}</span>
+              </div>
+
+              <div class="user-row">
+                <span class="user-row-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                       xmlns="http://www.w3.org/2000/svg">
+                    <rect x="2" y="4" width="20" height="16" rx="3"
+                          stroke="#1a2744" stroke-width="2"/>
+                    <path d="M2 8L12 14L22 8"
+                          stroke="#1a2744" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                </span>
+                <span class="user-row-label">E-Mail</span>
+                <span class="user-row-value">{{USER_EMAIL}}</span>
+              </div>
+
+              <div class="user-row">
+                <span class="user-row-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                       xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="9" stroke="#1a2744" stroke-width="2"/>
+                    <path d="M12 7V12L15 15"
+                          stroke="#1a2744" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                </span>
+                <span class="user-row-label">Registriert</span>
+                <span class="user-row-value">{{REGISTERED_AT}}</span>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- CTA -->
+          <div class="cta-wrap">
+            <a class="cta" href="{{APPROVAL_URL}}">
+              Jetzt freigeben oder ablehnen
+            </a>
+          </div>
+
+          <!-- Info note -->
+          <div class="info-note">
+            <span class="info-note-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                   xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="9" stroke="#ad7f6a" stroke-width="1.8"/>
+                <path d="M12 8V12" stroke="#ad7f6a" stroke-width="2"
+                      stroke-linecap="round"/>
+                <circle cx="12" cy="15.5" r="0.75" fill="#ad7f6a"/>
+              </svg>
+            </span>
+            <p>
+              Der Benutzer kann sich erst anmelden, nachdem Sie sein Konto
+              freigeschaltet haben. Melden Sie sich als Super-Administrator an,
+              um die Registrierung zu überprüfen.
+            </p>
+          </div>
+
+          <hr class="divider" />
+
+          <!-- Fallback link -->
+          <p class="fallback">
+            Button funktioniert nicht?<br />
+            <a href="{{APPROVAL_URL}}">{{APPROVAL_URL}}</a>
+          </p>
+
+        </div><!-- /body -->
+
+        <!-- ── Footer ──────────────────────────────────────────────────── -->
+        <div class="footer">
+          <p>
+            Diese automatische Benachrichtigung wurde vom
+            Aviam&nbsp;Kanban&#8209;System gesendet.<br />
+            kanban@aviam&#8209;projektentwicklung.de
+          </p>
+        </div>
+
+      </div><!-- /card -->
+    </div><!-- /wrapper -->
+  </body>
+</html>

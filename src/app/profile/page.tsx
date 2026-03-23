@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createClient } from "../../lib/supabase/client";
 import { AppHeader } from "../../components/layout/AppHeader";
+import { HeaderMenu } from "../../components/layout/HeaderMenu";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
@@ -203,11 +203,7 @@ export default function ProfilePage() {
       <AppHeader
         title={t("profile.title")}
         subtitle={t("profile.subtitle")}
-        actions={
-          <Button asChild variant="outline" size="sm">
-            <Link href="/dashboard">{t("profile.dashboard")}</Link>
-          </Button>
-        }
+        actions={<HeaderMenu />}
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

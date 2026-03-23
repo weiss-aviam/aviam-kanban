@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import {
@@ -14,39 +13,26 @@ import {
   Archive,
   Star,
 } from "lucide-react";
-import { createClient } from "../../lib/supabase/client";
 import { CreateBoardDialog } from "../../components/boards/CreateBoardDialog";
 import { EditBoardDialog } from "../../components/boards/EditBoardDialog";
 import { DeleteBoardDialog } from "../../components/boards/DeleteBoardDialog";
 import { BoardCard, BoardCardData } from "../../components/boards/BoardCard";
-import type { User as UserType } from "@supabase/supabase-js";
 import type { Board, BoardWithDetails } from "../../types/database";
 import { AppHeader } from "../../components/layout/AppHeader";
 import { HeaderMenu } from "../../components/layout/HeaderMenu";
 import { t } from "../../lib/i18n";
-
-interface BoardsPageState {
-  boards: BoardWithDetails[];
-  filteredBoards: BoardWithDetails[];
-  isLoading: boolean;
-  user: UserType | null;
-  searchQuery: string;
-  viewMode: "grid" | "list";
-  filterBy: "all" | "owned" | "member" | "archived";
-}
+import { useBoards, useAppActions } from "../../store";
 
 export default function BoardsPage() {
-  const router = useRouter();
-  const [state, setState] = useState<BoardsPageState>({
-    boards: [],
-    filteredBoards: [],
-    isLoading: true,
-    user: null,
-    searchQuery: "",
-    viewMode: "grid",
-    filterBy: "all",
-  });
-
+  const boards = useBoards();
+  const { fetchBoards, addBoard, removeBoard, updateBoardInList } =
+    useAppActions();
+  const [isFetching, setIsFetching] = useState(boards.length === 0);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [filterBy, setFilterBy] = useState<
+    "all" | "owned" | "member" | "archived"
+  >("all");
   const [_showCreateBoard, setShowCreateBoard] = useState(false);
   const [editingBoard, setEditingBoard] = useState<BoardWithDetails | null>(
     null,
@@ -56,64 +42,20 @@ export default function BoardsPage() {
   );
 
   useEffect(() => {
-    checkAuth();
-    fetchBoards();
+    fetchBoards().then(() => setIsFetching(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    filterBoards();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.boards, state.searchQuery, state.filterBy]);
-
-  const checkAuth = async () => {
-    const supabase = createClient();
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser();
-
-    if (error || !user) {
-      router.push("/auth/login");
-      return;
-    }
-
-    setState((prev) => ({ ...prev, user }));
-  };
-
-  const fetchBoards = async () => {
-    try {
-      const response = await fetch("/api/boards");
-      if (response.ok) {
-        const boards = await response.json();
-        setState((prev) => ({
-          ...prev,
-          ...boards,
-          isLoading: false,
-        }));
-      }
-    } catch (error) {
-      console.error("Error fetching boards:", error);
-      setState((prev) => ({ ...prev, isLoading: false }));
-    }
-  };
-
-  const filterBoards = () => {
-    let filtered = [...state.boards];
-
-    // Apply search filter
-    if (state.searchQuery) {
+  const filteredBoards = useMemo(() => {
+    let filtered = [...boards];
+    if (searchQuery) {
       filtered = filtered.filter(
         (board) =>
-          board.name.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
-          board.description
-            ?.toLowerCase()
-            .includes(state.searchQuery.toLowerCase()),
+          board.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          board.description?.toLowerCase().includes(searchQuery.toLowerCase()),
       );
     }
-
-    // Apply role filter
-    switch (state.filterBy) {
+    switch (filterBy) {
       case "owned":
         filtered = filtered.filter((board) => board.role === "owner");
         break;
@@ -125,25 +67,12 @@ export default function BoardsPage() {
       case "archived":
         filtered = filtered.filter((board) => board.isArchived);
         break;
-      default:
-        // 'all' - no additional filtering
-        break;
     }
-
-    setState((prev) => ({ ...prev, filteredBoards: filtered }));
-  };
-
-  const _handleSignOut = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/");
-  };
+    return filtered;
+  }, [boards, searchQuery, filterBy]);
 
   const handleBoardCreated = (newBoard: Board) => {
-    setState((prev) => ({
-      ...prev,
-      boards: [newBoard as BoardWithDetails, ...prev.boards],
-    }));
+    addBoard(newBoard as BoardWithDetails);
     setShowCreateBoard(false);
   };
 
@@ -152,18 +81,11 @@ export default function BoardsPage() {
     name: string;
     description?: string | null;
   }) => {
-    setState((prev) => ({
-      ...prev,
-      boards: prev.boards.map((board) =>
-        board.id === updated.id
-          ? {
-              ...board,
-              name: updated.name,
-              description: updated.description ?? null,
-            }
-          : board,
-      ),
-    }));
+    updateBoardInList({
+      id: updated.id,
+      name: updated.name,
+      description: updated.description ?? null,
+    });
     setEditingBoard(null);
   };
 
@@ -176,12 +98,7 @@ export default function BoardsPage() {
       });
       if (!res.ok) throw new Error("Failed to archive board");
       const { board: updated } = await res.json();
-      setState((prev) => ({
-        ...prev,
-        boards: prev.boards.map((b) =>
-          b.id === updated.id ? { ...b, isArchived: updated.isArchived } : b,
-        ),
-      }));
+      updateBoardInList({ id: updated.id, isArchived: updated.isArchived });
     } catch (err) {
       console.error("Archive board failed:", err);
     }
@@ -193,16 +110,12 @@ export default function BoardsPage() {
 
   const handleDeleteConfirmed = async () => {
     if (!deletingBoard) return;
-
     try {
       const res = await fetch(`/api/boards/${deletingBoard.id}`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error("Failed to delete board");
-      setState((prev) => ({
-        ...prev,
-        boards: prev.boards.filter((b) => b.id !== deletingBoard.id),
-      }));
+      removeBoard(deletingBoard.id);
       setDeletingBoard(null);
     } catch (err) {
       console.error("Delete board failed:", err);
@@ -211,22 +124,20 @@ export default function BoardsPage() {
   };
 
   const getFilterCount = (filter: string) => {
-    console.log(state);
     switch (filter) {
       case "owned":
-        return state.boards?.filter((b) => b.role === "owner").length;
+        return boards.filter((b) => b.role === "owner").length;
       case "member":
-        return state.boards?.filter(
-          (b) => b.role === "member" || b.role === "admin",
-        ).length;
+        return boards.filter((b) => b.role === "member" || b.role === "admin")
+          .length;
       case "archived":
-        return state.boards?.filter((b) => b.isArchived).length;
+        return boards.filter((b) => b.isArchived).length;
       default:
-        return state.boards?.length;
+        return boards.length;
     }
   };
 
-  if (state.isLoading) {
+  if (isFetching) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -255,13 +166,8 @@ export default function BoardsPage() {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
                   placeholder={t("boardsPage.searchPlaceholder")}
-                  value={state.searchQuery}
-                  onChange={(e) =>
-                    setState((prev) => ({
-                      ...prev,
-                      searchQuery: e.target.value,
-                    }))
-                  }
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
                 />
               </div>
@@ -290,17 +196,12 @@ export default function BoardsPage() {
                 ].map(({ key, label, icon: Icon }) => (
                   <Button
                     key={key}
-                    variant={state.filterBy === key ? "default" : "ghost"}
+                    variant={filterBy === key ? "default" : "ghost"}
                     size="sm"
                     onClick={() =>
-                      setState((prev) => ({
-                        ...prev,
-                        filterBy: key as
-                          | "all"
-                          | "owned"
-                          | "member"
-                          | "archived",
-                      }))
+                      setFilterBy(
+                        key as "all" | "owned" | "member" | "archived",
+                      )
                     }
                     className="text-xs"
                   >
@@ -313,20 +214,16 @@ export default function BoardsPage() {
               {/* View Mode Toggle */}
               <div className="flex items-center space-x-1 bg-white rounded-lg border p-1">
                 <Button
-                  variant={state.viewMode === "grid" ? "default" : "ghost"}
+                  variant={viewMode === "grid" ? "default" : "ghost"}
                   size="sm"
-                  onClick={() =>
-                    setState((prev) => ({ ...prev, viewMode: "grid" }))
-                  }
+                  onClick={() => setViewMode("grid")}
                 >
                   <Grid className="w-4 h-4" />
                 </Button>
                 <Button
-                  variant={state.viewMode === "list" ? "default" : "ghost"}
+                  variant={viewMode === "list" ? "default" : "ghost"}
                   size="sm"
-                  onClick={() =>
-                    setState((prev) => ({ ...prev, viewMode: "list" }))
-                  }
+                  onClick={() => setViewMode("list")}
                 >
                   <List className="w-4 h-4" />
                 </Button>
@@ -347,26 +244,26 @@ export default function BoardsPage() {
         </div>
 
         {/* Boards Content */}
-        {state.filteredBoards.length === 0 ? (
+        {filteredBoards.length === 0 ? (
           <div className="text-center py-12">
             <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-              {state.searchQuery || state.filterBy !== "all" ? (
+              {searchQuery || filterBy !== "all" ? (
                 <Search className="w-12 h-12 text-gray-400" />
               ) : (
                 <Plus className="w-12 h-12 text-gray-400" />
               )}
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {state.searchQuery || state.filterBy !== "all"
+              {searchQuery || filterBy !== "all"
                 ? t("boardsPage.noBoardsFound")
                 : t("boardsPage.noBoardsYet")}
             </h3>
             <p className="text-gray-600 mb-6">
-              {state.searchQuery || state.filterBy !== "all"
+              {searchQuery || filterBy !== "all"
                 ? t("boardsPage.tryFilters")
                 : t("boardsPage.getStarted")}
             </p>
-            {!state.searchQuery && state.filterBy === "all" && (
+            {!searchQuery && filterBy === "all" && (
               <CreateBoardDialog
                 onBoardCreated={handleBoardCreated}
                 trigger={
@@ -381,16 +278,16 @@ export default function BoardsPage() {
         ) : (
           <div
             className={
-              state.viewMode === "grid"
+              viewMode === "grid"
                 ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
                 : "space-y-4"
             }
           >
-            {state.filteredBoards.map((board) => (
+            {filteredBoards.map((board) => (
               <BoardCard
                 key={board.id}
                 board={board as unknown as BoardCardData}
-                viewMode={state.viewMode}
+                viewMode={viewMode}
                 onEdit={() => setEditingBoard(board)}
                 onArchive={() => handleArchiveBoard(board)}
                 onDelete={() => handleDeleteBoard(board)}

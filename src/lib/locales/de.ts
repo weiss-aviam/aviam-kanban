@@ -659,7 +659,11 @@ export const de = {
     userColumn: "Benutzer",
     createdColumn: "Registriert",
     deactivatedColumn: "Deaktiviert",
+    lastSeenColumn: "Zuletzt aktiv",
     actionsColumn: "Aktionen",
+    neverSeen: "Noch nie aktiv",
+    onlineNow: "Gerade online",
+    lastSeenPrefix: "Vor",
     // Actions
     approveButton: "Freigeben",
     rejectButton: "Ablehnen",

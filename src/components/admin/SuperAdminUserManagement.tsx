@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatRelativeDate } from "@/lib/date-format";
 import { t } from "@/lib/i18n";
+import { useOnlineUserIds } from "@/store";
 import {
   Check,
   Loader2,
@@ -46,6 +47,7 @@ interface ManagedUser {
   name: string | null;
   createdAt: string;
   status: UserStatus | "unconfirmed";
+  lastSeenAt: string | null;
 }
 
 interface PaginationState {
@@ -449,6 +451,7 @@ function UserTable({
   onPurge,
   actionLoading,
   emptyMessage,
+  onlineUserIds,
 }: {
   users: ManagedUser[];
   loading: boolean;
@@ -463,8 +466,9 @@ function UserTable({
   onPurge?: (user: ManagedUser) => void;
   actionLoading: string | null;
   emptyMessage: string;
+  onlineUserIds: Set<string>;
 }) {
-  const colSpan = 3;
+  const colSpan = status === "active" ? 4 : 3;
   return (
     <div className="space-y-4">
       <div className="overflow-hidden rounded-lg border bg-white">
@@ -479,6 +483,11 @@ function UserTable({
                   ? t("superAdmin.deactivatedColumn")
                   : t("superAdmin.createdColumn")}
               </th>
+              {status === "active" && (
+                <th className="px-4 py-3 font-medium">
+                  {t("superAdmin.lastSeenColumn")}
+                </th>
+              )}
               <th className="px-4 py-3 font-medium">
                 {t("superAdmin.actionsColumn")}
               </th>
@@ -510,19 +519,54 @@ function UserTable({
               users.map((user) => (
                 <tr key={user.id} className="hover:bg-gray-50">
                   <td className="px-4 py-4">
-                    <div className="font-medium text-gray-900">
-                      {user.name || t("superAdmin.unnamedUser")}
+                    <div className="flex items-center gap-2">
+                      {onlineUserIds.has(user.id) ? (
+                        <span
+                          className="relative flex h-2.5 w-2.5 flex-shrink-0"
+                          title={t("superAdmin.onlineNow")}
+                        >
+                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+                          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500" />
+                        </span>
+                      ) : (
+                        <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full bg-gray-200" />
+                      )}
+                      <div>
+                        <div className="font-medium text-gray-900">
+                          {user.name || t("superAdmin.unnamedUser")}
+                        </div>
+                        <div className="text-gray-500 text-xs">
+                          {user.email}
+                        </div>
+                        {user.status === "unconfirmed" && (
+                          <span className="mt-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                            {t("superAdmin.emailNotConfirmed")}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-gray-500 text-xs">{user.email}</div>
-                    {user.status === "unconfirmed" && (
-                      <span className="mt-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
-                        {t("superAdmin.emailNotConfirmed")}
-                      </span>
-                    )}
                   </td>
                   <td className="px-4 py-4 text-gray-600 text-sm">
                     {formatRelativeDate(user.createdAt)}
                   </td>
+                  {status === "active" && (
+                    <td className="px-4 py-4 text-sm">
+                      {onlineUserIds.has(user.id) ? (
+                        <span className="font-medium text-green-600">
+                          {t("superAdmin.onlineNow")}
+                        </span>
+                      ) : user.lastSeenAt ? (
+                        <span className="text-gray-600">
+                          {t("superAdmin.lastSeenPrefix")}{" "}
+                          {formatRelativeDate(user.lastSeenAt)}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400">
+                          {t("superAdmin.neverSeen")}
+                        </span>
+                      )}
+                    </td>
+                  )}
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-2 flex-wrap">
                       {status === "pending" && (
@@ -720,6 +764,12 @@ export function SuperAdminUserManagement() {
   const active = useUserTab("active");
   const deactivated = useUserTab("deactivated");
 
+  const onlineUserIdsArray = useOnlineUserIds();
+  const onlineSet = useMemo(
+    () => new Set(onlineUserIdsArray),
+    [onlineUserIdsArray],
+  );
+
   const [activeTab, setActiveTab] = useState<UserStatus>("pending");
   const [editingUser, setEditingUser] = useState<ManagedUser | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -737,11 +787,23 @@ export function SuperAdminUserManagement() {
         ? active
         : deactivated;
 
+  // Fetch all three tabs on mount so every count badge is visible immediately.
+  useEffect(() => {
+    void Promise.all([
+      pending.refresh(),
+      active.refresh(),
+      deactivated.refresh(),
+    ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Re-fetch current tab when switching tabs.
   useEffect(() => {
     void currentTab.refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
+  // Re-fetch current tab when search/sort/page changes.
   useEffect(() => {
     void currentTab.refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -907,6 +969,7 @@ export function SuperAdminUserManagement() {
                 }
                 actionLoading={actionLoading}
                 emptyMessage={t("superAdmin.noPendingUsers")}
+                onlineUserIds={onlineSet}
               />
             </TabsContent>
 
@@ -929,6 +992,7 @@ export function SuperAdminUserManagement() {
                 }
                 actionLoading={actionLoading}
                 emptyMessage={t("superAdmin.noUsersFound")}
+                onlineUserIds={onlineSet}
               />
             </TabsContent>
 
@@ -949,6 +1013,7 @@ export function SuperAdminUserManagement() {
                 onPurge={setPurgeUser}
                 actionLoading={actionLoading}
                 emptyMessage={t("superAdmin.noDeactivatedUsers")}
+                onlineUserIds={onlineSet}
               />
             </TabsContent>
           </Tabs>

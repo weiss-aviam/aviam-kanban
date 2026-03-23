@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "../../components/ui/button";
 import {
   Card,
@@ -11,82 +10,41 @@ import {
 } from "../../components/ui/card";
 // import { Badge } from '../../components/ui/badge';
 import { Kanban, Plus, Users, Calendar } from "lucide-react";
-import { createClient } from "../../lib/supabase/client";
 import { CreateBoardDialog } from "../../components/boards/CreateBoardDialog";
 import { EditBoardDialog } from "../../components/boards/EditBoardDialog";
 import { BoardCard } from "../../components/boards/BoardCard";
 import { AppHeader } from "../../components/layout/AppHeader";
 import { HeaderMenu } from "../../components/layout/HeaderMenu";
 import { t } from "../../lib/i18n";
+import { useBoards, useActiveTaskCount, useAppActions } from "../../store";
+import type { BoardWithDetails } from "../../types/database";
 
-interface Board {
-  id: string;
-  name: string;
-  isArchived: boolean;
-  createdAt: string;
-  ownerId: string;
-  role: "owner" | "admin" | "member" | "viewer";
-  description?: string | null;
-  updatedAt?: string | null;
-  memberCount?: number;
-  taskCount?: number;
-}
+type Board = BoardWithDetails;
 
 export default function DashboardPage() {
-  const [boards, setBoards] = useState<Board[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isBoardsLoading, setIsBoardsLoading] = useState(false);
-  const [activeTaskCount, setActiveTaskCount] = useState<number | null>(null);
+  const boards = useBoards();
+  const activeTaskCount = useActiveTaskCount();
+  const {
+    fetchBoards,
+    fetchDashboardStats,
+    setBoards,
+    addBoard,
+    removeBoard,
+    updateBoardInList,
+  } = useAppActions();
+  const [isFetching, setIsFetching] = useState(boards.length === 0);
   const [editingBoard, setEditingBoard] = useState<Board | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const router = useRouter();
-  const supabase = createClient();
-
-  const fetchBoards = async () => {
-    setIsBoardsLoading(true);
-    try {
-      const [boardsRes, statsRes] = await Promise.all([
-        fetch("/api/boards"),
-        fetch("/api/dashboard/stats"),
-      ]);
-      if (boardsRes.ok) {
-        const { boards } = await boardsRes.json();
-        setBoards(boards);
-      }
-      if (statsRes.ok) {
-        const { activeTaskCount } = await statsRes.json();
-        setActiveTaskCount(activeTaskCount);
-      }
-    } catch (error) {
-      console.error("Error fetching dashboard data:", error);
-    } finally {
-      setIsBoardsLoading(false);
-    }
-  };
 
   useEffect(() => {
-    const getUser = async () => {
-      const {
-        data: { user },
-        error,
-      } = await supabase.auth.getUser();
-      if (error || !user) {
-        router.push("/auth/login");
-        return;
-      }
-      setIsLoading(false);
-
-      // Fetch boards after user is loaded
-      await fetchBoards();
+    const load = async () => {
+      await Promise.all([fetchBoards(), fetchDashboardStats()]);
+      setIsFetching(false);
     };
-
-    getUser();
-  }, [router, supabase.auth]);
-
-  const _handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push("/");
-  };
+    void load();
+    // fetchBoards/fetchDashboardStats are stable Zustand actions
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleBoardCreated = (newBoard: {
     id: string;
@@ -95,7 +53,7 @@ export default function DashboardPage() {
     ownerId: string;
     isArchived: boolean;
   }) => {
-    setBoards((prev) => [newBoard as unknown as Board, ...prev]);
+    addBoard(newBoard as unknown as Board);
   };
 
   const handleBoardUpdated = (updated: {
@@ -103,17 +61,11 @@ export default function DashboardPage() {
     name: string;
     description?: string | null;
   }) => {
-    setBoards((prev) =>
-      prev.map((board) =>
-        board.id === updated.id
-          ? {
-              ...board,
-              name: updated.name,
-              description: updated.description ?? null,
-            }
-          : board,
-      ),
-    );
+    updateBoardInList({
+      id: updated.id,
+      name: updated.name,
+      description: updated.description ?? null,
+    });
   };
 
   const handleEditBoard = (board: Board) => {
@@ -125,15 +77,12 @@ export default function DashboardPage() {
     try {
       const response = await fetch(`/api/boards/${board.id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isArchived: !board.isArchived }),
       });
-
       if (response.ok) {
         const { board: updatedBoard } = await response.json();
-        handleBoardUpdated(updatedBoard);
+        updateBoardInList(updatedBoard);
       }
     } catch (error) {
       console.error("Error archiving board:", error);
@@ -144,21 +93,19 @@ export default function DashboardPage() {
     if (!confirm(t("dashboard.deleteBoardConfirm", { name: board.name }))) {
       return;
     }
-
     try {
       const response = await fetch(`/api/boards/${board.id}`, {
         method: "DELETE",
       });
-
-      if (response.ok) {
-        setBoards((prev) => prev.filter((b) => b.id !== board.id));
-      }
+      if (response.ok) removeBoard(board.id);
     } catch (error) {
       console.error("Error deleting board:", error);
     }
   };
 
-  if (isLoading) {
+  void setBoards; // available for force-refresh if needed
+
+  if (isFetching) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -180,7 +127,7 @@ export default function DashboardPage() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Section — only shown when user has no boards */}
-        {!isBoardsLoading && boards.length === 0 && (
+        {boards.length === 0 && (
           <div className="mb-8">
             <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-6 text-white">
               <h2 className="text-2xl font-bold mb-2">
@@ -282,20 +229,7 @@ export default function DashboardPage() {
             />
           </div>
 
-          {isBoardsLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[...Array(3)].map((_, i) => (
-                <Card key={i} className="animate-pulse">
-                  <CardHeader>
-                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : boards.length === 0 ? (
+          {boards.length === 0 ? (
             /* Empty State */
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
@@ -323,7 +257,9 @@ export default function DashboardPage() {
               {boards.map((board) => (
                 <BoardCard
                   key={board.id}
-                  board={board}
+                  board={
+                    board as unknown as Parameters<typeof BoardCard>[0]["board"]
+                  }
                   onEdit={() => handleEditBoard(board)}
                   onArchive={() => handleArchiveBoard(board)}
                   onDelete={() => handleDeleteBoard(board)}

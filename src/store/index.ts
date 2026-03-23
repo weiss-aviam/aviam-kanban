@@ -32,6 +32,11 @@ export interface AppState {
 
   // Board management
   boards: BoardWithDetails[];
+  boardsFetchedAt: Date | null;
+  activeTaskCount: number | null;
+
+  // Global presence — user IDs currently online
+  onlineUserIds: string[];
 
   // Real-time updates
   lastUpdated: Date | null;
@@ -74,6 +79,13 @@ export interface AppActions {
   setBoards: (boards: BoardWithDetails[]) => void;
   addBoard: (board: BoardWithDetails) => void;
   removeBoard: (boardId: string) => void;
+  /** Updates a board in the boards list only — does NOT touch currentBoard. */
+  updateBoardInList: (
+    partial: Pick<BoardWithDetails, "id"> & Partial<BoardWithDetails>,
+  ) => void;
+  fetchBoards: (force?: boolean) => Promise<void>;
+  fetchDashboardStats: (force?: boolean) => Promise<void>;
+  setOnlineUserIds: (ids: string[]) => void;
 
   // Utility actions
   reset: () => void;
@@ -82,6 +94,8 @@ export interface AppActions {
 
 // Combined store type
 export type AppStore = AppState & AppActions;
+
+const BOARDS_STALE_MS = 30_000; // treat boards as fresh for 30 seconds
 
 // Initial state
 const initialState: AppState = {
@@ -93,6 +107,9 @@ const initialState: AppState = {
   isLoading: false,
   error: null,
   boards: [],
+  boardsFetchedAt: null,
+  activeTaskCount: null,
+  onlineUserIds: [],
   lastUpdated: null,
 };
 
@@ -361,6 +378,63 @@ export const useAppStore = create<AppStore>()(
             }
           }),
 
+        updateBoardInList: (partial) =>
+          set((state) => {
+            const index = state.boards.findIndex((b) => b.id === partial.id);
+            if (index !== -1) {
+              state.boards[index] = { ...state.boards[index]!, ...partial };
+            }
+          }),
+
+        fetchBoards: async (force = false) => {
+          const { boardsFetchedAt } = get();
+          if (
+            !force &&
+            boardsFetchedAt &&
+            Date.now() - boardsFetchedAt.getTime() < BOARDS_STALE_MS
+          ) {
+            return; // data is fresh, skip fetch
+          }
+          try {
+            const res = await fetch("/api/boards");
+            if (!res.ok) return;
+            const { boards } = await res.json();
+            set((state) => {
+              state.boards = boards;
+              state.boardsFetchedAt = new Date();
+            });
+          } catch {
+            // silently ignore — keep stale data
+          }
+        },
+
+        fetchDashboardStats: async (force = false) => {
+          const { boardsFetchedAt } = get();
+          // piggyback on the same staleness window
+          if (
+            !force &&
+            boardsFetchedAt &&
+            Date.now() - boardsFetchedAt.getTime() < BOARDS_STALE_MS
+          ) {
+            return;
+          }
+          try {
+            const res = await fetch("/api/dashboard/stats");
+            if (!res.ok) return;
+            const { activeTaskCount } = await res.json();
+            set((state) => {
+              state.activeTaskCount = activeTaskCount;
+            });
+          } catch {
+            // silently ignore
+          }
+        },
+
+        setOnlineUserIds: (ids) =>
+          set((state) => {
+            state.onlineUserIds = ids;
+          }),
+
         // Utility actions
         reset: () => set(() => ({ ...initialState })),
 
@@ -409,6 +483,12 @@ export const useUserRole = () => useAppStore((state) => state.userRole);
 export const useIsLoading = () => useAppStore((state) => state.isLoading);
 export const useError = () => useAppStore((state) => state.error);
 export const useBoards = () => useAppStore((state) => state.boards);
+export const useBoardsFetchedAt = () =>
+  useAppStore((state) => state.boardsFetchedAt);
+export const useActiveTaskCount = () =>
+  useAppStore((state) => state.activeTaskCount);
+export const useOnlineUserIds = () =>
+  useAppStore((state) => state.onlineUserIds);
 
 // Combined state selector with stable reference
 export const useAppState = () => {
@@ -468,6 +548,10 @@ export const useAppActions = () => {
   const setBoards = useAppStore((s) => s.setBoards);
   const addBoard = useAppStore((s) => s.addBoard);
   const removeBoard = useAppStore((s) => s.removeBoard);
+  const updateBoardInList = useAppStore((s) => s.updateBoardInList);
+  const fetchBoards = useAppStore((s) => s.fetchBoards);
+  const fetchDashboardStats = useAppStore((s) => s.fetchDashboardStats);
+  const setOnlineUserIds = useAppStore((s) => s.setOnlineUserIds);
   const reset = useAppStore((s) => s.reset);
   const refreshBoard = useAppStore((s) => s.refreshBoard);
 
@@ -492,6 +576,10 @@ export const useAppActions = () => {
       setBoards,
       addBoard,
       removeBoard,
+      updateBoardInList,
+      fetchBoards,
+      fetchDashboardStats,
+      setOnlineUserIds,
       reset,
       refreshBoard,
     }),
@@ -515,6 +603,10 @@ export const useAppActions = () => {
       setBoards,
       addBoard,
       removeBoard,
+      updateBoardInList,
+      fetchBoards,
+      fetchDashboardStats,
+      setOnlineUserIds,
       reset,
       refreshBoard,
     ],

@@ -47,13 +47,11 @@ export async function POST(_request: NextRequest) {
         );
       }
     } else {
-      // User exists, update profile if needed
+      // User exists — only update last_seen_at (name/email are managed by the
+      // profile page and the auth trigger; overwriting here would undo user edits).
       const { error: updateError } = await supabase
         .from("users")
-        .update({
-          email: user.email || "",
-          name: user.user_metadata?.name || user.email?.split("@")[0] || "User",
-        })
+        .update({ last_seen_at: new Date().toISOString() })
         .eq("id", user.id);
 
       if (updateError) {

@@ -87,6 +87,14 @@ async function pushTemplates() {
   console.log("✅ Email templates pushed successfully.");
   console.log("   • Confirmation email — supabase/templates/confirmation.html");
   console.log("   • Recovery email     — supabase/templates/recovery.html");
+  console.log("");
+  console.log(
+    "ℹ️  Note: supabase/templates/new-user-pending.html is sent by the app",
+  );
+  console.log(
+    "   via Resend — not pushed to Supabase auth. Add RESEND_API_KEY and",
+  );
+  console.log("   SUPERADMIN_EMAIL to .env.local to enable notifications.");
 }
 
 pushTemplates().catch((err) => {

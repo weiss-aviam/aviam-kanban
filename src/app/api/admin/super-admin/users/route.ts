@@ -23,6 +23,7 @@ type UserRow = {
   name: string | null;
   created_at: string;
   status: string;
+  last_seen_at: string | null;
 };
 
 function getAuthErrorResponse(error: unknown) {
@@ -64,7 +65,9 @@ export async function GET(request: NextRequest) {
 
     let query = adminClient
       .from("users")
-      .select("id, email, name, created_at, status", { count: "exact" });
+      .select("id, email, name, created_at, status, last_seen_at", {
+        count: "exact",
+      });
 
     if (search) {
       query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`);
@@ -100,6 +103,7 @@ export async function GET(request: NextRequest) {
       name: user.name,
       createdAt: user.created_at,
       status: user.status ?? "active",
+      lastSeenAt: user.last_seen_at ?? null,
     }));
 
     return NextResponse.json({
