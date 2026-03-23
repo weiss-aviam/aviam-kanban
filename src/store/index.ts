@@ -9,6 +9,28 @@ import type {
   BoardMemberRole,
 } from "@/types/database";
 
+// ── Notification types ────────────────────────────────────────────────────────
+export type NotificationType =
+  | "mention"
+  | "comment_on_assigned"
+  | "deadline_change"
+  | "file_upload"
+  | "card_assigned"
+  | "board_member_added";
+
+export type NotificationItem = {
+  id: string;
+  type: NotificationType;
+  metadata: Record<string, unknown>;
+  readAt: string | null;
+  createdAt: string;
+  actor: { id: string; name: string | null; avatarUrl: string | null } | null;
+  card: { id: string; title: string } | null;
+  board: { id: string; name: string } | null;
+};
+
+const NOTIFICATIONS_STALE_MS = 60_000;
+
 // Canonical card/column types derived from BoardWithDetails
 type BoardColumn = BoardWithDetails["columns"][number];
 type BoardCard = BoardColumn["cards"][number];
@@ -40,6 +62,11 @@ export interface AppState {
 
   // Real-time updates
   lastUpdated: Date | null;
+
+  // Notifications
+  notifications: NotificationItem[];
+  notificationsUnreadCount: number;
+  notificationsFetchedAt: Date | null;
 }
 
 // Actions interface
@@ -87,6 +114,14 @@ export interface AppActions {
   fetchDashboardStats: (force?: boolean) => Promise<void>;
   setOnlineUserIds: (ids: string[]) => void;
 
+  // Notification actions
+  setNotifications: (items: NotificationItem[], unreadCount: number) => void;
+  prependNotification: (item: NotificationItem) => void;
+  markNotificationRead: (id: string) => void;
+  markAllNotificationsRead: () => void;
+  deleteNotification: (id: string) => void;
+  fetchNotifications: (force?: boolean) => Promise<void>;
+
   // Utility actions
   reset: () => void;
   refreshBoard: () => Promise<void>;
@@ -111,6 +146,9 @@ const initialState: AppState = {
   activeTaskCount: null,
   onlineUserIds: [],
   lastUpdated: null,
+  notifications: [],
+  notificationsUnreadCount: 0,
+  notificationsFetchedAt: null,
 };
 
 // Create the store with middleware
@@ -435,6 +473,82 @@ export const useAppStore = create<AppStore>()(
             state.onlineUserIds = ids;
           }),
 
+        // Notification actions
+        setNotifications: (items, unreadCount) =>
+          set((state) => {
+            state.notifications = items;
+            state.notificationsUnreadCount = unreadCount;
+            state.notificationsFetchedAt = new Date();
+          }),
+
+        prependNotification: (item) =>
+          set((state) => {
+            state.notifications.unshift(item);
+            if (!item.readAt) {
+              state.notificationsUnreadCount += 1;
+            }
+          }),
+
+        markNotificationRead: (id) =>
+          set((state) => {
+            const notif = state.notifications.find((n) => n.id === id);
+            if (notif && !notif.readAt) {
+              notif.readAt = new Date().toISOString();
+              state.notificationsUnreadCount = Math.max(
+                0,
+                state.notificationsUnreadCount - 1,
+              );
+            }
+          }),
+
+        markAllNotificationsRead: () =>
+          set((state) => {
+            const now = new Date().toISOString();
+            for (const n of state.notifications) {
+              if (!n.readAt) n.readAt = now;
+            }
+            state.notificationsUnreadCount = 0;
+          }),
+
+        deleteNotification: (id) =>
+          set((state) => {
+            const idx = state.notifications.findIndex((n) => n.id === id);
+            if (idx !== -1) {
+              const notif = state.notifications[idx];
+              if (notif && !notif.readAt) {
+                state.notificationsUnreadCount = Math.max(
+                  0,
+                  state.notificationsUnreadCount - 1,
+                );
+              }
+              state.notifications.splice(idx, 1);
+            }
+          }),
+
+        fetchNotifications: async (force = false) => {
+          const { notificationsFetchedAt } = get();
+          if (
+            !force &&
+            notificationsFetchedAt &&
+            Date.now() - notificationsFetchedAt.getTime() <
+              NOTIFICATIONS_STALE_MS
+          ) {
+            return;
+          }
+          try {
+            const res = await fetch("/api/notifications");
+            if (!res.ok) return;
+            const { notifications, unreadCount } = await res.json();
+            set((state) => {
+              state.notifications = notifications;
+              state.notificationsUnreadCount = unreadCount;
+              state.notificationsFetchedAt = new Date();
+            });
+          } catch {
+            // silently ignore — keep stale data
+          }
+        },
+
         // Utility actions
         reset: () => set(() => ({ ...initialState })),
 
@@ -489,6 +603,12 @@ export const useActiveTaskCount = () =>
   useAppStore((state) => state.activeTaskCount);
 export const useOnlineUserIds = () =>
   useAppStore((state) => state.onlineUserIds);
+export const useNotifications = () =>
+  useAppStore((state) => state.notifications);
+export const useNotificationsUnreadCount = () =>
+  useAppStore((state) => state.notificationsUnreadCount);
+export const useNotificationsFetchedAt = () =>
+  useAppStore((state) => state.notificationsFetchedAt);
 
 // Combined state selector with stable reference
 export const useAppState = () => {
@@ -554,6 +674,14 @@ export const useAppActions = () => {
   const setOnlineUserIds = useAppStore((s) => s.setOnlineUserIds);
   const reset = useAppStore((s) => s.reset);
   const refreshBoard = useAppStore((s) => s.refreshBoard);
+  const setNotifications = useAppStore((s) => s.setNotifications);
+  const prependNotification = useAppStore((s) => s.prependNotification);
+  const markNotificationRead = useAppStore((s) => s.markNotificationRead);
+  const markAllNotificationsRead = useAppStore(
+    (s) => s.markAllNotificationsRead,
+  );
+  const deleteNotification = useAppStore((s) => s.deleteNotification);
+  const fetchNotifications = useAppStore((s) => s.fetchNotifications);
 
   return useMemo(
     () => ({
@@ -582,6 +710,12 @@ export const useAppActions = () => {
       setOnlineUserIds,
       reset,
       refreshBoard,
+      setNotifications,
+      prependNotification,
+      markNotificationRead,
+      markAllNotificationsRead,
+      deleteNotification,
+      fetchNotifications,
     }),
     [
       setUser,
@@ -609,6 +743,12 @@ export const useAppActions = () => {
       setOnlineUserIds,
       reset,
       refreshBoard,
+      setNotifications,
+      prependNotification,
+      markNotificationRead,
+      markAllNotificationsRead,
+      deleteNotification,
+      fetchNotifications,
     ],
   );
 };

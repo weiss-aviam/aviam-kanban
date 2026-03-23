@@ -14,7 +14,7 @@ import { CreateBoardDialog } from "../../components/boards/CreateBoardDialog";
 import { EditBoardDialog } from "../../components/boards/EditBoardDialog";
 import { BoardCard } from "../../components/boards/BoardCard";
 import { AppHeader } from "../../components/layout/AppHeader";
-import { HeaderMenu } from "../../components/layout/HeaderMenu";
+import { HeaderActions } from "../../components/layout/HeaderActions";
 import { t } from "../../lib/i18n";
 import { useBoards, useActiveTaskCount, useAppActions } from "../../store";
 import type { BoardWithDetails } from "../../types/database";
@@ -121,7 +121,7 @@ export default function DashboardPage() {
       <AppHeader
         title={t("dashboard.title")}
         subtitle={t("dashboard.subtitle")}
-        actions={<HeaderMenu />}
+        actions={<HeaderActions />}
       />
 
       {/* Main Content */}

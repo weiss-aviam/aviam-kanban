@@ -11,6 +11,7 @@ import {
   adminAuditLog,
   userInvitations,
   cardDeadlineRequests,
+  notifications,
 } from "@/db/schema";
 
 // Select types (for reading from database)
@@ -25,6 +26,7 @@ export type Comment = InferSelectModel<typeof comments>;
 export type AdminAuditLog = InferSelectModel<typeof adminAuditLog>;
 export type UserInvitation = InferSelectModel<typeof userInvitations>;
 export type CardDeadlineRequest = InferSelectModel<typeof cardDeadlineRequests>;
+export type Notification = InferSelectModel<typeof notifications>;
 
 // Insert types (for creating new records)
 export type NewUser = InferInsertModel<typeof users>;

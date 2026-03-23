@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import {
   Dialog,
@@ -54,8 +54,11 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { MarkdownEditor } from "@/components/ui/markdown-editor";
 import { PrioritySelector } from "@/components/ui/priority-selector";
 import { getUserInitials, getUserAvatarColor } from "@/lib/role-colors";
-import { createClient as createSupabaseClient } from "@/lib/supabase/client";
 import { DeadlineSection } from "./DeadlineSection";
+import {
+  MentionTextarea,
+  type MentionTextareaRef,
+} from "@/components/ui/MentionTextarea";
 
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -335,6 +338,7 @@ export function EditCardDialog({
   const [uploading, setUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const mentionTextareaRef = useRef<MentionTextareaRef>(null);
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
   // Initialize form from card when editing, or defaults when creating.
@@ -386,50 +390,12 @@ export function EditCardDialog({
     const fetchAttachments = async () => {
       if (!open || !card) return;
       try {
-        const supabase = createSupabaseClient();
-        const { data, error } = await supabase.storage
-          .from("card-attachments")
-          .list(card.id, {
-            limit: 100,
-            sortBy: { column: "created_at", order: "desc" },
-          });
-        if (!error && data) {
-          const resolveUrl = async (path: string) => {
-            const { data, error } = await supabase.storage
-              .from("card-attachments")
-              .download(path);
-            if (error) throw error;
-            return URL.createObjectURL(data);
-          };
-          const files = await Promise.all(
-            data.map(
-              async (f: {
-                name: string;
-                created_at: string;
-                metadata?: { size?: number };
-              }) => {
-                const path = `${card.id}/${f.name}`;
-                const url = await resolveUrl(path);
-                return {
-                  name: f.name,
-                  path,
-                  url,
-                  createdAt: f.created_at,
-                  size: f.metadata?.size,
-                };
-              },
-            ),
-          );
-          setAttachments((prev) => {
-            try {
-              prev.forEach((a) => URL.revokeObjectURL(a.url));
-            } catch {}
-            return files;
-          });
-        } else if (error) {
-          setError(
-            getEditCardAttachmentErrorMessage(error, "failedToLoadAttachments"),
-          );
+        const res = await fetch(`/api/cards/${card.id}/attachments`);
+        if (res.ok) {
+          const { attachments: files } = await res.json();
+          setAttachments(files ?? []);
+        } else {
+          setError(t("kanban.failedToLoadAttachments"));
         }
       } catch (error: unknown) {
         setError(
@@ -441,31 +407,41 @@ export function EditCardDialog({
     fetchAttachments();
   }, [open, card]);
 
-  const handleSubmitComment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!card || !commentBody.trim()) return;
-    try {
-      setCommentsLoading(true);
-      const res = await fetch("/api/comments", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cardId: card.id, body: commentBody.trim() }),
-      });
-      if (res.ok) {
-        const created = await res.json();
-        setComments((prev) => [
-          ...prev,
-          { ...created, id: String(created.id) },
-        ]);
-        setCommentBody("");
-      } else {
-        const err = await res.json();
-        setError(err.error || t("editCard.failedToAddComment"));
+  const handleSubmitComment = useCallback(
+    async (e?: React.FormEvent) => {
+      e?.preventDefault();
+      if (!card || !commentBody.trim()) return;
+      const mentionedUserIds =
+        mentionTextareaRef.current?.getMentionedUserIds() ?? [];
+      try {
+        setCommentsLoading(true);
+        const res = await fetch("/api/comments", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cardId: card.id,
+            body: commentBody.trim(),
+            mentionedUserIds,
+          }),
+        });
+        if (res.ok) {
+          const created = await res.json();
+          setComments((prev) => [
+            ...prev,
+            { ...created, id: String(created.id) },
+          ]);
+          setCommentBody("");
+          mentionTextareaRef.current?.reset();
+        } else {
+          const err = await res.json();
+          setError(err.error || t("editCard.failedToAddComment"));
+        }
+      } finally {
+        setCommentsLoading(false);
       }
-    } finally {
-      setCommentsLoading(false);
-    }
-  };
+    },
+    [card, commentBody],
+  );
 
   const handleStartEditComment = (comment: CommentItem) => {
     setEditingCommentId(comment.id);
@@ -530,88 +506,55 @@ export function EditCardDialog({
   };
 
   // Attachment refresh helper
-  const refreshAttachments = async (cardId: string) => {
-    const supabase = createSupabaseClient();
-    const { data, error: listErr } = await supabase.storage
-      .from("card-attachments")
-      .list(cardId, {
-        limit: 100,
-        sortBy: { column: "created_at", order: "desc" },
-      });
-    if (listErr) {
-      setError(
-        getEditCardAttachmentErrorMessage(listErr, "failedToLoadAttachments"),
-      );
-      return;
+  const refreshAttachments = useCallback(async (cardId: string) => {
+    const res = await fetch(`/api/cards/${cardId}/attachments`);
+    if (res.ok) {
+      const { attachments: files } = await res.json();
+      setAttachments(files ?? []);
+    } else {
+      setError(t("kanban.failedToLoadAttachments"));
     }
-    if (!data) return;
-    const resolveUrl = async (path: string) => {
-      const { data, error } = await supabase.storage
-        .from("card-attachments")
-        .download(path);
-      if (error) throw error;
-      return URL.createObjectURL(data);
-    };
-    const filesOut = await Promise.all(
-      data.map(
-        async (f: {
-          name: string;
-          created_at: string;
-          metadata?: { size?: number };
-        }) => {
-          const p = `${cardId}/${f.name}`;
-          const url = await resolveUrl(p);
-          return {
-            name: f.name,
-            path: p,
-            url,
-            createdAt: f.created_at,
-            size: f.metadata?.size,
-          };
-        },
-      ),
-    );
-    setAttachments((prev) => {
-      try {
-        prev.forEach((a) => URL.revokeObjectURL(a.url));
-      } catch {}
-      return filesOut;
-    });
-  };
+  }, []);
 
-  const handleUploadFiles = async (files: FileList | null) => {
-    if (!card || !files || files.length === 0) return;
-    const supabase = createSupabaseClient();
-    setUploading(true);
-    try {
-      const filesArr = Array.from(files);
-      const oversized = filesArr.filter((f) => f.size > MAX_FILE_SIZE);
-      if (oversized.length > 0) {
-        setError(
-          t("kanban.fileTooLarge", {
-            files: oversized.map((f) => f.name).join(", "),
-          }),
-        );
-      }
-      for (const file of filesArr) {
-        if (file.size > MAX_FILE_SIZE) continue;
-        const safeName = `${Date.now()}_${file.name}`;
-        const path = `${card.id}/${safeName}`;
-        const { error } = await supabase.storage
-          .from("card-attachments")
-          .upload(path, file, { upsert: false, cacheControl: "3600" });
-        if (error) {
-          setError(getEditCardAttachmentErrorMessage(error, "failedToUpload"));
-          break;
+  const handleUploadFiles = useCallback(
+    async (files: FileList | null) => {
+      if (!card || !files || files.length === 0) return;
+      setUploading(true);
+      try {
+        const filesArr = Array.from(files);
+        const oversized = filesArr.filter((f) => f.size > MAX_FILE_SIZE);
+        if (oversized.length > 0) {
+          setError(
+            t("kanban.fileTooLarge", {
+              files: oversized.map((f) => f.name).join(", "),
+            }),
+          );
         }
+        for (const file of filesArr) {
+          if (file.size > MAX_FILE_SIZE) continue;
+          const formData = new FormData();
+          formData.append("file", file);
+          const res = await fetch(`/api/cards/${card.id}/attachments`, {
+            method: "POST",
+            body: formData,
+          });
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            setError(
+              (err as { error?: string }).error ?? t("kanban.failedToUpload"),
+            );
+            break;
+          }
+        }
+        await refreshAttachments(card.id);
+      } catch (e: unknown) {
+        setError(getEditCardAttachmentErrorMessage(e, "failedToUpload"));
+      } finally {
+        setUploading(false);
       }
-      await refreshAttachments(card.id);
-    } catch (e: unknown) {
-      setError(getEditCardAttachmentErrorMessage(e, "failedToUpload"));
-    } finally {
-      setUploading(false);
-    }
-  };
+    },
+    [card, MAX_FILE_SIZE, refreshAttachments],
+  );
 
   const handleFileInputClick = () => fileInputRef.current?.click();
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -636,26 +579,30 @@ export function EditCardDialog({
     handleUploadFiles(e.dataTransfer.files);
   };
 
-  const handleDeleteAttachment = async (path: string) => {
-    if (!card) return;
-    const supabase = createSupabaseClient();
-    setUploading(true);
-    try {
-      const { error: removeErr } = await supabase.storage
-        .from("card-attachments")
-        .remove([path]);
-      if (removeErr) {
-        setError(
-          getEditCardAttachmentErrorMessage(removeErr, "failedToDelete"),
+  const handleDeleteAttachment = useCallback(
+    async (path: string) => {
+      if (!card) return;
+      setUploading(true);
+      try {
+        const res = await fetch(
+          `/api/cards/${card.id}/attachments?path=${encodeURIComponent(path)}`,
+          { method: "DELETE" },
         );
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          setError(
+            (err as { error?: string }).error ?? t("kanban.failedToDelete"),
+          );
+        }
+        await refreshAttachments(card.id);
+      } catch (e: unknown) {
+        setError(getEditCardAttachmentErrorMessage(e, "failedToDelete"));
+      } finally {
+        setUploading(false);
       }
-      await refreshAttachments(card.id);
-    } catch (e: unknown) {
-      setError(getEditCardAttachmentErrorMessage(e, "failedToDelete"));
-    } finally {
-      setUploading(false);
-    }
-  };
+    },
+    [card, refreshAttachments],
+  );
 
   const handleSubmit = async (values: CardFormValues) => {
     setIsLoading(true);
@@ -761,12 +708,7 @@ export function EditCardDialog({
     setError("");
     setEditingCommentId(null);
     setEditingCommentBody("");
-    setAttachments((prev) => {
-      try {
-        prev.forEach((a) => URL.revokeObjectURL(a.url));
-      } catch {}
-      return [];
-    });
+    setAttachments([]);
     onOpenChange(false);
   };
 
@@ -1237,9 +1179,19 @@ export function EditCardDialog({
                               </div>
                             ) : (
                               <div>
-                                <p className="mt-1.5 text-sm whitespace-pre-wrap break-words">
-                                  {c.body}
-                                </p>
+                                <p
+                                  className="mt-1.5 text-sm whitespace-pre-wrap break-words"
+                                  dangerouslySetInnerHTML={{
+                                    __html: c.body
+                                      .replace(/&/g, "&amp;")
+                                      .replace(/</g, "&lt;")
+                                      .replace(/>/g, "&gt;")
+                                      .replace(
+                                        /@([\w.]+)/g,
+                                        '<span class="mention-highlight">@$1</span>',
+                                      ),
+                                  }}
+                                />
                                 {c.editedAt && (
                                   <p className="mt-1 text-xs text-muted-foreground italic">
                                     {t("editCard.commentEdited")} ·{" "}
@@ -1257,24 +1209,21 @@ export function EditCardDialog({
                   {/* New comment input */}
                   {!isViewer && (
                     <div className="flex items-start gap-3 pt-2">
-                      <Input
-                        placeholder={t("editCard.commentPlaceholder")}
-                        value={commentBody}
-                        onChange={(e) => setCommentBody(e.target.value)}
-                        disabled={commentsLoading || isLoading || isDeleting}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && !e.shiftKey) {
-                            e.preventDefault();
-                            void handleSubmitComment(
-                              e as unknown as React.FormEvent,
-                            );
-                          }
-                        }}
-                      />
+                      <div className="flex-1">
+                        <MentionTextarea
+                          ref={mentionTextareaRef}
+                          value={commentBody}
+                          onChange={setCommentBody}
+                          boardMembers={boardMembers}
+                          placeholder={t("editCard.commentMentionPlaceholder")}
+                          disabled={commentsLoading || isLoading || isDeleting}
+                          onSubmit={() => void handleSubmitComment()}
+                        />
+                      </div>
                       <Button
                         type="button"
                         size="sm"
-                        onClick={handleSubmitComment}
+                        onClick={() => void handleSubmitComment()}
                         disabled={
                           !commentBody.trim() ||
                           commentsLoading ||

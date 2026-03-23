@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "../../../lib/supabase/server";
+import { createAdminClient } from "../../../lib/supabase/admin";
+import { createNotifications } from "../../../lib/notifications";
 import { z } from "zod";
 
 const createCommentSchema = z.object({
@@ -8,6 +10,7 @@ const createCommentSchema = z.object({
     .string()
     .min(1, "Comment body is required")
     .max(1000, "Comment too long"),
+  mentionedUserIds: z.array(z.string().uuid()).max(20).optional().default([]),
 });
 
 export async function POST(request: NextRequest) {
@@ -35,12 +38,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { cardId, body: commentBody } = validation.data;
+    const { cardId, body: commentBody, mentionedUserIds } = validation.data;
 
     // Verify the card exists and user has access (using Supabase RLS)
     const { data: card, error: cardError } = await supabase
       .from("cards")
-      .select("id, board_id")
+      .select("id, board_id, assignee_id")
       .eq("id", cardId)
       .single();
 
@@ -102,6 +105,58 @@ export async function POST(request: NextRequest) {
         };
       })(),
     };
+
+    // ── Notifications (non-throwing) ──────────────────────────────────────
+    const notifRows: Parameters<typeof createNotifications>[1] = [];
+
+    // 1. Notify card assignee about the new comment (unless they wrote it)
+    const assigneeId = (card as { assignee_id?: string | null }).assignee_id;
+    if (assigneeId && assigneeId !== user.id) {
+      notifRows.push({
+        user_id: assigneeId,
+        type: "comment_on_assigned",
+        actor_id: user.id,
+        card_id: cardId,
+        board_id: card.board_id,
+        metadata: {
+          commentId: newComment.id,
+          commentExcerpt: commentBody.slice(0, 120),
+        },
+      });
+    }
+
+    // 2. Notify each valid @mentioned board member (skip self-mentions)
+    if (mentionedUserIds.length > 0) {
+      // Validate that each mentioned user is actually a board member
+      const { data: members } = await supabase
+        .from("board_members")
+        .select("user_id")
+        .eq("board_id", card.board_id)
+        .in("user_id", mentionedUserIds);
+
+      const validMentionedIds = new Set((members ?? []).map((m) => m.user_id));
+
+      for (const mentionedId of mentionedUserIds) {
+        if (mentionedId === user.id) continue; // skip self
+        if (!validMentionedIds.has(mentionedId)) continue; // not a board member
+        // Avoid duplicate if assignee was already notified above
+        if (mentionedId === assigneeId) continue;
+        notifRows.push({
+          user_id: mentionedId,
+          type: "mention",
+          actor_id: user.id,
+          card_id: cardId,
+          board_id: card.board_id,
+          metadata: {
+            commentId: newComment.id,
+            commentExcerpt: commentBody.slice(0, 120),
+          },
+        });
+      }
+    }
+
+    await createNotifications(createAdminClient(), notifRows);
+    // ── End notifications ──────────────────────────────────────────────────
 
     return NextResponse.json(transformedComment, { status: 201 });
   } catch (error) {

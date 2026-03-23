@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createClient } from "../../lib/supabase/client";
 import { AppHeader } from "../../components/layout/AppHeader";
-import { HeaderMenu } from "../../components/layout/HeaderMenu";
+import { HeaderActions } from "../../components/layout/HeaderActions";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
@@ -19,8 +19,20 @@ import {
   CardTitle,
 } from "../../components/ui/card";
 import { Alert, AlertDescription } from "../../components/ui/alert";
-import { Loader2, Mail, User as UserIcon, Lock, Camera } from "lucide-react";
+import {
+  Loader2,
+  Mail,
+  User as UserIcon,
+  Lock,
+  Camera,
+  Bell,
+  BellOff,
+} from "lucide-react";
 import { t } from "../../lib/i18n";
+import {
+  usePreferencesStore,
+  requestDesktopPermission,
+} from "../../store/preferences";
 
 const schema = z.object({
   name: z
@@ -48,6 +60,30 @@ export default function ProfilePage() {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Notification preferences
+  const dndMode = usePreferencesStore((s) => s.dndMode);
+  const desktopNotificationsEnabled = usePreferencesStore(
+    (s) => s.desktopNotificationsEnabled,
+  );
+  const setDndMode = usePreferencesStore((s) => s.setDndMode);
+  const setDesktopNotificationsEnabled = usePreferencesStore(
+    (s) => s.setDesktopNotificationsEnabled,
+  );
+  const [desktopPermission, setDesktopPermission] = useState<
+    "granted" | "denied" | "default" | "unsupported"
+  >("default");
+
+  // Read current browser permission on mount
+  useEffect(() => {
+    if (typeof window === "undefined" || !("Notification" in window)) {
+      setDesktopPermission("unsupported");
+    } else {
+      setDesktopPermission(
+        Notification.permission as "granted" | "denied" | "default",
+      );
+    }
+  }, []);
 
   const {
     register,
@@ -161,6 +197,18 @@ export default function ProfilePage() {
     }
   };
 
+  const handleToggleDesktopNotifications = async (enable: boolean) => {
+    if (!enable) {
+      setDesktopNotificationsEnabled(false);
+      return;
+    }
+    if (desktopPermission === "unsupported") return;
+    if (desktopPermission === "denied") return;
+    const granted = await requestDesktopPermission();
+    setDesktopPermission(granted ? "granted" : "denied");
+    if (granted) setDesktopNotificationsEnabled(true);
+  };
+
   const handleResetPassword = async () => {
     setSubmitting(true);
     setError(null);
@@ -203,7 +251,7 @@ export default function ProfilePage() {
       <AppHeader
         title={t("profile.title")}
         subtitle={t("profile.subtitle")}
-        actions={<HeaderMenu />}
+        actions={<HeaderActions />}
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -351,6 +399,120 @@ export default function ProfilePage() {
                     </>
                   )}
                 </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Notification settings card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("notificationSettings.title")}</CardTitle>
+              <CardDescription>
+                {t("notificationSettings.description")}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* DnD toggle */}
+              <div className="flex items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    {dndMode ? (
+                      <BellOff className="h-4 w-4 text-amber-500" />
+                    ) : (
+                      <Bell className="h-4 w-4 text-gray-500" />
+                    )}
+                    <p className="text-sm font-medium text-gray-900">
+                      {t("notificationSettings.dndMode")}
+                    </p>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    {t("notificationSettings.dndModeDescription")}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={dndMode}
+                  onClick={() => setDndMode(!dndMode)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
+                    dndMode ? "bg-amber-500" : "bg-gray-200"
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg ring-0 transition-transform ${
+                      dndMode ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Desktop notifications toggle */}
+              <div className="flex items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Bell className="h-4 w-4 text-gray-500" />
+                    <p className="text-sm font-medium text-gray-900">
+                      {t("notificationSettings.desktopNotifications")}
+                    </p>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    {t("notificationSettings.desktopNotificationsDescription")}
+                  </p>
+                  {desktopPermission === "denied" && (
+                    <p className="text-xs text-red-500">
+                      {t("notificationSettings.desktopNotificationsDenied")}
+                    </p>
+                  )}
+                  {desktopPermission === "unsupported" && (
+                    <p className="text-xs text-gray-400">
+                      {t(
+                        "notificationSettings.desktopNotificationsUnsupported",
+                      )}
+                    </p>
+                  )}
+                  {desktopPermission === "granted" &&
+                    desktopNotificationsEnabled && (
+                      <p className="text-xs text-green-600">
+                        {t("notificationSettings.desktopNotificationsGranted")}
+                      </p>
+                    )}
+                </div>
+                {desktopPermission === "unsupported" ||
+                desktopPermission === "denied" ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled
+                    onClick={() => void handleToggleDesktopNotifications(true)}
+                  >
+                    {t("notificationSettings.desktopNotificationsRequest")}
+                  </Button>
+                ) : (
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={desktopNotificationsEnabled}
+                    onClick={() =>
+                      void handleToggleDesktopNotifications(
+                        !desktopNotificationsEnabled,
+                      )
+                    }
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
+                      desktopNotificationsEnabled
+                        ? "bg-blue-600"
+                        : "bg-gray-200"
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg ring-0 transition-transform ${
+                        desktopNotificationsEnabled
+                          ? "translate-x-5"
+                          : "translate-x-0"
+                      }`}
+                    />
+                  </button>
+                )}
               </div>
             </CardContent>
           </Card>

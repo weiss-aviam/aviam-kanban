@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -54,6 +54,8 @@ interface KanbanBoardProps {
   presenceMembers?: BoardPresenceMember[];
   onEditingCardChange?: (card: BoardPresenceEditingTarget | null) => void;
   userRole?: BoardMemberRole;
+  initialCardId?: string | null;
+  onInitialCardOpened?: () => void;
 }
 
 export function KanbanBoard({
@@ -63,11 +65,29 @@ export function KanbanBoard({
   presenceMembers = [],
   onEditingCardChange,
   userRole = "member",
+  initialCardId,
+  onInitialCardOpened,
 }: KanbanBoardProps) {
   const [activeCard, setActiveCard] = useState<CardType | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editingCard, setEditingCard] = useState<CardType | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const autoOpenedRef = useRef(false);
+
+  // Auto-open a card when ?cardId is present in URL
+  useEffect(() => {
+    if (!initialCardId || autoOpenedRef.current) return;
+    const card = boardData.columns
+      .flatMap((col) => col.cards || [])
+      .find((c) => c.id === initialCardId);
+    if (card) {
+      autoOpenedRef.current = true;
+      setEditingCard(card);
+      setShowEditDialog(true);
+      onEditingCardChange?.({ id: card.id, title: card.title });
+      onInitialCardOpened?.();
+    }
+  }, [boardData, initialCardId, onEditingCardChange, onInitialCardOpened]);
 
   // Zustand store actions
   const { addCard, updateCard, deleteCard } = useAppActions();

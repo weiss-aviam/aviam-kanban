@@ -9,6 +9,7 @@ import {
   primaryKey,
   uuid,
   index,
+  jsonb,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -369,6 +370,63 @@ export const userInvitationsRelations = relations(
     }),
   }),
 );
+
+// Notifications table - in-app notifications for user activity
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    type: varchar("type", {
+      enum: [
+        "mention",
+        "comment_on_assigned",
+        "deadline_change",
+        "file_upload",
+        "card_assigned",
+      ],
+    }).notNull(),
+    actorId: text("actor_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    cardId: uuid("card_id").references(() => cards.id, { onDelete: "cascade" }),
+    boardId: uuid("board_id").references(() => boards.id, {
+      onDelete: "cascade",
+    }),
+    metadata: jsonb("metadata").notNull().default({}),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    userIdIdx: index("notifications_user_id_idx").on(
+      table.userId,
+      table.createdAt,
+    ),
+  }),
+);
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  actor: one(users, {
+    fields: [notifications.actorId],
+    references: [users.id],
+  }),
+  card: one(cards, {
+    fields: [notifications.cardId],
+    references: [cards.id],
+  }),
+  board: one(boards, {
+    fields: [notifications.boardId],
+    references: [boards.id],
+  }),
+}));
 
 export const cardDeadlineRequestsRelations = relations(
   cardDeadlineRequests,

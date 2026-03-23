@@ -19,7 +19,7 @@ import { DeleteBoardDialog } from "../../components/boards/DeleteBoardDialog";
 import { BoardCard, BoardCardData } from "../../components/boards/BoardCard";
 import type { Board, BoardWithDetails } from "../../types/database";
 import { AppHeader } from "../../components/layout/AppHeader";
-import { HeaderMenu } from "../../components/layout/HeaderMenu";
+import { HeaderActions } from "../../components/layout/HeaderActions";
 import { t } from "../../lib/i18n";
 import { useBoards, useAppActions } from "../../store";
 
@@ -153,7 +153,7 @@ export default function BoardsPage() {
       <AppHeader
         title={t("boardsPage.title")}
         subtitle={t("boardsPage.subtitle")}
-        actions={<HeaderMenu />}
+        actions={<HeaderActions />}
       />
 
       {/* Main Content */}

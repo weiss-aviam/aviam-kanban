@@ -371,6 +371,7 @@ export const de = {
     discussion: "Diskussion",
     noComments: "Noch keine Kommentare.",
     commentPlaceholder: "Kommentar schreiben...",
+    commentMentionPlaceholder: "Kommentar schreiben... (@Name für Erwähnung)",
     commentButton: "Absenden",
     attachments: "Anhänge",
     uploadHint: "Klicken zum Hochladen oder Datei hier ablegen",
@@ -791,6 +792,45 @@ export const de = {
       "Ihr Konto wartet noch auf Freigabe durch einen Administrator.",
     sessionExpiredDeactivated:
       "Ihr Konto wurde deaktiviert. Bitte wenden Sie sich an den Administrator.",
+  },
+
+  notifications: {
+    openCenter: "Benachrichtigungen öffnen",
+    title: "Benachrichtigungen",
+    markAllRead: "Alle als gelesen markieren",
+    noNotifications: "Keine Benachrichtigungen",
+    noNotificationsDescription:
+      "Sie werden hier benachrichtigt, wenn etwas Wichtiges passiert.",
+    mention: '{actor} hat Sie in einem Kommentar zu "{card}" erwähnt',
+    commentOnAssigned: '{actor} hat einen Kommentar zu "{card}" hinterlassen',
+    deadlineChange: '{actor} hat die Fälligkeit von "{card}" geändert',
+    fileUpload: '{actor} hat eine Datei zu "{card}" hinzugefügt',
+    cardAssigned: '{actor} hat Ihnen die Karte "{card}" zugewiesen',
+    boardMemberAdded: '{actor} hat Sie zum Board "{board}" hinzugefügt',
+    liveTitle: "Neue Benachrichtigung",
+    dismiss: "Schließen",
+    commentMentionPlaceholder: "Kommentar schreiben... (@Name für Erwähnung)",
+    desktopTest: "Test",
+    desktopTestSent:
+      "Gesendet – falls nichts erscheint: Browser-/OS-Einstellungen prüfen",
+    desktopTestNoPermission: "Keine Berechtigung – bitte zuerst aktivieren",
+    desktopTestError: "Fehler – Browserkonsole prüfen",
+  },
+  notificationSettings: {
+    title: "Benachrichtigungseinstellungen",
+    description:
+      "Steuern Sie, wie und wann Sie über Aktivitäten benachrichtigt werden.",
+    dndMode: "Bitte-nicht-stören-Modus",
+    dndModeDescription: "Alle In-App-Benachrichtigungsbanner unterdrücken.",
+    desktopNotifications: "Desktop-Benachrichtigungen",
+    desktopNotificationsDescription:
+      "Bei neuen Benachrichtigungen eine Desktop-Meldung anzeigen.",
+    desktopNotificationsGranted: "Berechtigung erteilt",
+    desktopNotificationsDenied:
+      "Vom Browser blockiert. Bitte erlauben Sie Benachrichtigungen in den Browsereinstellungen.",
+    desktopNotificationsRequest: "Berechtigung anfordern",
+    desktopNotificationsUnsupported:
+      "Desktop-Benachrichtigungen werden von diesem Browser nicht unterstützt.",
   },
 } as const;
 

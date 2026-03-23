@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getBoardMutationAuthorization } from "@/lib/board-access";
+import { createNotifications } from "@/lib/notifications";
 import { z } from "zod";
 
 type BoardAccessClient = Parameters<typeof getBoardMutationAuthorization>[0];
@@ -92,7 +94,7 @@ export async function PATCH(
     // Get the existing card to verify access (using Supabase RLS)
     const { data: existingCard, error: cardError } = await supabase
       .from("cards")
-      .select("id, board_id, column_id, created_by, due_date")
+      .select("id, board_id, column_id, created_by, due_date, assignee_id")
       .eq("id", cardId)
       .single();
 
@@ -197,6 +199,58 @@ export async function PATCH(
         });
       }
     }
+
+    // ── Notifications (non-throwing) ──────────────────────────────────────
+    const notifRows: Parameters<typeof createNotifications>[1] = [];
+
+    // card_assigned: assignee changed to a new person who is not the actor
+    if (
+      assigneeId !== undefined &&
+      assigneeId !== null &&
+      assigneeId !== existingCard.assignee_id &&
+      assigneeId !== user.id
+    ) {
+      notifRows.push({
+        user_id: assigneeId,
+        type: "card_assigned",
+        actor_id: user.id,
+        card_id: cardId,
+        board_id: existingCard.board_id,
+        metadata: {},
+      });
+    }
+
+    // deadline_change: due_date changed and the assignee (not the actor) is affected
+    if (dueDate !== undefined) {
+      const prevDate = existingCard.due_date
+        ? new Date(existingCard.due_date as string).toISOString()
+        : null;
+      const nextDate = updatedCard.due_date
+        ? new Date(updatedCard.due_date).toISOString()
+        : null;
+      const currentAssignee =
+        assigneeId !== undefined ? assigneeId : existingCard.assignee_id;
+      if (
+        prevDate !== nextDate &&
+        currentAssignee &&
+        currentAssignee !== user.id
+      ) {
+        notifRows.push({
+          user_id: currentAssignee,
+          type: "deadline_change",
+          actor_id: user.id,
+          card_id: cardId,
+          board_id: existingCard.board_id,
+          metadata: {
+            previousDueDate: prevDate,
+            newDueDate: nextDate,
+          },
+        });
+      }
+    }
+
+    await createNotifications(createAdminClient(), notifRows);
+    // ── End notifications ──────────────────────────────────────────────────
 
     // Transform response to match expected format
     const transformedCard = {

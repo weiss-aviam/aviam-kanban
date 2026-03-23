@@ -3,6 +3,7 @@ import { Barlow, Barlow_Condensed } from "next/font/google";
 import { de } from "@/lib/locales/de";
 import { SWRProvider } from "@/components/providers/SWRProvider";
 import { GlobalPresenceProvider } from "@/components/providers/GlobalPresenceProvider";
+import { NotificationsProvider } from "@/components/providers/NotificationsProvider";
 import "./globals.css";
 
 const barlow = Barlow({
@@ -37,7 +38,9 @@ export default function RootLayout({
         className={`${barlow.variable} ${barlowCondensed.variable} antialiased`}
       >
         <SWRProvider>
-          <GlobalPresenceProvider>{children}</GlobalPresenceProvider>
+          <GlobalPresenceProvider>
+            <NotificationsProvider>{children}</NotificationsProvider>
+          </GlobalPresenceProvider>
         </SWRProvider>
       </body>
     </html>

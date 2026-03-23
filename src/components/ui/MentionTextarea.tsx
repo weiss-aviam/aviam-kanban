@@ -1,0 +1,204 @@
+"use client";
+
+import {
+  useRef,
+  useState,
+  useCallback,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
+import type { KeyboardEvent, ChangeEvent } from "react";
+import type { User } from "@/types/database";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+export type MentionTextareaRef = {
+  /** IDs of users mentioned in the current value. */
+  getMentionedUserIds: () => string[];
+  /** Reset the textarea and mention tracking. */
+  reset: () => void;
+};
+
+interface MentionTextareaProps {
+  value: string;
+  onChange: (value: string) => void;
+  boardMembers: Pick<User, "id" | "name" | "email" | "avatarUrl">[];
+  placeholder?: string;
+  disabled?: boolean;
+  className?: string;
+  onSubmit?: () => void;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function initials(name: string | null, email: string): string {
+  if (name) {
+    return name
+      .split(" ")
+      .map((p) => p[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  }
+  return email.slice(0, 2).toUpperCase();
+}
+
+function displayName(u: Pick<User, "name" | "email">): string {
+  return u.name ?? u.email.split("@")[0] ?? u.email;
+}
+
+// Detects a trailing @ trigger: "@partial" at end of string
+function getMentionQuery(text: string): string | null {
+  const match = /@([\w.]*)$/.exec(text);
+  return match ? match[1]! : null;
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
+export const MentionTextarea = forwardRef<
+  MentionTextareaRef,
+  MentionTextareaProps
+>(function MentionTextarea(
+  { value, onChange, boardMembers, placeholder, disabled, className, onSubmit },
+  ref,
+) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const mentionedIdsRef = useRef<Set<string>>(new Set());
+  const [query, setQuery] = useState<string | null>(null);
+  const [selectedIdx, setSelectedIdx] = useState(0);
+
+  useImperativeHandle(ref, () => ({
+    getMentionedUserIds: () => Array.from(mentionedIdsRef.current),
+    reset: () => {
+      mentionedIdsRef.current = new Set();
+      setQuery(null);
+      setSelectedIdx(0);
+    },
+  }));
+
+  const filtered =
+    query !== null
+      ? boardMembers
+          .filter((m) => {
+            const q = query.toLowerCase();
+            return (
+              (m.name ?? "").toLowerCase().includes(q) ||
+              m.email.toLowerCase().includes(q)
+            );
+          })
+          .slice(0, 6)
+      : [];
+
+  const handleChange = useCallback(
+    (e: ChangeEvent<HTMLTextAreaElement>) => {
+      const newVal = e.target.value;
+      onChange(newVal);
+      const q = getMentionQuery(newVal);
+      setQuery(q);
+      setSelectedIdx(0);
+    },
+    [onChange],
+  );
+
+  const insertMention = useCallback(
+    (member: Pick<User, "id" | "name" | "email">) => {
+      const name = displayName(member);
+      // Replace the trailing @partial with @Name
+      const newVal = value.replace(/@([\w.]*)$/, `@${name} `);
+      onChange(newVal);
+      mentionedIdsRef.current.add(member.id);
+      setQuery(null);
+      setSelectedIdx(0);
+      textareaRef.current?.focus();
+    },
+    [value, onChange],
+  );
+
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLTextAreaElement>) => {
+      if (query !== null && filtered.length > 0) {
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          setSelectedIdx((i) => (i + 1) % filtered.length);
+          return;
+        }
+        if (e.key === "ArrowUp") {
+          e.preventDefault();
+          setSelectedIdx((i) => (i - 1 + filtered.length) % filtered.length);
+          return;
+        }
+        if (e.key === "Enter" || e.key === "Tab") {
+          const member = filtered[selectedIdx];
+          if (member) {
+            e.preventDefault();
+            insertMention(member);
+            return;
+          }
+        }
+        if (e.key === "Escape") {
+          setQuery(null);
+          return;
+        }
+      }
+
+      // Ctrl/Cmd+Enter submits
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && onSubmit) {
+        e.preventDefault();
+        onSubmit();
+      }
+    },
+    [query, filtered, selectedIdx, insertMention, onSubmit],
+  );
+
+  return (
+    <div className="relative">
+      <textarea
+        ref={textareaRef}
+        value={value}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
+        placeholder={placeholder}
+        disabled={disabled}
+        rows={3}
+        className={
+          className ??
+          "w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+        }
+      />
+
+      {/* @mention dropdown */}
+      {query !== null && filtered.length > 0 && (
+        <div className="absolute bottom-full left-0 z-50 mb-1 w-64 overflow-hidden rounded-md border border-border bg-white shadow-lg">
+          {filtered.map((m, i) => (
+            <button
+              key={m.id}
+              type="button"
+              onMouseDown={(e) => {
+                // mousedown fires before blur; prevent textarea losing focus
+                e.preventDefault();
+                insertMention(m);
+              }}
+              className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors ${
+                i === selectedIdx ? "bg-blue-50" : "hover:bg-gray-50"
+              }`}
+            >
+              <Avatar className="h-6 w-6 shrink-0">
+                <AvatarImage src={m.avatarUrl ?? undefined} />
+                <AvatarFallback className="text-xs">
+                  {initials(m.name ?? null, m.email)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0">
+                <p className="truncate font-medium">{displayName(m)}</p>
+                {m.name && (
+                  <p className="truncate text-xs text-gray-400">{m.email}</p>
+                )}
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+});

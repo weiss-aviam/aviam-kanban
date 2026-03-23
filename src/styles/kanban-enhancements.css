@@ -530,3 +530,8 @@
   border-color: rgb(245 158 11) !important;
   animation: presence-ring-pulse 1.8s ease-in-out infinite;
 }
+
+.mention-highlight {
+  color: #2563eb;
+  font-weight: 500;
+}

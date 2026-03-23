@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createNotifications } from "@/lib/notifications";
 import {
   createAdminClient,
   requireAdminAccess,
@@ -423,6 +424,28 @@ export async function POST(request: NextRequest) {
         { error: "Failed to add user to board" },
         { status: 500 },
       );
+    }
+
+    // Notify the added user (skip if they added themselves)
+    if (targetUserId !== user.id) {
+      const { data: board } = await adminClient
+        .from("boards")
+        .select("id, name")
+        .eq("id", boardId)
+        .single();
+
+      if (board) {
+        await createNotifications(adminClient, [
+          {
+            user_id: targetUserId,
+            type: "board_member_added",
+            actor_id: user.id,
+            card_id: null,
+            board_id: boardId,
+            metadata: { boardName: board.name, role },
+          },
+        ]);
+      }
     }
 
     await logAdminAction({

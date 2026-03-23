@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "../ui/button";
 // Removed unused Card imports
 import { Badge } from "../ui/badge";
@@ -29,7 +29,7 @@ import {
 } from "@/hooks/useBoardPresence";
 import { useBoardRealtime } from "@/hooks/useBoardRealtime";
 import { KanbanBoard } from "../kanban/KanbanBoard";
-import { HeaderMenu } from "../layout/HeaderMenu";
+import { HeaderActions } from "../layout/HeaderActions";
 import { DeleteBoardDialog } from "./DeleteBoardDialog";
 import { EditBoardDialog } from "./EditBoardDialog";
 import { UserManagementModal } from "../admin/UserManagementModal";
@@ -75,6 +75,8 @@ export function BoardDetailPage({
   const [showMembersModal, setShowMembersModal] = useState(false);
 
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialCardId = searchParams.get("cardId");
 
   // Zustand store state and actions
   const _storeBoard = useCurrentBoard();
@@ -378,7 +380,7 @@ export function BoardDetailPage({
               </DropdownMenu>
             )}
 
-            <HeaderMenu />
+            <HeaderActions />
           </>
         }
       />
@@ -395,6 +397,10 @@ export function BoardDetailPage({
           presenceMembers={presenceMembers}
           onEditingCardChange={handleEditingCardChange}
           userRole={userRole}
+          initialCardId={initialCardId}
+          onInitialCardOpened={() => {
+            router.replace(`/boards/${boardId}`);
+          }}
         />
       </main>
 
