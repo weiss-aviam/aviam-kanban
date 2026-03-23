@@ -60,7 +60,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run tests
-        run: pnpm test --run
+        run: pnpm vitest run
 
   migration-safety:
     runs-on: ubuntu-latest
