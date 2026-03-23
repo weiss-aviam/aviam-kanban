@@ -120,5 +120,27 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
+    font-weight: 500;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family:
+      var(--font-barlow-condensed), var(--font-barlow), ui-sans-serif,
+      system-ui, sans-serif;
+    font-weight: 600;
+  }
+  button,
+  [role="button"],
+  input,
+  textarea,
+  select,
+  label {
+    font-family: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
+    font-weight: 500;
   }
 }
