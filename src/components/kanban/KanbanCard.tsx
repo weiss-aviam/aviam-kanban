@@ -5,7 +5,6 @@ import { CSS } from "@dnd-kit/utilities";
 import type { CSSProperties } from "react";
 import { Card } from "@/components/ui/card";
 // import { Badge } from '@/components/ui/badge'; // Removed for now since labels aren't implemented
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Calendar, Pencil, CheckCircle2 } from "lucide-react";
 import { t } from "@/lib/i18n";
 import type {
@@ -16,7 +15,7 @@ import type {
   User,
   Label,
 } from "@/types/database";
-import { getUserAvatarColor, getUserInitials } from "../../lib/role-colors";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { getPriorityConfig } from "@/lib/priority-colors";
 import { formatDueDate, isOverdue, isDueSoon } from "@/lib/board-permissions";
 import { formatDisplayDate } from "@/lib/date-format";
@@ -271,11 +270,13 @@ export function KanbanCard({
                 return (
                   <div className="flex items-center gap-1 min-w-0">
                     <Pencil className="h-3 w-3 shrink-0 text-amber-500" />
-                    <Avatar className="h-5 w-5 shrink-0 border border-amber-300">
-                      <AvatarFallback className="bg-amber-500 text-[9px] font-semibold text-white">
-                        {getUserInitials(editor.name || "", editor.email || "")}
-                      </AvatarFallback>
-                    </Avatar>
+                    <UserAvatar
+                      name={editor.name}
+                      email={editor.email}
+                      colorClass="bg-amber-500"
+                      className="h-5 w-5 shrink-0 border border-amber-300"
+                      textClassName="text-[9px]"
+                    />
                     <span className="truncate text-xs text-amber-700 font-medium max-w-[72px]">
                       {editor.name || editor.email}
                       {nonAssigneeEditors.length > 1 &&
@@ -288,19 +289,12 @@ export function KanbanCard({
             {/* Right: assignee avatar + name */}
             {assignee && (
               <div className="flex items-center gap-2 ml-auto min-w-0">
-                <Avatar
+                <UserAvatar
+                  name={assignee.name}
+                  email={assignee.email}
+                  avatarUrl={assignee.avatarUrl}
                   className={`h-7 w-7 shrink-0 ${isAssigneeEditing ? "presence-editing-ring border-2" : "border border-gray-200"}`}
-                >
-                  <AvatarImage
-                    src={assignee.avatarUrl ?? ""}
-                    alt={assignee.name || assignee.email || ""}
-                  />
-                  <AvatarFallback
-                    className={`${getUserAvatarColor()} text-[10px] font-semibold text-white`}
-                  >
-                    {getUserInitials(assignee.name || "", assignee.email || "")}
-                  </AvatarFallback>
-                </Avatar>
+                />
                 <span className="truncate text-xs text-gray-600 font-medium">
                   {assignee.name || assignee.email}
                 </span>

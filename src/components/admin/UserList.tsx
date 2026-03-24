@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import {
   Search,
   MoreHorizontal,
@@ -285,13 +285,11 @@ export function UserList({
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <Avatar>
-                    <AvatarFallback>
-                      {user.name
-                        ? user.name.charAt(0).toUpperCase()
-                        : user.email.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                  <UserAvatar
+                    name={user.name}
+                    email={user.email}
+                    role={user.role}
+                  />
                   <div>
                     <div className="flex items-center space-x-2">
                       <h4 className="font-medium">

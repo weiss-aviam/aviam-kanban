@@ -23,7 +23,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   useNotifications,
@@ -157,12 +157,12 @@ function NotificationRow({
         </span>
 
         {/* Actor avatar */}
-        <Avatar className="h-7 w-7 shrink-0">
-          <AvatarImage src={n.actor?.avatarUrl ?? undefined} />
-          <AvatarFallback className="text-xs">
-            {initials(n.actor?.name ?? null)}
-          </AvatarFallback>
-        </Avatar>
+        <UserAvatar
+          name={n.actor?.name}
+          avatarUrl={n.actor?.avatarUrl}
+          className="h-7 w-7 shrink-0"
+          textClassName="text-xs"
+        />
 
         {/* Text */}
         <div className="min-w-0 flex-1">

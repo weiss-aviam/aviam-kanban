@@ -51,10 +51,9 @@ import type {
   Label as DatabaseLabel,
   CardPriority,
 } from "@/types/database";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { MarkdownEditor } from "@/components/ui/markdown-editor";
 import { PrioritySelector } from "@/components/ui/priority-selector";
-import { getUserInitials, getUserAvatarColor } from "@/lib/role-colors";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { DeadlineSection } from "./DeadlineSection";
 import {
   MentionTextarea,
@@ -99,7 +98,12 @@ type CommentItem = {
   createdAt: string;
   editedAt?: string | null;
   deletedAt?: string | null;
-  author: { id: string; name: string | null; email: string };
+  author: {
+    id: string;
+    name: string | null;
+    email: string;
+    avatarUrl?: string | null;
+  };
 };
 
 type AttachmentItem = {
@@ -109,6 +113,50 @@ type AttachmentItem = {
   createdAt: string;
   size: number | undefined;
 };
+
+/** Escape text for safe insertion into innerHTML */
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+/**
+ * Render comment body: URLs become domain-only anchor tags (full URL on hover),
+ * @mentions are highlighted, and HTML entities are escaped.
+ */
+function renderCommentBody(body: string): string {
+  const urlRegex = /https?:\/\/[^\s<>"]+/g;
+  let result = "";
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = urlRegex.exec(body)) !== null) {
+    const textBefore = body.slice(lastIndex, match.index);
+    result += escapeHtml(textBefore).replace(
+      /@([\w.]+)/g,
+      '<span class="mention-highlight">@$1</span>',
+    );
+
+    const rawUrl = match[0];
+    try {
+      const parsed = new URL(rawUrl);
+      const safeHref = escapeHtml(rawUrl).replace(/"/g, "&quot;");
+      result += `<a href="${safeHref}" title="${safeHref}" target="_blank" rel="noopener noreferrer" class="comment-link">${parsed.hostname}</a>`;
+    } catch {
+      result += escapeHtml(rawUrl);
+    }
+    lastIndex = match.index + rawUrl.length;
+  }
+
+  const remaining = body.slice(lastIndex);
+  result += escapeHtml(remaining).replace(
+    /@([\w.]+)/g,
+    '<span class="mention-highlight">@$1</span>',
+  );
+  return result;
+}
 
 const parseCalendarDate = (value: string | undefined): Date | undefined => {
   if (!value) return undefined;
@@ -885,30 +933,18 @@ export function EditCardDialog({
                               value={currentUser.id}
                             >
                               <div className="flex items-center gap-2">
-                                <Avatar className="h-5 w-5 shrink-0">
-                                  {(
-                                    currentUser as { avatarUrl?: string | null }
-                                  ).avatarUrl ? (
-                                    <AvatarImage
-                                      src={
-                                        (
-                                          currentUser as {
-                                            avatarUrl?: string | null;
-                                          }
-                                        ).avatarUrl!
+                                <UserAvatar
+                                  name={currentUser.name}
+                                  email={currentUser.email}
+                                  avatarUrl={
+                                    (
+                                      currentUser as {
+                                        avatarUrl?: string | null;
                                       }
-                                      alt={currentUser.name || ""}
-                                    />
-                                  ) : null}
-                                  <AvatarFallback
-                                    className={`${getUserAvatarColor()} text-[10px] font-semibold text-white`}
-                                  >
-                                    {getUserInitials(
-                                      currentUser.name || "",
-                                      currentUser.email || "",
-                                    )}
-                                  </AvatarFallback>
-                                </Avatar>
+                                    ).avatarUrl
+                                  }
+                                  className="h-5 w-5 shrink-0"
+                                />
                                 <span>
                                   {currentUser.name || currentUser.email} (
                                   {t("boardDetail.you")})
@@ -921,22 +957,12 @@ export function EditCardDialog({
                             .map((member) => (
                               <SelectItem key={member.id} value={member.id}>
                                 <div className="flex items-center gap-2">
-                                  <Avatar className="h-5 w-5 shrink-0">
-                                    {member.avatarUrl ? (
-                                      <AvatarImage
-                                        src={member.avatarUrl}
-                                        alt={member.name || ""}
-                                      />
-                                    ) : null}
-                                    <AvatarFallback
-                                      className={`${getUserAvatarColor()} text-[10px] font-semibold text-white`}
-                                    >
-                                      {getUserInitials(
-                                        member.name || "",
-                                        member.email || "",
-                                      )}
-                                    </AvatarFallback>
-                                  </Avatar>
+                                  <UserAvatar
+                                    name={member.name}
+                                    email={member.email}
+                                    avatarUrl={member.avatarUrl}
+                                    className="h-5 w-5 shrink-0"
+                                  />
                                   <span>{member.name || member.email}</span>
                                 </div>
                               </SelectItem>
@@ -1090,16 +1116,12 @@ export function EditCardDialog({
                           className={`group flex gap-3 rounded-lg border p-4 ${isDeleted ? "bg-muted/10 opacity-60" : "bg-muted/20"}`}
                         >
                           {/* Avatar */}
-                          <Avatar className="h-7 w-7 shrink-0 mt-0.5">
-                            <AvatarFallback
-                              className={`${getUserAvatarColor()} text-[10px] font-semibold text-white`}
-                            >
-                              {getUserInitials(
-                                c.author.name || "",
-                                c.author.email,
-                              )}
-                            </AvatarFallback>
-                          </Avatar>
+                          <UserAvatar
+                            name={c.author.name}
+                            email={c.author.email}
+                            avatarUrl={c.author.avatarUrl}
+                            className="h-7 w-7 shrink-0 mt-0.5"
+                          />
 
                           <div className="flex-1 min-w-0">
                             {/* Header */}
@@ -1195,14 +1217,7 @@ export function EditCardDialog({
                                 <p
                                   className="mt-1.5 text-sm whitespace-pre-wrap break-words"
                                   dangerouslySetInnerHTML={{
-                                    __html: c.body
-                                      .replace(/&/g, "&amp;")
-                                      .replace(/</g, "&lt;")
-                                      .replace(/>/g, "&gt;")
-                                      .replace(
-                                        /@([\w.]+)/g,
-                                        '<span class="mention-highlight">@$1</span>',
-                                      ),
+                                    __html: renderCommentBody(c.body),
                                   }}
                                 />
                                 {c.editedAt && (

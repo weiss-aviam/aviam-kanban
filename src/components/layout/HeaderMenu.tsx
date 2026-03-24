@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { UserAvatar } from "../ui/UserAvatar";
 import { ChevronDown, Kanban, LogOut, Settings, UserRound } from "lucide-react";
 import { createClient } from "../../lib/supabase/client";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
@@ -117,15 +117,14 @@ export function HeaderMenu() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
-          <Avatar className="size-8">
-            <AvatarImage
-              src={display?.avatarUrl ?? undefined}
-              alt={displayName}
-            />
-            <AvatarFallback className="bg-[#113c8b] text-white text-xs font-semibold">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
+          <UserAvatar
+            name={display?.name}
+            email={display?.email}
+            avatarUrl={display?.avatarUrl}
+            colorClass="bg-[#113c8b]"
+            className="size-8"
+            textClassName="text-xs"
+          />
           <span className="hidden sm:block max-w-[120px] truncate">
             {displayName}
           </span>

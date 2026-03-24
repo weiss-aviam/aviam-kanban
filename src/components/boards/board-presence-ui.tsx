@@ -1,10 +1,9 @@
 "use client";
 
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { Badge } from "@/components/ui/badge";
 import type { BoardPresenceMember } from "@/hooks/useBoardPresence";
 import { t } from "@/lib/i18n";
-import { getUserInitials } from "@/lib/role-colors";
 import { cn } from "@/lib/utils";
 
 export type { BoardPresenceEditingTarget as BoardPresenceEditingCard } from "@/hooks/useBoardPresence";
@@ -54,19 +53,16 @@ function PresenceAvatarStack({
   return (
     <div className="flex items-center -space-x-2">
       {visibleMembers.map((member) => (
-        <Avatar
+        <UserAvatar
           key={member.userId}
           aria-label={getPresenceMemberLabel(member, currentUserId)}
+          name={member.name}
+          email={member.email}
+          avatarUrl={member.avatarUrl}
+          colorClass="bg-emerald-600"
           className="h-7 w-7 border-2 border-white shadow-sm"
-        >
-          <AvatarImage
-            src={member.avatarUrl ?? ""}
-            alt={member.name || member.email || ""}
-          />
-          <AvatarFallback className="bg-emerald-600 text-[11px] font-semibold text-white">
-            {getUserInitials(member.name || "", member.email || "")}
-          </AvatarFallback>
-        </Avatar>
+          textClassName="text-[11px]"
+        />
       ))}
       {hiddenCount > 0 ? (
         <span className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-gray-100 text-[11px] font-semibold text-gray-700 shadow-sm">

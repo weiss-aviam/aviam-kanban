@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
         author_id,
         body,
         created_at,
-        users!inner(id, email, name)
+        users!inner(id, email, name, avatar_url)
       `,
       )
       .single();
@@ -93,8 +93,18 @@ export async function POST(request: NextRequest) {
         const u = (
           newComment as unknown as {
             users?:
-              | { id: string; email: string; name: string }
-              | { id: string; email: string; name: string }[];
+              | {
+                  id: string;
+                  email: string;
+                  name: string;
+                  avatar_url: string | null;
+                }
+              | {
+                  id: string;
+                  email: string;
+                  name: string;
+                  avatar_url: string | null;
+                }[];
           }
         ).users;
         const userObj = Array.isArray(u) ? u[0] : u;
@@ -102,6 +112,7 @@ export async function POST(request: NextRequest) {
           id: userObj?.id || "",
           email: userObj?.email || "",
           name: userObj?.name || "",
+          avatarUrl: userObj?.avatar_url ?? null,
         };
       })(),
     };
@@ -221,7 +232,7 @@ export async function GET(request: NextRequest) {
         created_at,
         edited_at,
         deleted_at,
-        users!inner(id, email, name)
+        users!inner(id, email, name, avatar_url)
       `,
       )
       .eq("card_id", cardId)
@@ -251,8 +262,18 @@ export async function GET(request: NextRequest) {
         const u = (
           comment as unknown as {
             users?:
-              | { id: string; email: string; name: string }
-              | { id: string; email: string; name: string }[];
+              | {
+                  id: string;
+                  email: string;
+                  name: string;
+                  avatar_url: string | null;
+                }
+              | {
+                  id: string;
+                  email: string;
+                  name: string;
+                  avatar_url: string | null;
+                }[];
           }
         ).users;
         const userObj = Array.isArray(u) ? u[0] : u;
@@ -260,6 +281,7 @@ export async function GET(request: NextRequest) {
           id: userObj?.id || "",
           email: userObj?.email || "",
           name: userObj?.name || "",
+          avatarUrl: userObj?.avatar_url ?? null,
         };
       })(),
     }));

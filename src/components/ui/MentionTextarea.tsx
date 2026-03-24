@@ -9,7 +9,7 @@ import {
 } from "react";
 import type { KeyboardEvent, ChangeEvent } from "react";
 import type { User } from "@/types/database";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -183,12 +183,13 @@ export const MentionTextarea = forwardRef<
                 i === selectedIdx ? "bg-blue-50" : "hover:bg-gray-50"
               }`}
             >
-              <Avatar className="h-6 w-6 shrink-0">
-                <AvatarImage src={m.avatarUrl ?? undefined} />
-                <AvatarFallback className="text-xs">
-                  {initials(m.name ?? null, m.email)}
-                </AvatarFallback>
-              </Avatar>
+              <UserAvatar
+                name={m.name}
+                email={m.email}
+                avatarUrl={m.avatarUrl}
+                className="h-6 w-6 shrink-0"
+                textClassName="text-xs"
+              />
               <div className="min-w-0">
                 <p className="truncate font-medium">{displayName(m)}</p>
                 {m.name && (
