@@ -43,6 +43,13 @@ import {
   Calendar as CalendarIcon,
   X,
   CheckCircle2,
+  Flag,
+  Columns2,
+  UserCircle,
+  MessageSquare,
+  ListChecks,
+  Send,
+  Plus,
 } from "lucide-react";
 import type {
   Card,
@@ -868,7 +875,7 @@ export function EditCardDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
-      <DialogContent className="sm:max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto p-8">
+      <DialogContent className="sm:max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto p-4 sm:p-8">
         <DialogHeader>
           <DialogTitle>
             {card ? t("editCard.titleEdit") : t("editCard.titleCreate")}
@@ -887,7 +894,7 @@ export function EditCardDialog({
 
         <form
           onSubmit={rhfHandleSubmit(handleSubmit)}
-          className="flex flex-col gap-6 mt-2"
+          className="flex flex-col gap-4 sm:gap-6 mt-2"
         >
           {isViewer && (
             <div className="text-sm text-amber-700 bg-amber-50 p-3 rounded-md border border-amber-200">
@@ -900,7 +907,10 @@ export function EditCardDialog({
             </div>
           )}
 
-          <fieldset disabled={isViewer} className="flex flex-col gap-6">
+          <fieldset
+            disabled={isViewer}
+            className="flex flex-col gap-4 sm:gap-6"
+          >
             {/* Title + Description — grouped as card content */}
             <div className="rounded-lg border p-4 flex flex-col gap-4">
               <div className="flex flex-col gap-2">
@@ -942,11 +952,12 @@ export function EditCardDialog({
             </div>
 
             {/* Row 1: Priority | Column | Assignee */}
-            <div className="rounded-lg border bg-muted/20 p-4">
-              <div className="grid grid-cols-3 gap-5">
+            <div className="rounded-lg border bg-muted/20 p-3 sm:p-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-5">
                 {/* Priority */}
                 <div className="flex flex-col gap-2">
-                  <Label className="text-sm font-medium">
+                  <Label className="flex items-center gap-1.5 text-sm font-medium">
+                    <Flag className="h-3.5 w-3.5 text-muted-foreground" />
                     {t("editCard.priorityLabel")}
                   </Label>
                   <Controller
@@ -965,7 +976,8 @@ export function EditCardDialog({
 
                 {/* Column */}
                 <div className="flex flex-col gap-2">
-                  <Label className="text-sm font-medium">
+                  <Label className="flex items-center gap-1.5 text-sm font-medium">
+                    <Columns2 className="h-3.5 w-3.5 text-muted-foreground" />
                     {t("editCard.columnLabel")}
                   </Label>
                   <Controller
@@ -999,7 +1011,8 @@ export function EditCardDialog({
 
                 {/* Assignee */}
                 <div className="flex flex-col gap-2">
-                  <Label className="text-sm font-medium">
+                  <Label className="flex items-center gap-1.5 text-sm font-medium">
+                    <UserCircle className="h-3.5 w-3.5 text-muted-foreground" />
                     {t("editCard.assigneeLabel")}
                   </Label>
                   <Controller
@@ -1070,10 +1083,11 @@ export function EditCardDialog({
 
             {/* Subtasks: only in edit mode */}
             {card ? (
-              <div className="rounded-lg border bg-muted/20 p-4">
+              <div className="rounded-lg border bg-muted/20 p-3 sm:p-4">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-3">
-                  <Label className="text-sm font-medium">
+                  <Label className="flex items-center gap-1.5 text-sm font-medium">
+                    <ListChecks className="h-3.5 w-3.5 text-muted-foreground" />
                     {t("editCard.subtasks")}
                   </Label>
                   {subtasks.length > 0 && (
@@ -1137,7 +1151,7 @@ export function EditCardDialog({
                             type="button"
                             onClick={() => handleDeleteSubtask(subtask.id)}
                             title={t("editCard.subtaskDelete")}
-                            className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-500 transition-opacity"
+                            className="sm:opacity-0 sm:group-hover:opacity-100 text-muted-foreground hover:text-red-500 transition-opacity"
                           >
                             <X className="h-3.5 w-3.5" />
                           </button>
@@ -1170,12 +1184,16 @@ export function EditCardDialog({
                       variant="outline"
                       disabled={!newSubtaskTitle.trim() || subtaskAdding}
                       onClick={() => void handleAddSubtask()}
+                      title={t("editCard.subtaskAdd")}
                     >
                       {subtaskAdding ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       ) : (
-                        t("editCard.subtaskAdd")
+                        <Plus className="h-3.5 w-3.5" />
                       )}
+                      <span className="hidden sm:inline">
+                        {t("editCard.subtaskAdd")}
+                      </span>
                     </Button>
                   </div>
                 )}
@@ -1186,8 +1204,8 @@ export function EditCardDialog({
             {card ? (
               <>
                 {/* Row 2: Due Date | Attachments */}
-                <div className="rounded-lg border bg-muted/20 p-4">
-                  <div className="grid grid-cols-2 gap-6">
+                <div className="rounded-lg border bg-muted/20 p-3 sm:p-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                     {/* Due Date */}
                     <div className="flex flex-col gap-2">
                       <Controller
@@ -1230,7 +1248,8 @@ export function EditCardDialog({
                     {/* Attachments */}
                     <div className="flex flex-col gap-2">
                       <div className="flex items-center justify-between">
-                        <Label className="text-sm font-medium">
+                        <Label className="flex items-center gap-1.5 text-sm font-medium">
+                          <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
                           {t("editCard.attachments")}
                         </Label>
                         {uploading && (
@@ -1295,8 +1314,9 @@ export function EditCardDialog({
                 </div>
 
                 {/* Row 3: Discussion */}
-                <div className="space-y-4 pt-6 border-t">
-                  <Label className="text-sm font-medium">
+                <div className="space-y-3 sm:space-y-4 pt-4 sm:pt-6 border-t">
+                  <Label className="flex items-center gap-1.5 text-sm font-medium">
+                    <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
                     {t("editCard.discussion")}
                   </Label>
 
@@ -1401,10 +1421,14 @@ export function EditCardDialog({
                                       !editingCommentBody.trim()
                                     }
                                   >
-                                    {commentsLoading && (
-                                      <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                    {commentsLoading ? (
+                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                    ) : (
+                                      <Send className="h-3 w-3" />
                                     )}
-                                    {t("common.save")}
+                                    <span className="hidden sm:inline">
+                                      {t("common.save")}
+                                    </span>
                                   </Button>
                                   <Button
                                     type="button"
@@ -1415,14 +1439,17 @@ export function EditCardDialog({
                                       setEditingCommentBody("");
                                     }}
                                   >
-                                    {t("common.cancel")}
+                                    <X className="h-3 w-3 sm:hidden" />
+                                    <span className="hidden sm:inline">
+                                      {t("common.cancel")}
+                                    </span>
                                   </Button>
                                 </div>
                               </div>
                             ) : (
                               <div>
                                 <p
-                                  className="mt-1.5 text-sm whitespace-pre-wrap break-words"
+                                  className="mt-1.5 text-sm whitespace-pre-wrap wrap-break-word"
                                   dangerouslySetInnerHTML={{
                                     __html: renderCommentBody(c.body),
                                   }}
@@ -1443,7 +1470,7 @@ export function EditCardDialog({
 
                   {/* New comment input */}
                   {!isViewer && (
-                    <div className="flex items-start gap-3 pt-2">
+                    <div className="flex items-start gap-2 pt-1">
                       <div className="flex-1">
                         <MentionTextarea
                           ref={mentionTextareaRef}
@@ -1459,6 +1486,7 @@ export function EditCardDialog({
                         type="button"
                         size="sm"
                         onClick={() => void handleSubmitComment()}
+                        title={t("editCard.commentButton")}
                         disabled={
                           !commentBody.trim() ||
                           commentsLoading ||
@@ -1466,10 +1494,14 @@ export function EditCardDialog({
                           isDeleting
                         }
                       >
-                        {commentsLoading && (
-                          <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                        {commentsLoading ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Send className="h-3.5 w-3.5" />
                         )}
-                        {t("editCard.commentButton")}
+                        <span className="hidden sm:inline">
+                          {t("editCard.commentButton")}
+                        </span>
                       </Button>
                     </div>
                   )}
@@ -1540,24 +1572,24 @@ export function EditCardDialog({
             )}
           </fieldset>
 
-          <DialogFooter className="pt-6 border-t flex justify-between">
+          <DialogFooter className="pt-4 sm:pt-6 border-t flex justify-between">
             {card && !isViewer && (
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={handleDelete}
-                  disabled={isLoading || isDeleting}
-                >
-                  {isDeleting && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  {t("common.delete")}
-                </Button>
-              </div>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={isLoading || isDeleting}
+                title={t("common.delete")}
+              >
+                {isDeleting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+                <span className="hidden sm:inline">{t("common.delete")}</span>
+              </Button>
             )}
-            <div className="flex space-x-2 ml-auto">
+            <div className="flex gap-2 ml-auto">
               <Button
                 type="button"
                 variant="outline"
@@ -1569,7 +1601,7 @@ export function EditCardDialog({
               {!isViewer && (
                 <Button type="submit" disabled={isLoading || isDeleting}>
                   {isLoading && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
                   )}
                   {card ? t("editCard.updateCard") : t("editCard.createCard")}
                 </Button>

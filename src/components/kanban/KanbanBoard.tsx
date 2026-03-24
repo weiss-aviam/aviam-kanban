@@ -505,7 +505,7 @@ export function KanbanBoard({
     <div className="flex flex-col h-full bg-gray-50">
       {/* Board Filters */}
       <div className="border-b bg-white">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="max-w-7xl mx-auto px-3 py-2.5 sm:px-6 sm:py-4">
           <div className="flex items-start gap-2">
             <div className="flex-1">
               <BoardFilters
@@ -557,11 +557,14 @@ export function KanbanBoard({
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto kanban-scroll-container">
           <div
             className={constrainBoardWidth ? "max-w-7xl mx-auto" : undefined}
           >
-            <div className="grid gap-6 p-6" style={columnsLayoutStyle}>
+            <div
+              className="grid gap-6 p-6 kanban-board-columns"
+              style={columnsLayoutStyle}
+            >
               {/* Column Sorting Context */}
               <SortableContext
                 items={boardData.columns.map((col) => `column-${col.id}`)}

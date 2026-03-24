@@ -153,7 +153,7 @@ export default function BoardsPage() {
       <AppHeader
         title={t("boardsPage.title")}
         subtitle={t("boardsPage.subtitle")}
-        actions={<HeaderActions />}
+        navActions={<HeaderActions />}
       />
 
       {/* Main Content */}

@@ -365,8 +365,45 @@
   }
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
+/* -----------------------------------------------------------------------
+   Mobile – horizontal scroll snap for kanban columns (< 640px)
+   ----------------------------------------------------------------------- */
+@media (max-width: 639px) {
+  /* The outer scroll container keeps vertical scroll; hand off horizontal
+     scroll to the inner .kanban-board-columns element. */
+  .kanban-scroll-container {
+    overflow-x: hidden;
+  }
+
+  /* Turn the CSS grid into a horizontal snap-scroll strip */
+  .kanban-board-columns {
+    display: flex !important;
+    flex-direction: row !important;
+    overflow-x: auto;
+    overflow-y: visible;
+    scroll-snap-type: x mandatory;
+    /* Offset snap points so the left padding is always visible */
+    scroll-padding-left: 0.75rem;
+    -webkit-overflow-scrolling: touch;
+    gap: 0.75rem !important;
+    padding: 0.75rem !important;
+    /* Visually hide the scrollbar while keeping it functional */
+    scrollbar-width: none;
+  }
+
+  .kanban-board-columns::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Each column snaps into place and takes ~88% of viewport width */
+  .kanban-board-columns > * {
+    scroll-snap-align: start;
+    flex: 0 0 88vw !important;
+    min-width: 0 !important;
+    max-width: 340px;
+  }
+
+  /* Slightly smaller card text on very narrow screens */
   .markdown-viewer {
     font-size: 0.8rem;
   }
@@ -379,7 +416,10 @@
   .context-menu-content {
     min-width: 200px;
   }
+}
 
+/* Responsive Design (tablet and up) */
+@media (min-width: 640px) and (max-width: 768px) {
   .board-filters {
     padding: 0.75rem;
   }

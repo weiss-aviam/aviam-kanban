@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { ArrowLeft, Shield } from "lucide-react";
 import { SuperAdminUserManagement } from "@/components/admin/SuperAdminUserManagement";
 import { AppHeader } from "@/components/layout/AppHeader";
+import { HeaderActions } from "@/components/layout/HeaderActions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { requireSuperAdmin } from "@/lib/auth";
@@ -24,19 +25,22 @@ export default async function SuperAdminUsersPage() {
       <AppHeader
         title={t("superAdmin.title")}
         subtitle={t("superAdmin.subtitle")}
-        actions={
-          <>
-            <Button asChild variant="outline" size="sm">
-              <Link href="/dashboard">
-                <ArrowLeft className="h-4 w-4" />
+        navActions={<HeaderActions />}
+        actionsStart={
+          <Button asChild variant="outline" size="sm">
+            <Link href="/dashboard" title={t("superAdmin.backToDashboard")}>
+              <ArrowLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">
                 {t("superAdmin.backToDashboard")}
-              </Link>
-            </Button>
-            <Badge>
-              <Shield className="h-3 w-3" />
-              {t("superAdmin.superAdminBadge")}
-            </Badge>
-          </>
+              </span>
+            </Link>
+          </Button>
+        }
+        actions={
+          <Badge>
+            <Shield className="h-3 w-3" />
+            {t("superAdmin.superAdminBadge")}
+          </Badge>
         }
       />
 

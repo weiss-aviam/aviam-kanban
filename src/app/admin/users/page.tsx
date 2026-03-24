@@ -19,6 +19,7 @@ import { InviteUserForm } from "@/components/admin/InviteUserForm";
 import { MembershipTable } from "@/components/admin/MembershipTable";
 import { AuditLogTable } from "@/components/admin/AuditLogTable";
 import { AppHeader } from "@/components/layout/AppHeader";
+import { HeaderActions } from "@/components/layout/HeaderActions";
 
 export default function AdminUsersPage() {
   const router = useRouter();
@@ -118,16 +119,20 @@ export default function AdminUsersPage() {
       <AppHeader
         title="User Management"
         subtitle={`Manage members, roles, and audit activity for ${boardName}`}
+        navActions={<HeaderActions />}
+        actionsStart={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push(`/boards/${boardId}`)}
+            title="Back to Board"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="hidden sm:inline">Back to Board</span>
+          </Button>
+        }
         actions={
           <>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => router.push(`/boards/${boardId}`)}
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Board
-            </Button>
             <Badge variant={userRole === "owner" ? "default" : "secondary"}>
               <Shield className="h-3 w-3 mr-1" />
               {userRole}

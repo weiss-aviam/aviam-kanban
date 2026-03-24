@@ -7,6 +7,8 @@ import {
   BellOff,
   Monitor,
   MonitorOff,
+  Smartphone,
+  SmartphoneNfc,
   AtSign,
   MessageSquare,
   CalendarClock,
@@ -16,6 +18,7 @@ import {
   CheckCircle2,
   ArrowRight,
   Trash2,
+  CheckCheck,
 } from "lucide-react";
 import {
   Popover,
@@ -328,7 +331,10 @@ export function NotificationCenter() {
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent align="end" className="w-96 p-0 overflow-hidden">
+      <PopoverContent
+        align="end"
+        className="w-[min(24rem,calc(100vw-1rem))] p-0 overflow-hidden"
+      >
         {/* Header */}
         <div className="border-b">
           <div className="flex items-center justify-between px-4 py-3">
@@ -338,9 +344,13 @@ export function NotificationCenter() {
             {unreadCount > 0 && (
               <button
                 onClick={handleMarkAllRead}
-                className="text-xs text-blue-600 hover:underline"
+                title={t("notifications.markAllRead")}
+                className="flex items-center gap-1 text-xs text-blue-600 hover:underline"
               >
-                {t("notifications.markAllRead")}
+                <CheckCheck className="h-3.5 w-3.5 sm:hidden" />
+                <span className="hidden sm:inline">
+                  {t("notifications.markAllRead")}
+                </span>
               </button>
             )}
           </div>
@@ -366,10 +376,12 @@ export function NotificationCenter() {
               ) : (
                 <Bell className="h-3.5 w-3.5" />
               )}
-              {t("notificationSettings.dndMode")}
+              <span className="hidden sm:inline">
+                {t("notificationSettings.dndMode")}
+              </span>
             </button>
 
-            {/* Desktop notifications toggle + test button */}
+            {/* Push notifications toggle + test button */}
             {browserPermission !== "unsupported" && (
               <div className="flex items-center gap-1">
                 <button
@@ -388,11 +400,19 @@ export function NotificationCenter() {
                   }`}
                 >
                   {desktopEnabled && browserPermission === "granted" ? (
-                    <Monitor className="h-3.5 w-3.5" />
+                    <>
+                      <Monitor className="h-3.5 w-3.5 hidden sm:block" />
+                      <SmartphoneNfc className="h-3.5 w-3.5 sm:hidden" />
+                    </>
                   ) : (
-                    <MonitorOff className="h-3.5 w-3.5" />
+                    <>
+                      <MonitorOff className="h-3.5 w-3.5 hidden sm:block" />
+                      <Smartphone className="h-3.5 w-3.5 sm:hidden opacity-50" />
+                    </>
                   )}
-                  {t("notificationSettings.desktopNotifications")}
+                  <span className="hidden sm:inline">
+                    {t("notificationSettings.desktopNotifications")}
+                  </span>
                 </button>
 
                 {/* Test button — only shown when enabled and in development */}
@@ -402,7 +422,7 @@ export function NotificationCenter() {
                     <button
                       onClick={handleTestNotification}
                       title={t("notifications.desktopTest")}
-                      className="rounded-md px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 transition-colors"
+                      className="rounded-md px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 transition-colors hidden sm:block"
                     >
                       {t("notifications.desktopTest")}
                     </button>

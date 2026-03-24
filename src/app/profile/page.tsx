@@ -250,7 +250,7 @@ export default function ProfilePage() {
       <AppHeader
         title={t("profile.title")}
         subtitle={t("profile.subtitle")}
-        actions={<HeaderActions />}
+        navActions={<HeaderActions />}
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

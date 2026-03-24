@@ -121,7 +121,7 @@ export default function DashboardPage() {
       <AppHeader
         title={t("dashboard.title")}
         subtitle={t("dashboard.subtitle")}
-        actions={<HeaderActions />}
+        navActions={<HeaderActions />}
       />
 
       {/* Main Content */}

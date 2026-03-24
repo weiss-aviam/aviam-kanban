@@ -313,25 +313,33 @@ export function BoardDetailPage({
             ) : null}
           </>
         }
+        navActions={<HeaderActions />}
+        actionsStart={
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push("/boards")}
+            title={t("boardDetail.backToBoards")}
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="hidden sm:inline">
+              {t("boardDetail.backToBoards")}
+            </span>
+          </Button>
+        }
         actions={
           <>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.push("/boards")}
-            >
-              <ArrowLeft className="w-4 h-4" />
-              {t("boardDetail.backToBoards")}
-            </Button>
-
             {canAddColumns && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setShowCreateColumn(true)}
+                title={t("boardDetail.addColumn")}
               >
                 <Plus className="w-4 h-4" />
-                {t("boardDetail.addColumn")}
+                <span className="hidden sm:inline">
+                  {t("boardDetail.addColumn")}
+                </span>
               </Button>
             )}
 
@@ -340,9 +348,12 @@ export function BoardDetailPage({
                 variant="outline"
                 size="sm"
                 onClick={() => setShowMembersModal(true)}
+                title={t("boardDetail.manageUsers")}
               >
                 <Users className="w-4 h-4" />
-                {t("boardDetail.manageUsers")}
+                <span className="hidden sm:inline">
+                  {t("boardDetail.manageUsers")}
+                </span>
               </Button>
             )}
 
@@ -379,8 +390,6 @@ export function BoardDetailPage({
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
-
-            <HeaderActions />
           </>
         }
       />
