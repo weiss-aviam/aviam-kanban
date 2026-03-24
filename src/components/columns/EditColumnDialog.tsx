@@ -124,7 +124,7 @@ export function EditColumnDialog({
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={rhfHandleSubmit(onSubmit)}>
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-3 py-3 sm:gap-4 sm:py-4">
             <div className="grid gap-2">
               <Label htmlFor="title">{t("columns.columnTitle")}</Label>
               <Input

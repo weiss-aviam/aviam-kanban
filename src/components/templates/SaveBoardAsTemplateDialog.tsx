@@ -127,7 +127,10 @@ export function SaveBoardAsTemplateDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={rhfHandleSubmit(onSubmit)} className="space-y-4">
+        <form
+          onSubmit={rhfHandleSubmit(onSubmit)}
+          className="space-y-3 sm:space-y-4"
+        >
           {error && (
             <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
               {error}

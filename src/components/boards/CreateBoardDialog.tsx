@@ -123,16 +123,19 @@ export function CreateBoardDialog({
               {t("createBoard.description")}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={rhfHandleSubmit(onSubmit)} className="space-y-6">
+          <form
+            onSubmit={rhfHandleSubmit(onSubmit)}
+            className="space-y-4 sm:space-y-6"
+          >
             {error && (
-              <div className="text-sm text-red-600 bg-red-50 p-4 rounded-md border border-red-200">
+              <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md border border-red-200">
                 {error}
               </div>
             )}
 
-            <div className="space-y-6">
-              <div className="space-y-3">
-                <Label htmlFor="name" className="text-base font-medium">
+            <div className="space-y-4 sm:space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-sm font-medium">
                   {t("createBoard.nameLabel")}
                 </Label>
                 <Input
@@ -140,13 +143,12 @@ export function CreateBoardDialog({
                   placeholder={t("createBoard.namePlaceholder")}
                   disabled={isLoading}
                   autoFocus
-                  className="h-11"
                   {...register("name")}
                 />
               </div>
 
-              <div className="space-y-3">
-                <Label className="text-base font-medium">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">
                   {t("createBoard.templateLabel")}
                 </Label>
                 <TemplateSelector
@@ -157,7 +159,7 @@ export function CreateBoardDialog({
               </div>
             </div>
 
-            <DialogFooter className="pt-6 border-t">
+            <DialogFooter className="pt-4 sm:pt-6 border-t">
               <Button
                 type="button"
                 variant="outline"
@@ -204,7 +206,7 @@ export function CreateBoardDialog({
               onMemberAdded={() => {}}
             />
 
-            <DialogFooter className="pt-4 border-t">
+            <DialogFooter className="pt-4 sm:pt-5 border-t">
               <Button variant="outline" onClick={handleMemberPromptClose}>
                 {t("inviteMembers.skipForNow")}
               </Button>
