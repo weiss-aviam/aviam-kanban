@@ -320,8 +320,7 @@ export const de = {
     overdue: "Überfällig",
     dueSoon: "Bald fällig",
     completed: "Erledigt",
-    markComplete: "Als erledigt markieren",
-    markIncomplete: "Als offen markieren",
+    doneOn: "Erledigt am {date}",
   },
 
   editCard: {

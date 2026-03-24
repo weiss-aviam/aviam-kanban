@@ -29,6 +29,7 @@ function dbRowToCardFields(row: DbRow) {
     priority: (row.priority as string) ?? "medium",
     completedAt: (row.completed_at as string | null) ?? null,
     createdAt: new Date(row.created_at as string),
+    createdBy: (row.created_by as string | null) ?? null,
     assigneeId: (row.assignee_id as string | null) ?? null,
   };
 }

@@ -123,15 +123,17 @@ export async function PATCH(
       );
     }
 
-    // Guard: card creator, board owner, and board admin may change due_date directly.
+    // Guard: only the card creator may change due_date directly.
+    // Everyone else (including owners/admins) must use the suggestion workflow.
+    // Cards with created_by = null pre-date creator tracking — allow deadline changes for those.
     if (dueDate !== undefined) {
-      const isCreator = existingCard.created_by === user.id;
-      const isPrivileged = ["owner", "admin"].includes(authorization.role);
-      if (!isCreator && !isPrivileged) {
+      const isCreator =
+        existingCard.created_by === null || existingCard.created_by === user.id;
+      if (!isCreator) {
         return NextResponse.json(
           {
             error:
-              "Only the card creator, board owner, or admin can change the deadline directly.",
+              "Only the card creator can change the deadline directly. Use the suggestion workflow instead.",
           },
           { status: 403 },
         );

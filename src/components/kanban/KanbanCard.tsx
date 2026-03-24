@@ -6,7 +6,7 @@ import type { CSSProperties } from "react";
 import { Card } from "@/components/ui/card";
 // import { Badge } from '@/components/ui/badge'; // Removed for now since labels aren't implemented
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Calendar, Pencil, CheckCircle2, Circle } from "lucide-react";
+import { Calendar, Pencil, CheckCircle2 } from "lucide-react";
 import { t } from "@/lib/i18n";
 import type {
   Card as CardType,
@@ -19,11 +19,11 @@ import type {
 import { getUserAvatarColor, getUserInitials } from "../../lib/role-colors";
 import { getPriorityConfig } from "@/lib/priority-colors";
 import { formatDueDate, isOverdue, isDueSoon } from "@/lib/board-permissions";
+import { formatDisplayDate } from "@/lib/date-format";
 import { CompactMarkdownViewer } from "@/components/ui/markdown-viewer";
 import { PriorityBadge } from "@/components/ui/priority-selector";
 import { AutoCardContextMenu } from "./CardContextMenu";
 import { useCardActionsWithStore } from "@/hooks/useCardActionsWithStore";
-import { useState } from "react";
 import type { BoardPresenceMember } from "@/hooks/useBoardPresence";
 
 type KanbanCardData = CardType & {
@@ -135,35 +135,7 @@ export function KanbanCard({
     handleMoveToColumn(cardParam, columnId);
   };
 
-  // Local completion state for instant visual feedback
-  const [localCompletedAt, setLocalCompletedAt] = useState<
-    Date | string | null | undefined
-  >(card.completedAt);
-  const isCompleted = Boolean(localCompletedAt);
-
-  const handleToggleComplete = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (isViewer) return;
-    const newCompletedAt = isCompleted ? null : new Date().toISOString();
-    setLocalCompletedAt(newCompletedAt); // optimistic
-    try {
-      const res = await fetch(`/api/cards/${card.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ completedAt: newCompletedAt }),
-      });
-      if (res.ok) {
-        const json = (await res.json()) as {
-          card: CardType & { completedAt?: string | null };
-        };
-        onCardUpdated?.(json.card as CardType);
-      } else {
-        setLocalCompletedAt(card.completedAt); // revert
-      }
-    } catch {
-      setLocalCompletedAt(card.completedAt); // revert
-    }
-  };
+  const isCompleted = Boolean(card.completedAt);
 
   // Determine if currently dragging
   const isCurrentlyDragging = sortableIsDragging;
@@ -234,27 +206,9 @@ export function KanbanCard({
         onClick={handleCardClick}
         onDoubleClick={handleCardDoubleClick}
       >
-        {/* Header: complete toggle ↔ priority */}
+        {/* Header: priority badge */}
         <div className="flex items-center justify-end gap-2">
-          <div className="flex items-center gap-1.5">
-            {!isViewer && (
-              <button
-                onClick={handleToggleComplete}
-                onPointerDown={(e) => e.stopPropagation()}
-                title={t(
-                  isCompleted ? "card.markIncomplete" : "card.markComplete",
-                )}
-                className={`shrink-0 transition-colors ${isCompleted ? "text-green-500 hover:text-gray-400" : "text-gray-300 hover:text-green-500"}`}
-              >
-                {isCompleted ? (
-                  <CheckCircle2 className="h-4 w-4" />
-                ) : (
-                  <Circle className="h-4 w-4" />
-                )}
-              </button>
-            )}
-            <PriorityBadge priority={priority} size="md" />
-          </div>
+          <PriorityBadge priority={priority} size="md" />
         </div>
 
         {/* Content: title + description + due date */}
@@ -273,29 +227,38 @@ export function KanbanCard({
             />
           )}
 
-          {isCompleted ? (
-            <div className="mt-0.5 inline-flex w-fit items-center gap-1 rounded-md border border-green-200 bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
-              <CheckCircle2 className="h-3 w-3 shrink-0" />
-              <span>{t("card.completed")}</span>
+          {(isCompleted || card.dueDate) && (
+            <div className="mt-0.5 flex flex-wrap gap-1">
+              {isCompleted && (
+                <div className="inline-flex w-fit items-center gap-1 rounded-md border border-green-200 bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
+                  <CheckCircle2 className="h-3 w-3 shrink-0" />
+                  <span>
+                    {t("card.completed")}
+                    {card.completedAt &&
+                      ` · ${formatDisplayDate(card.completedAt)}`}
+                  </span>
+                </div>
+              )}
+              {card.dueDate && (
+                <div
+                  className={`inline-flex w-fit items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium ${
+                    cardIsOverdue
+                      ? "border-red-200 bg-red-50 text-red-700"
+                      : cardIsDueSoon
+                        ? "border-amber-200 bg-amber-50 text-amber-700"
+                        : "border-gray-200 bg-white/80 text-gray-500"
+                  }`}
+                >
+                  <Calendar className="h-3 w-3 shrink-0" />
+                  <span>
+                    {formattedDueDate}
+                    {cardIsOverdue && ` · ${t("card.overdue")}`}
+                    {cardIsDueSoon && ` · ${t("card.dueSoon")}`}
+                  </span>
+                </div>
+              )}
             </div>
-          ) : card.dueDate ? (
-            <div
-              className={`mt-0.5 inline-flex w-fit items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium ${
-                cardIsOverdue
-                  ? "border-red-200 bg-red-50 text-red-700"
-                  : cardIsDueSoon
-                    ? "border-amber-200 bg-amber-50 text-amber-700"
-                    : "border-gray-200 bg-white/80 text-gray-500"
-              }`}
-            >
-              <Calendar className="h-3 w-3 shrink-0" />
-              <span>
-                {formattedDueDate}
-                {cardIsOverdue && ` · ${t("card.overdue")}`}
-                {cardIsDueSoon && ` · ${t("card.dueSoon")}`}
-              </span>
-            </div>
-          ) : null}
+          )}
         </div>
 
         {/* Footer: presence editors (left) + assignee (right) */}

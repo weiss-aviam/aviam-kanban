@@ -43,7 +43,6 @@ import {
   Calendar as CalendarIcon,
   X,
   CheckCircle2,
-  Circle,
 } from "lucide-react";
 import type {
   Card,
@@ -290,18 +289,9 @@ export function EditCardDialog({
   const isViewer = userRole === "viewer";
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isCompletingCard, setIsCompletingCard] = useState(false);
   const [error, setError] = useState("");
 
-  // Local completion state (mirrors card.completedAt, can be toggled independently)
-  // card.completedAt is Date | null from the Drizzle type but string | null at runtime
-  const toCompletedStr = (
-    v: Date | string | null | undefined,
-  ): string | null => (v ? (v instanceof Date ? v.toISOString() : v) : null);
-  const [completedAt, setCompletedAt] = useState<string | null>(
-    toCompletedStr(card?.completedAt),
-  );
-  const isCompleted = Boolean(completedAt);
+  const isCompleted = Boolean(card?.completedAt);
 
   // react-hook-form setup
   const CardFormSchema = z.object({
@@ -377,11 +367,6 @@ export function EditCardDialog({
       });
     }
   }, [open, card, defaultColumnId, currentUser, reset]);
-
-  // Sync completedAt with the card prop when the dialog opens for a different card
-  useEffect(() => {
-    setCompletedAt(toCompletedStr(card?.completedAt));
-  }, [card?.id, open]);
 
   // Load comments and attachments when dialog opens for an existing card
   useEffect(() => {
@@ -633,17 +618,14 @@ export function EditCardDialog({
       }
 
       if (card) {
-        const canEditDirectly = card.createdBy === currentUser?.id;
         const patchBody: Record<string, unknown> = {
           title: values.title.trim(),
           description: values.description.trim() || null,
           columnId: parseInt(values.columnId),
           assigneeId: values.assigneeId === "none" ? null : values.assigneeId,
           priority: values.priority,
+          dueDate: dueDate,
         };
-        if (canEditDirectly) {
-          patchBody.dueDate = dueDate;
-        }
         const response = await fetch(`/api/cards/${card.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -736,32 +718,6 @@ export function EditCardDialog({
       return;
     }
     onOpenChange(true);
-  };
-
-  const handleToggleComplete = async () => {
-    if (!card || isViewer) return;
-    const newCompletedAt = isCompleted ? null : new Date().toISOString();
-    setCompletedAt(newCompletedAt);
-    setIsCompletingCard(true);
-    try {
-      const res = await fetch(`/api/cards/${card.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ completedAt: newCompletedAt }),
-      });
-      if (res.ok) {
-        const { card: updated } = (await res.json()) as {
-          card: Card & { completedAt?: string | null };
-        };
-        onCardUpdated?.({ ...card, ...updated } as Card);
-      } else {
-        setCompletedAt(toCompletedStr(card.completedAt));
-      }
-    } catch {
-      setCompletedAt(toCompletedStr(card.completedAt));
-    } finally {
-      setIsCompletingCard(false);
-    }
   };
 
   const watchedColumnId = watch("columnId");
@@ -1005,7 +961,10 @@ export function EditCardDialog({
                         name="dueDate"
                         control={control}
                         render={({ field }) => {
+                          // Allow direct editing when createdBy is null (old cards without
+                          // creator tracking) or when the current user is the creator.
                           const canEditDirectly =
+                            !card?.createdBy ||
                             card?.createdBy === currentUser?.id;
                           return (
                             <DeadlineSection
@@ -1023,6 +982,16 @@ export function EditCardDialog({
                           );
                         }}
                       />
+                      {isCompleted && card?.completedAt && (
+                        <div className="mt-1 inline-flex items-center gap-1.5 rounded-md border border-green-200 bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">
+                          <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                          <span>
+                            {t("card.doneOn", {
+                              date: formatDisplayDate(card.completedAt),
+                            })}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Attachments */}
@@ -1352,26 +1321,6 @@ export function EditCardDialog({
           <DialogFooter className="pt-6 border-t flex justify-between">
             {card && !isViewer && (
               <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant={isCompleted ? "outline" : "outline"}
-                  onClick={() => void handleToggleComplete()}
-                  disabled={isLoading || isDeleting || isCompletingCard}
-                  className={
-                    isCompleted
-                      ? "border-green-300 text-green-700 hover:bg-green-50"
-                      : ""
-                  }
-                >
-                  {isCompletingCard ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : isCompleted ? (
-                    <CheckCircle2 className="mr-2 h-4 w-4" />
-                  ) : (
-                    <Circle className="mr-2 h-4 w-4" />
-                  )}
-                  {t(isCompleted ? "card.markIncomplete" : "card.markComplete")}
-                </Button>
                 <Button
                   type="button"
                   variant="destructive"
