@@ -161,23 +161,31 @@ export const MentionTextarea = forwardRef<
         placeholder={placeholder}
         disabled={disabled}
         rows={3}
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck={false}
         className={
           className ??
           "w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
         }
       />
 
-      {/* @mention dropdown */}
+      {/* @mention dropdown — rendered below the textarea to avoid overflow-y clipping in parent dialogs */}
       {query !== null && filtered.length > 0 && (
-        <div className="absolute bottom-full left-0 z-50 mb-1 w-64 overflow-hidden rounded-md border border-border bg-white shadow-lg">
+        <div className="absolute top-full left-0 z-50 mt-1 w-64 overflow-hidden rounded-md border border-border bg-white shadow-lg">
           {filtered.map((m, i) => (
             <button
               key={m.id}
               type="button"
-              onMouseDown={(e) => {
-                // mousedown fires before blur; prevent textarea losing focus
+              onPointerDown={(e) => {
+                // pointerdown fires before blur on all modern browsers incl. Edge
                 e.preventDefault();
                 insertMention(m);
+              }}
+              onMouseDown={(e) => {
+                // fallback for older browsers
+                e.preventDefault();
               }}
               className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors ${
                 i === selectedIdx ? "bg-blue-50" : "hover:bg-gray-50"
