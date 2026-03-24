@@ -105,11 +105,13 @@ export function KanbanBoard({
     hasActiveFilters,
   } = useBoardFilters(allCards);
 
-  // Drag and drop sensors
+  // Drag and drop sensors — distance constraint prevents clicks from starting a drag
   const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(MouseSensor),
-    useSensor(TouchSensor),
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 200, tolerance: 8 },
+    }),
   );
 
   // Drag and drop handlers

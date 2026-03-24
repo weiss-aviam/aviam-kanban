@@ -6,13 +6,7 @@ import type { CSSProperties } from "react";
 import { Card } from "@/components/ui/card";
 // import { Badge } from '@/components/ui/badge'; // Removed for now since labels aren't implemented
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import {
-  Calendar,
-  GripVertical,
-  Pencil,
-  CheckCircle2,
-  Circle,
-} from "lucide-react";
+import { Calendar, Pencil, CheckCircle2, Circle } from "lucide-react";
 import { t } from "@/lib/i18n";
 import type {
   Card as CardType,
@@ -235,27 +229,18 @@ export function KanbanCard({
         ref={setNodeRef}
         style={style}
         {...attributes}
-        className={`cursor-default border shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md flex flex-col gap-2 p-3 ${isCurrentlyDragging ? "opacity-50 rotate-3 shadow-lg" : ""}`}
+        {...(!isViewer ? listeners : {})}
+        className={`cursor-grab active:cursor-grabbing border shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md flex flex-col gap-2 p-3 ${isCurrentlyDragging ? "opacity-50 rotate-3 shadow-lg cursor-grabbing" : ""} ${isViewer ? "cursor-default" : ""}`}
         onClick={handleCardClick}
         onDoubleClick={handleCardDoubleClick}
       >
-        {/* Header: drag handle ↔ complete toggle ↔ priority */}
-        <div className="flex items-center justify-between gap-2">
-          {!isViewer ? (
-            <div
-              {...listeners}
-              className="-ml-0.5 cursor-grab p-0.5 text-gray-400 hover:text-gray-600 active:cursor-grabbing"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <GripVertical className="h-4 w-4" />
-            </div>
-          ) : (
-            <div />
-          )}
-          <div className="flex items-center gap-1.5 ml-auto">
+        {/* Header: complete toggle ↔ priority */}
+        <div className="flex items-center justify-end gap-2">
+          <div className="flex items-center gap-1.5">
             {!isViewer && (
               <button
                 onClick={handleToggleComplete}
+                onPointerDown={(e) => e.stopPropagation()}
                 title={t(
                   isCompleted ? "card.markIncomplete" : "card.markComplete",
                 )}
