@@ -6,7 +6,9 @@ import {
   useCallback,
   forwardRef,
   useImperativeHandle,
+  useEffect,
 } from "react";
+import { createPortal } from "react-dom";
 import type { KeyboardEvent, ChangeEvent } from "react";
 import type { User } from "@/types/database";
 import { UserAvatar } from "@/components/ui/UserAvatar";
@@ -64,9 +66,15 @@ export const MentionTextarea = forwardRef<
   ref,
 ) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const mentionedIdsRef = useRef<Set<string>>(new Set());
   const [query, setQuery] = useState<string | null>(null);
   const [selectedIdx, setSelectedIdx] = useState(0);
+  const [dropdownPos, setDropdownPos] = useState<{
+    bottom: number;
+    left: number;
+    width: number;
+  } | null>(null);
 
   useImperativeHandle(ref, () => ({
     getMentionedUserIds: () => Array.from(mentionedIdsRef.current),
@@ -115,6 +123,20 @@ export const MentionTextarea = forwardRef<
     [value, onChange],
   );
 
+  // Recalculate dropdown position whenever it opens or query changes
+  useEffect(() => {
+    if (query !== null && wrapperRef.current) {
+      const rect = wrapperRef.current.getBoundingClientRect();
+      setDropdownPos({
+        bottom: window.innerHeight - rect.top + 4,
+        left: rect.left,
+        width: rect.width,
+      });
+    } else {
+      setDropdownPos(null);
+    }
+  }, [query]);
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLTextAreaElement>) => {
       if (query !== null && filtered.length > 0) {
@@ -151,8 +173,56 @@ export const MentionTextarea = forwardRef<
     [query, filtered, selectedIdx, insertMention, onSubmit],
   );
 
+  const dropdown =
+    query !== null && filtered.length > 0 && dropdownPos
+      ? createPortal(
+          <div
+            style={{
+              position: "fixed",
+              bottom: dropdownPos.bottom,
+              left: dropdownPos.left,
+              width: dropdownPos.width,
+              zIndex: 9999,
+            }}
+            className="overflow-hidden rounded-md border border-border bg-white shadow-lg"
+          >
+            {filtered.map((m, i) => (
+              <button
+                key={m.id}
+                type="button"
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  insertMention(m);
+                }}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                }}
+                className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors ${
+                  i === selectedIdx ? "bg-blue-50" : "hover:bg-gray-50"
+                }`}
+              >
+                <UserAvatar
+                  name={m.name}
+                  email={m.email}
+                  avatarUrl={m.avatarUrl}
+                  className="h-6 w-6 shrink-0"
+                  textClassName="text-xs"
+                />
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{displayName(m)}</p>
+                  {m.name && (
+                    <p className="truncate text-xs text-gray-400">{m.email}</p>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>,
+          document.body,
+        )
+      : null;
+
   return (
-    <div className="relative">
+    <div ref={wrapperRef} className="relative">
       <textarea
         ref={textareaRef}
         value={value}
@@ -170,44 +240,7 @@ export const MentionTextarea = forwardRef<
           "w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
         }
       />
-
-      {/* @mention dropdown — rendered below the textarea to avoid overflow-y clipping in parent dialogs */}
-      {query !== null && filtered.length > 0 && (
-        <div className="absolute top-full left-0 z-50 mt-1 w-64 overflow-hidden rounded-md border border-border bg-white shadow-lg">
-          {filtered.map((m, i) => (
-            <button
-              key={m.id}
-              type="button"
-              onPointerDown={(e) => {
-                // pointerdown fires before blur on all modern browsers incl. Edge
-                e.preventDefault();
-                insertMention(m);
-              }}
-              onMouseDown={(e) => {
-                // fallback for older browsers
-                e.preventDefault();
-              }}
-              className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors ${
-                i === selectedIdx ? "bg-blue-50" : "hover:bg-gray-50"
-              }`}
-            >
-              <UserAvatar
-                name={m.name}
-                email={m.email}
-                avatarUrl={m.avatarUrl}
-                className="h-6 w-6 shrink-0"
-                textClassName="text-xs"
-              />
-              <div className="min-w-0">
-                <p className="truncate font-medium">{displayName(m)}</p>
-                {m.name && (
-                  <p className="truncate text-xs text-gray-400">{m.email}</p>
-                )}
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
+      {dropdown}
     </div>
   );
 });
