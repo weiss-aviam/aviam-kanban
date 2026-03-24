@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
 
     const { data: columns, error: columnsError } = await supabase
       .from("columns")
-      .select("id, board_id, is_done")
+      .select("id, board_id, is_done, title")
       .in("id", columnIds)
       .eq("board_id", boardId);
 
@@ -123,11 +123,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Build a map of columnId → is_done so we can auto-complete/reopen cards
+    // Build maps of columnId → is_done and columnId → title
     const columnDoneMap = new Map<number, boolean>(
       columns.map((col) => [
         col.id,
         (col as unknown as { is_done?: boolean }).is_done ?? false,
+      ]),
+    );
+    const columnTitleMap = new Map<number, string>(
+      columns.map((col) => [
+        col.id,
+        (col as unknown as { title?: string }).title ?? "",
       ]),
     );
 
@@ -167,28 +173,45 @@ export async function POST(request: NextRequest) {
 
     await Promise.all(updatePromises);
 
-    // Fire card_completed notifications for cards newly moved into a done column
+    // Fire notifications for each moved card
     const notifRows: Parameters<typeof createNotifications>[1] = [];
     for (const update of updates) {
-      const isDone = columnDoneMap.get(update.columnId) ?? false;
-      if (!isDone) continue;
       const existing = existingCardMap.get(update.id);
-      if (!existing || existing.completed_at) continue; // already was done
-      // Notify board owner + assignee (not the actor)
-      const recipientIds = new Set<string>();
-      if (boardOwnerId && boardOwnerId !== user.id)
-        recipientIds.add(boardOwnerId);
+      if (!existing) continue;
+
       const assigneeId = (existing as { assignee_id?: string | null })
         .assignee_id;
-      if (assigneeId && assigneeId !== user.id) recipientIds.add(assigneeId);
-      for (const recipientId of recipientIds) {
+      const columnChanged = existing.column_id !== update.columnId;
+      if (!columnChanged) continue; // position-only reorder — no notification
+
+      const isDone = columnDoneMap.get(update.columnId) ?? false;
+
+      if (isDone && !existing.completed_at) {
+        // Card newly moved into a done column → card_completed
+        // Notify board owner + assignee (not the actor)
+        const recipientIds = new Set<string>();
+        if (boardOwnerId && boardOwnerId !== user.id)
+          recipientIds.add(boardOwnerId);
+        if (assigneeId && assigneeId !== user.id) recipientIds.add(assigneeId);
+        for (const recipientId of recipientIds) {
+          notifRows.push({
+            user_id: recipientId,
+            type: "card_completed",
+            actor_id: user.id,
+            card_id: update.id,
+            board_id: boardId!,
+            metadata: {},
+          });
+        }
+      } else if (assigneeId && assigneeId !== user.id) {
+        // Card moved to any other column → card_moved (assignee only)
         notifRows.push({
-          user_id: recipientId,
-          type: "card_completed",
+          user_id: assigneeId,
+          type: "card_moved",
           actor_id: user.id,
           card_id: update.id,
           board_id: boardId!,
-          metadata: {},
+          metadata: { columnTitle: columnTitleMap.get(update.columnId) ?? "" },
         });
       }
     }

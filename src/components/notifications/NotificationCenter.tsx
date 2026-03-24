@@ -14,6 +14,7 @@ import {
   UserCheck,
   Users,
   CheckCircle2,
+  ArrowRight,
   Trash2,
 } from "lucide-react";
 import {
@@ -58,6 +59,8 @@ function typeIcon(type: NotificationType) {
       return <Users className={cls} />;
     case "card_completed":
       return <CheckCircle2 className={cls} />;
+    case "card_moved":
+      return <ArrowRight className={cls} />;
   }
 }
 
@@ -77,6 +80,8 @@ function typeColor(type: NotificationType): string {
       return "text-teal-500";
     case "card_completed":
       return "text-green-500";
+    case "card_moved":
+      return "text-blue-500";
   }
 }
 
@@ -99,6 +104,10 @@ function notifText(n: NotificationItem): string {
       return t("notifications.boardMemberAdded", { actor, board });
     case "card_completed":
       return t("notifications.cardCompleted", { actor, card });
+    case "card_moved": {
+      const column = (n.metadata?.columnTitle as string | undefined) ?? "";
+      return t("notifications.cardMoved", { actor, card, column });
+    }
   }
 }
 

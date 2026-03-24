@@ -814,6 +814,7 @@ export const de = {
     cardAssigned: '{actor} hat Ihnen die Karte "{card}" zugewiesen',
     boardMemberAdded: '{actor} hat Sie zum Board "{board}" hinzugefügt',
     cardCompleted: '{actor} hat die Karte "{card}" als erledigt markiert',
+    cardMoved: '{actor} hat die Karte "{card}" nach "{column}" verschoben',
     liveTitle: "Neue Benachrichtigung",
     dismiss: "Schließen",
     commentMentionPlaceholder: "Kommentar schreiben... (@Name für Erwähnung)",

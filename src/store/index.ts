@@ -17,7 +17,8 @@ export type NotificationType =
   | "file_upload"
   | "card_assigned"
   | "board_member_added"
-  | "card_completed";
+  | "card_completed"
+  | "card_moved";
 
 export type NotificationItem = {
   id: string;

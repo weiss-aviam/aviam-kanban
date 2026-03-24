@@ -139,10 +139,11 @@ export async function PATCH(
     }
 
     // If changing column, verify the new column belongs to the same board
+    let newColumnTitle: string | null = null;
     if (columnId && columnId !== existingCard.column_id) {
       const { data: newColumn, error: columnError } = await supabase
         .from("columns")
-        .select("id, board_id")
+        .select("id, board_id, title")
         .eq("id", columnId)
         .eq("board_id", existingCard.board_id)
         .single();
@@ -153,6 +154,8 @@ export async function PATCH(
           { status: 400 },
         );
       }
+      newColumnTitle =
+        (newColumn as unknown as { title?: string }).title ?? null;
     }
 
     // Prepare update data
@@ -269,6 +272,22 @@ export async function PATCH(
             previousDueDate: prevDate,
             newDueDate: nextDate,
           },
+        });
+      }
+    }
+
+    // card_moved: column changed by someone other than the assignee
+    if (columnId !== undefined && columnId !== existingCard.column_id) {
+      const currentAssigneeId =
+        assigneeId !== undefined ? assigneeId : existingCard.assignee_id;
+      if (currentAssigneeId && currentAssigneeId !== user.id) {
+        notifRows.push({
+          user_id: currentAssigneeId,
+          type: "card_moved",
+          actor_id: user.id,
+          card_id: cardId,
+          board_id: existingCard.board_id,
+          metadata: { columnTitle: newColumnTitle ?? "" },
         });
       }
     }

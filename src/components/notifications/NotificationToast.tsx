@@ -30,6 +30,10 @@ function toastLabel(n: NotificationItem): string {
       return t("notifications.boardMemberAdded", { actor, board });
     case "card_completed":
       return t("notifications.cardCompleted", { actor, card });
+    case "card_moved": {
+      const column = (n.metadata?.columnTitle as string | undefined) ?? "";
+      return t("notifications.cardMoved", { actor, card, column });
+    }
   }
 }
 
