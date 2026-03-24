@@ -27,6 +27,7 @@ function dbRowToCardFields(row: DbRow) {
     position: row.position as number,
     dueDate: row.due_date ? new Date(row.due_date as string) : null,
     priority: (row.priority as string) ?? "medium",
+    completedAt: (row.completed_at as string | null) ?? null,
     createdAt: new Date(row.created_at as string),
     assigneeId: (row.assignee_id as string | null) ?? null,
   };
@@ -43,7 +44,7 @@ export function useBoardRealtime({
   // onBoardChange from BoardDetailPage is already stable (useCallback with stable deps).
   const stableOnBoardChange = useCallback(
     (updater: BoardUpdater) => onBoardChange(updater),
-     
+
     [onBoardChange],
   );
 
@@ -177,6 +178,7 @@ export function useBoardRealtime({
                       ...col,
                       title: (row.title as string) ?? col.title,
                       position: (row.position as number) ?? col.position,
+                      isDone: (row.is_done as boolean) ?? col.isDone,
                     }
                   : col,
               )
