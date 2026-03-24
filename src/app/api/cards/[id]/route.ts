@@ -97,7 +97,9 @@ export async function PATCH(
     // Get the existing card to verify access (using Supabase RLS)
     const { data: existingCard, error: cardError } = await supabase
       .from("cards")
-      .select("id, board_id, column_id, created_by, due_date, assignee_id")
+      .select(
+        "id, board_id, column_id, created_by, due_date, assignee_id, completed_at",
+      )
       .eq("id", cardId)
       .single();
 
@@ -208,6 +210,21 @@ export async function PATCH(
     }
 
     // ── Notifications (non-throwing) ──────────────────────────────────────
+    // Fetch board owner once — needed for card_completed notifications.
+    let boardOwnerId: string | null = null;
+    if (
+      completedAt !== undefined &&
+      !existingCard.completed_at &&
+      completedAt !== null
+    ) {
+      const { data: boardRow } = await supabase
+        .from("boards")
+        .select("owner_id")
+        .eq("id", existingCard.board_id)
+        .single();
+      boardOwnerId = boardRow?.owner_id ?? null;
+    }
+
     const notifRows: Parameters<typeof createNotifications>[1] = [];
 
     // card_assigned: assignee changed to a new person who is not the actor
@@ -252,6 +269,33 @@ export async function PATCH(
             previousDueDate: prevDate,
             newDueDate: nextDate,
           },
+        });
+      }
+    }
+
+    // card_completed: manual toggle — notify board owner + assignee (not the actor)
+    if (
+      completedAt !== undefined &&
+      completedAt !== null &&
+      !existingCard.completed_at
+    ) {
+      const currentAssigneeId =
+        assigneeId !== undefined ? assigneeId : existingCard.assignee_id;
+      const recipientIds = new Set<string>();
+      if (boardOwnerId && boardOwnerId !== user.id) {
+        recipientIds.add(boardOwnerId);
+      }
+      if (currentAssigneeId && currentAssigneeId !== user.id) {
+        recipientIds.add(currentAssigneeId);
+      }
+      for (const recipientId of recipientIds) {
+        notifRows.push({
+          user_id: recipientId,
+          type: "card_completed",
+          actor_id: user.id,
+          card_id: cardId,
+          board_id: existingCard.board_id,
+          metadata: {},
         });
       }
     }

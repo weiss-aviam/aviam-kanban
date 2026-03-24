@@ -28,6 +28,8 @@ function toastLabel(n: NotificationItem): string {
       return t("notifications.cardAssigned", { actor, card });
     case "board_member_added":
       return t("notifications.boardMemberAdded", { actor, board });
+    case "card_completed":
+      return t("notifications.cardCompleted", { actor, card });
   }
 }
 

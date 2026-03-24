@@ -13,6 +13,7 @@ import {
   Paperclip,
   UserCheck,
   Users,
+  CheckCircle2,
   Trash2,
 } from "lucide-react";
 import {
@@ -55,6 +56,8 @@ function typeIcon(type: NotificationType) {
       return <UserCheck className={cls} />;
     case "board_member_added":
       return <Users className={cls} />;
+    case "card_completed":
+      return <CheckCircle2 className={cls} />;
   }
 }
 
@@ -72,6 +75,8 @@ function typeColor(type: NotificationType): string {
       return "text-indigo-500";
     case "board_member_added":
       return "text-teal-500";
+    case "card_completed":
+      return "text-green-500";
   }
 }
 
@@ -92,6 +97,8 @@ function notifText(n: NotificationItem): string {
       return t("notifications.cardAssigned", { actor, card });
     case "board_member_added":
       return t("notifications.boardMemberAdded", { actor, board });
+    case "card_completed":
+      return t("notifications.cardCompleted", { actor, card });
   }
 }
 

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getBoardMutationAuthorization } from "@/lib/board-access";
+import { createNotifications } from "@/lib/notifications";
 import { z } from "zod";
 
 type BoardAccessClient = Parameters<typeof getBoardMutationAuthorization>[0];
@@ -57,7 +59,7 @@ export async function POST(request: NextRequest) {
 
     const { data: cards, error: cardsError } = await supabase
       .from("cards")
-      .select("id, board_id")
+      .select("id, board_id, assignee_id, completed_at, column_id")
       .in("id", cardIds);
 
     if (cardsError) {
@@ -131,6 +133,17 @@ export async function POST(request: NextRequest) {
 
     const now = new Date().toISOString();
 
+    // Pre-build a map of cardId → existing card data for notification logic
+    const existingCardMap = new Map(cards.map((c) => [c.id, c]));
+
+    // Fetch board owner for card_completed notifications
+    const { data: boardRow } = await supabase
+      .from("boards")
+      .select("owner_id")
+      .eq("id", boardId)
+      .single();
+    const boardOwnerId: string | null = boardRow?.owner_id ?? null;
+
     // Perform bulk update using Supabase
     const updatePromises = updates.map(async (update) => {
       const isDone = columnDoneMap.get(update.columnId) ?? false;
@@ -153,6 +166,33 @@ export async function POST(request: NextRequest) {
     });
 
     await Promise.all(updatePromises);
+
+    // Fire card_completed notifications for cards newly moved into a done column
+    const notifRows: Parameters<typeof createNotifications>[1] = [];
+    for (const update of updates) {
+      const isDone = columnDoneMap.get(update.columnId) ?? false;
+      if (!isDone) continue;
+      const existing = existingCardMap.get(update.id);
+      if (!existing || existing.completed_at) continue; // already was done
+      // Notify board owner + assignee (not the actor)
+      const recipientIds = new Set<string>();
+      if (boardOwnerId && boardOwnerId !== user.id)
+        recipientIds.add(boardOwnerId);
+      const assigneeId = (existing as { assignee_id?: string | null })
+        .assignee_id;
+      if (assigneeId && assigneeId !== user.id) recipientIds.add(assigneeId);
+      for (const recipientId of recipientIds) {
+        notifRows.push({
+          user_id: recipientId,
+          type: "card_completed",
+          actor_id: user.id,
+          card_id: update.id,
+          board_id: boardId!,
+          metadata: {},
+        });
+      }
+    }
+    await createNotifications(createAdminClient(), notifRows);
 
     return NextResponse.json({
       success: true,

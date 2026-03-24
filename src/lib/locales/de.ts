@@ -813,6 +813,7 @@ export const de = {
     fileUpload: '{actor} hat eine Datei zu "{card}" hinzugefügt',
     cardAssigned: '{actor} hat Ihnen die Karte "{card}" zugewiesen',
     boardMemberAdded: '{actor} hat Sie zum Board "{board}" hinzugefügt',
+    cardCompleted: '{actor} hat die Karte "{card}" als erledigt markiert',
     liveTitle: "Neue Benachrichtigung",
     dismiss: "Schließen",
     commentMentionPlaceholder: "Kommentar schreiben... (@Name für Erwähnung)",

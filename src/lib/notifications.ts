@@ -6,7 +6,8 @@ export type NotificationType =
   | "deadline_change"
   | "file_upload"
   | "card_assigned"
-  | "board_member_added";
+  | "board_member_added"
+  | "card_completed";
 
 export type NotificationRow = {
   user_id: string;

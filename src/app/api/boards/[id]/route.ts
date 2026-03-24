@@ -176,49 +176,61 @@ export async function GET(
     }
 
     // Transform columns data to match expected format
-    const columns = (columnsData || []).map((column) => ({
-      id: column.id,
-      title: column.title,
-      position: column.position,
-      isDone: (column as unknown as { is_done?: boolean }).is_done ?? false,
-      createdAt: column.created_at,
-      cards: (column.cards || []).map((card) => ({
-        id: card.id,
-        boardId: card.board_id,
-        columnId: card.column_id,
-        title: card.title,
-        description: card.description,
-        position: card.position,
-        dueDate: card.due_date,
-        priority: card.priority || "medium",
-        completedAt:
-          (card as unknown as { completed_at?: string | null }).completed_at ??
-          null,
-        createdAt: card.created_at,
-        createdBy:
-          (card as unknown as { created_by?: string | null }).created_by ??
-          null,
-        assigneeId: card.assignee_id,
-        assignee: (() => {
-          type U = {
-            id: string;
-            email: string | null;
-            name: string | null;
-            avatar_url: string | null;
-          };
-          const u = (card as unknown as { users?: U | U[] | null }).users;
-          if (!u) return null;
-          const single = Array.isArray(u) ? u[0] : u;
-          if (!single) return null;
+    const loadedAt = new Date().toISOString();
+    const columns = (columnsData || []).map((column) => {
+      const colIsDone =
+        (column as unknown as { is_done?: boolean }).is_done ?? false;
+      return {
+        id: column.id,
+        title: column.title,
+        position: column.position,
+        isDone: colIsDone,
+        createdAt: column.created_at,
+        cards: (column.cards || []).map((card) => {
+          // Invariant: cards in a done column must always have completedAt set.
+          // The migration backfills existing rows; this guard covers any stragglers.
+          const rawCompletedAt =
+            (card as unknown as { completed_at?: string | null })
+              .completed_at ?? null;
+          const completedAt =
+            colIsDone && !rawCompletedAt ? loadedAt : rawCompletedAt;
           return {
-            id: single.id,
-            email: single.email,
-            name: single.name,
-            avatarUrl: single.avatar_url,
+            id: card.id,
+            boardId: card.board_id,
+            columnId: card.column_id,
+            title: card.title,
+            description: card.description,
+            position: card.position,
+            dueDate: card.due_date,
+            priority: card.priority || "medium",
+            completedAt,
+            createdAt: card.created_at,
+            createdBy:
+              (card as unknown as { created_by?: string | null }).created_by ??
+              null,
+            assigneeId: card.assignee_id,
+            assignee: (() => {
+              type U = {
+                id: string;
+                email: string | null;
+                name: string | null;
+                avatar_url: string | null;
+              };
+              const u = (card as unknown as { users?: U | U[] | null }).users;
+              if (!u) return null;
+              const single = Array.isArray(u) ? u[0] : u;
+              if (!single) return null;
+              return {
+                id: single.id,
+                email: single.email,
+                name: single.name,
+                avatarUrl: single.avatar_url,
+              };
+            })(),
           };
-        })(),
-      })),
-    }));
+        }),
+      };
+    });
 
     // Extract user role from separate member query, fallback to owner if user owns the board
     let userRole = memberData?.role || "viewer";
