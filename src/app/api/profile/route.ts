@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { getSessionUser } from "@/lib/supabase/server";
 
 const updateProfileSchema = z.object({
   name: z.string().min(1, "Name is required").max(255, "Name is too long"),
@@ -9,13 +9,8 @@ const updateProfileSchema = z.object({
 // PUT /api/profile - Update current user's profile (name)
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = await createClient();
-
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
+    const { supabase, user } = await getSessionUser();
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

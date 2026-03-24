@@ -27,13 +27,13 @@ function makeChainable(resolveWith: unknown) {
 // vi.hoisted() ensures variables are initialized before vi.mock factories run.
 
 const {
-  mockGetUser,
+  mockGetSessionUser,
   mockAdminFrom,
   mockRequireAdminAccess,
   mockLogAdminAction,
   mockCreateNotifications,
 } = vi.hoisted(() => ({
-  mockGetUser: vi.fn(),
+  mockGetSessionUser: vi.fn(),
   mockAdminFrom: vi.fn(),
   mockRequireAdminAccess: vi.fn(),
   mockLogAdminAction: vi.fn(),
@@ -41,7 +41,7 @@ const {
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
-  createClient: vi.fn(async () => ({ auth: { getUser: mockGetUser } })),
+  getSessionUser: mockGetSessionUser,
 }));
 
 vi.mock("@/lib/supabase/admin", () => ({
@@ -112,9 +112,9 @@ function setupAdminClientForSuccess(actorId = ACTOR_ID) {
     return makeChainable({ data: null, error: null });
   });
 
-  mockGetUser.mockResolvedValue({
-    data: { user: { id: actorId } },
-    error: null,
+  mockGetSessionUser.mockResolvedValue({
+    supabase: {} as never,
+    user: { id: actorId } as never,
   });
 }
 
@@ -174,10 +174,7 @@ describe("POST /api/admin/memberships — board_member_added notification", () =
   });
 
   it("returns 401 when unauthenticated", async () => {
-    mockGetUser.mockResolvedValue({
-      data: { user: null },
-      error: new Error("not authed"),
-    });
+    mockGetSessionUser.mockResolvedValue({ supabase: {} as never, user: null });
 
     const res = await POST(makeRequest({ userId: TARGET_ID, role: "member" }));
     expect(res.status).toBe(401);
@@ -185,9 +182,9 @@ describe("POST /api/admin/memberships — board_member_added notification", () =
   });
 
   it("returns 403 when caller lacks admin access", async () => {
-    mockGetUser.mockResolvedValue({
-      data: { user: { id: ACTOR_ID } },
-      error: null,
+    mockGetSessionUser.mockResolvedValue({
+      supabase: {} as never,
+      user: { id: ACTOR_ID } as never,
     });
     mockRequireAdminAccess.mockRejectedValue(
       new Error("Admin access required"),

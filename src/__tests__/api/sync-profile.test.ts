@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 
 // ─── Supabase server mock ────────────────────────────────────────────────────
 
-const mockGetUser = vi.fn();
+const mockGetSessionUser = vi.fn();
 const mockSelect = vi.fn();
 const mockEq = vi.fn();
 const mockSingle = vi.fn();
@@ -12,14 +12,7 @@ const mockUpdate = vi.fn();
 const mockUpdateEq = vi.fn();
 
 vi.mock("@/lib/supabase/server", () => ({
-  createClient: vi.fn(async () => ({
-    auth: { getUser: mockGetUser },
-    from: vi.fn(() => ({
-      select: mockSelect,
-      insert: mockInsert,
-      update: mockUpdate,
-    })),
-  })),
+  getSessionUser: mockGetSessionUser,
 }));
 
 // Chain helpers — reset before each test
@@ -38,6 +31,17 @@ function setupUpdateChain(resolveValue: unknown) {
   mockUpdate.mockReturnValue({ eq: mockUpdateEq });
 }
 
+function makeSessionUser(user: Record<string, unknown> | null) {
+  const supabase = {
+    from: vi.fn(() => ({
+      select: mockSelect,
+      insert: mockInsert,
+      update: mockUpdate,
+    })),
+  };
+  return { supabase, user };
+}
+
 // ─── import after mocks ──────────────────────────────────────────────────────
 
 const { POST } = await import("@/app/api/auth/sync-profile/route");
@@ -54,10 +58,7 @@ beforeEach(() => {
 describe("POST /api/auth/sync-profile", () => {
   describe("authentication", () => {
     it("returns 401 when no session exists", async () => {
-      mockGetUser.mockResolvedValue({
-        data: { user: null },
-        error: new Error("no session"),
-      });
+      mockGetSessionUser.mockResolvedValue(makeSessionUser(null));
 
       const res = await POST(makeRequest());
       expect(res.status).toBe(401);
@@ -74,7 +75,7 @@ describe("POST /api/auth/sync-profile", () => {
     };
 
     beforeEach(() => {
-      mockGetUser.mockResolvedValue({ data: { user }, error: null });
+      mockGetSessionUser.mockResolvedValue(makeSessionUser(user));
       // Profile check → not found (PGRST116)
       setupSelectChain({ data: null, error: { code: "PGRST116" } });
     });
@@ -102,10 +103,9 @@ describe("POST /api/auth/sync-profile", () => {
     });
 
     it("falls back to the email prefix when metadata has no name", async () => {
-      mockGetUser.mockResolvedValue({
-        data: { user: { ...user, user_metadata: {} } },
-        error: null,
-      });
+      mockGetSessionUser.mockResolvedValue(
+        makeSessionUser({ ...user, user_metadata: {} }),
+      );
       setupInsertChain({ error: null });
 
       await POST(makeRequest());
@@ -115,10 +115,9 @@ describe("POST /api/auth/sync-profile", () => {
     });
 
     it("falls back to 'User' when neither metadata nor email is available", async () => {
-      mockGetUser.mockResolvedValue({
-        data: { user: { id: "u", email: null, user_metadata: {} } },
-        error: null,
-      });
+      mockGetSessionUser.mockResolvedValue(
+        makeSessionUser({ id: "u", email: null, user_metadata: {} }),
+      );
       setupInsertChain({ error: null });
 
       await POST(makeRequest());
@@ -143,7 +142,7 @@ describe("POST /api/auth/sync-profile", () => {
     };
 
     beforeEach(() => {
-      mockGetUser.mockResolvedValue({ data: { user }, error: null });
+      mockGetSessionUser.mockResolvedValue(makeSessionUser(user));
       // Profile check → found
       setupSelectChain({ data: { id: user.id }, error: null });
     });
@@ -176,7 +175,7 @@ describe("POST /api/auth/sync-profile", () => {
   describe("error handling", () => {
     it("returns 500 on a non-PGRST116 profile check error", async () => {
       const user = { id: "u", email: "a@b.com", user_metadata: {} };
-      mockGetUser.mockResolvedValue({ data: { user }, error: null });
+      mockGetSessionUser.mockResolvedValue(makeSessionUser(user));
       setupSelectChain({
         data: null,
         error: { code: "PGRST500", message: "db error" },

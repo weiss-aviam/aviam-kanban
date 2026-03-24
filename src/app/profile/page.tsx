@@ -98,13 +98,13 @@ export default function ProfilePage() {
   useEffect(() => {
     (async () => {
       const {
-        data: { user },
-        error,
-      } = await supabase.auth.getUser();
-      if (error || !user) {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.user) {
         router.push("/auth/login");
         return;
       }
+      const user = session.user;
       setEmail(user.email || "");
       setUserId(user.id);
       setAvatarUrl(
@@ -215,11 +215,10 @@ export default function ProfilePage() {
     setSuccess(null);
     try {
       const {
-        data: { user },
-        error: userErr,
-      } = await supabase.auth.getUser();
-      if (userErr || !user || !user.email)
-        throw new Error(t("profile.notAuthenticated"));
+        data: { session },
+      } = await supabase.auth.getSession();
+      const user = session?.user ?? null;
+      if (!user || !user.email) throw new Error(t("profile.notAuthenticated"));
 
       const redirectTo = `${siteUrl}${basePath || ""}/auth/reset-password`;
       const { error: resetErr } = await supabase.auth.resetPasswordForEmail(

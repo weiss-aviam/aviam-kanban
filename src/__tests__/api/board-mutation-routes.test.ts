@@ -13,14 +13,14 @@ import {
   DELETE as deleteColumn,
 } from "@/app/api/columns/[id]/route";
 import { POST as bulkUpdateColumns } from "@/app/api/columns/bulk-update/route";
-import { createClient } from "@/lib/supabase/server";
+import { getSessionUser } from "@/lib/supabase/server";
 import {
   getBoardMutationAuthorization,
   getBoardRoleForUser,
 } from "@/lib/board-access";
 
 vi.mock("@/lib/supabase/server", () => ({
-  createClient: vi.fn(),
+  getSessionUser: vi.fn(),
 }));
 
 vi.mock("@/lib/board-access", () => ({
@@ -32,7 +32,7 @@ const BOARD_ID = "11111111-1111-4111-8111-111111111111";
 const CARD_ID = "22222222-2222-4222-8222-222222222222";
 const AUTH_USER = { id: "33333333-3333-4333-8333-333333333333" };
 
-const mockCreateClient = vi.mocked(createClient);
+const mockGetSessionUser = vi.mocked(getSessionUser);
 const mockGetBoardMutationAuthorization = vi.mocked(
   getBoardMutationAuthorization,
 );
@@ -50,12 +50,6 @@ const buildRequest = (path: string, method: string, body?: unknown) =>
 const createSupabaseMock = (
   fromImplementation: (table: string) => unknown,
 ) => ({
-  auth: {
-    getUser: vi.fn().mockResolvedValue({
-      data: { user: AUTH_USER },
-      error: null,
-    }),
-  },
   from: vi.fn(fromImplementation),
 });
 
@@ -76,7 +70,10 @@ describe("board mutation routes", () => {
         "from() should not be called before authorization rejection",
       );
     });
-    mockCreateClient.mockResolvedValue(supabase as never);
+    mockGetSessionUser.mockResolvedValue({
+      supabase: supabase as never,
+      user: AUTH_USER as never,
+    });
 
     const response = await createCard(
       buildRequest("/api/cards", "POST", {
@@ -114,7 +111,10 @@ describe("board mutation routes", () => {
       if (table === "cards") return cardsTable;
       throw new Error(`Unexpected table: ${table}`);
     });
-    mockCreateClient.mockResolvedValue(supabase as never);
+    mockGetSessionUser.mockResolvedValue({
+      supabase: supabase as never,
+      user: AUTH_USER as never,
+    });
 
     const patchResponse = await updateCard(
       buildRequest(`/api/cards/${CARD_ID}`, "PATCH", { title: "Updated" }),
@@ -160,7 +160,10 @@ describe("board mutation routes", () => {
       if (table === "columns") return columnsTable;
       throw new Error(`Unexpected table: ${table}`);
     });
-    mockCreateClient.mockResolvedValue(supabase as never);
+    mockGetSessionUser.mockResolvedValue({
+      supabase: supabase as never,
+      user: AUTH_USER as never,
+    });
 
     const bulkUpdateResponse = await bulkUpdateCards(
       buildRequest("/api/cards/bulk-update", "POST", {
@@ -196,12 +199,10 @@ describe("board mutation routes", () => {
     const columnsTable = {
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
-          single: vi
-            .fn()
-            .mockResolvedValue({
-              data: { id: 1, board_id: BOARD_ID },
-              error: null,
-            }),
+          single: vi.fn().mockResolvedValue({
+            data: { id: 1, board_id: BOARD_ID },
+            error: null,
+          }),
         })),
       })),
     };
@@ -210,7 +211,10 @@ describe("board mutation routes", () => {
       if (table === "columns") return columnsTable;
       throw new Error(`Unexpected table: ${table}`);
     });
-    mockCreateClient.mockResolvedValue(supabase as never);
+    mockGetSessionUser.mockResolvedValue({
+      supabase: supabase as never,
+      user: AUTH_USER as never,
+    });
 
     const createResponse = await createColumn(
       buildRequest("/api/columns", "POST", {
@@ -239,19 +243,15 @@ describe("board mutation routes", () => {
     const columnsTable = {
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
-          single: vi
-            .fn()
-            .mockResolvedValue({
-              data: { id: 1, board_id: BOARD_ID },
-              error: null,
-            }),
-        })),
-        in: vi
-          .fn()
-          .mockResolvedValue({
-            data: [{ id: 1, board_id: BOARD_ID }],
+          single: vi.fn().mockResolvedValue({
+            data: { id: 1, board_id: BOARD_ID },
             error: null,
           }),
+        })),
+        in: vi.fn().mockResolvedValue({
+          data: [{ id: 1, board_id: BOARD_ID }],
+          error: null,
+        }),
       })),
       delete: vi.fn(() => ({ eq: vi.fn().mockResolvedValue({ error: null }) })),
       update: vi.fn(() => ({ eq: vi.fn().mockResolvedValue({ error: null }) })),
@@ -260,7 +260,10 @@ describe("board mutation routes", () => {
       if (table === "columns") return columnsTable;
       throw new Error(`Unexpected table: ${table}`);
     });
-    mockCreateClient.mockResolvedValue(supabase as never);
+    mockGetSessionUser.mockResolvedValue({
+      supabase: supabase as never,
+      user: AUTH_USER as never,
+    });
 
     const deleteResponse = await deleteColumn(
       buildRequest("/api/columns/1", "DELETE"),
@@ -324,7 +327,10 @@ describe("board mutation routes", () => {
       if (table === "columns") return columnsTable;
       throw new Error(`Unexpected table: ${table}`);
     });
-    mockCreateClient.mockResolvedValue(supabase as never);
+    mockGetSessionUser.mockResolvedValue({
+      supabase: supabase as never,
+      user: AUTH_USER as never,
+    });
     mockGetBoardMutationAuthorization.mockResolvedValue({
       ok: true,
       role: "admin",

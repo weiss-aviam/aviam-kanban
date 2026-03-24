@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { DELETE } from "@/app/api/admin/memberships/route";
-import { createClient } from "@/lib/supabase/server";
+import { getSessionUser } from "@/lib/supabase/server";
 import {
   createAdminClient,
   getClientIP,
@@ -11,7 +11,7 @@ import {
 } from "@/lib/supabase/admin";
 
 vi.mock("@/lib/supabase/server", () => ({
-  createClient: vi.fn(),
+  getSessionUser: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase/admin", () => ({
@@ -26,7 +26,7 @@ const BOARD_ID = "11111111-1111-4111-8111-111111111111";
 const ADMIN_USER_ID = "22222222-2222-4222-8222-222222222222";
 const TARGET_USER_ID = "33333333-3333-4333-8333-333333333333";
 
-const mockCreateClient = vi.mocked(createClient);
+const mockGetSessionUser = vi.mocked(getSessionUser);
 const mockCreateAdminClient = vi.mocked(createAdminClient);
 const mockRequireAdminAccess = vi.mocked(requireAdminAccess);
 const mockLogAdminAction = vi.mocked(logAdminAction);
@@ -84,20 +84,14 @@ describe("DELETE /api/admin/memberships", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    mockCreateClient.mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({
-          data: {
-            user: {
-              id: ADMIN_USER_ID,
-              email: "admin@example.com",
-              name: "Admin User",
-            },
-          },
-          error: null,
-        }),
-      },
-    } as never);
+    mockGetSessionUser.mockResolvedValue({
+      supabase: {} as never,
+      user: {
+        id: ADMIN_USER_ID,
+        email: "admin@example.com",
+        name: "Admin User",
+      } as never,
+    });
 
     mockRequireAdminAccess.mockResolvedValue({
       userId: ADMIN_USER_ID,

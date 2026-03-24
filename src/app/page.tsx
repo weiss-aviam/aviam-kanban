@@ -14,11 +14,10 @@ function RootPageContent() {
       // Check authentication status for normal access
       try {
         const {
-          data: { user },
-          error,
-        } = await supabase.auth.getUser();
+          data: { session },
+        } = await supabase.auth.getSession();
 
-        if (error || !user) {
+        if (!session?.user) {
           // No user, redirect to login
           router.push("/auth/login");
         } else {

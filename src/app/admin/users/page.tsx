@@ -32,11 +32,10 @@ export default function AdminUsersPage() {
     try {
       const supabase = createClient();
       const {
-        data: { user },
-        error: authError,
-      } = await supabase.auth.getUser();
-
-      if (authError || !user) {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const user = session?.user ?? null;
+      if (!user) {
         router.push("/login");
         return;
       }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { getSessionUser } from "@/lib/supabase/server";
 import { getBoardMutationAuthorization } from "@/lib/board-access";
 import { z } from "zod";
 
@@ -21,12 +21,8 @@ export async function GET(
 ) {
   const { id: cardId } = await params;
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
+    const { supabase, user } = await getSessionUser();
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     if (!uuidRegex.test(cardId)) {
@@ -79,13 +75,9 @@ export async function POST(
 ) {
   const { id: cardId } = await params;
   try {
-    const supabase = await createClient();
+    const { supabase, user } = await getSessionUser();
     const boardAccessClient = supabase as unknown as BoardAccessClient;
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     if (!uuidRegex.test(cardId)) {

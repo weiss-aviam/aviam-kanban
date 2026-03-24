@@ -8,11 +8,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { PATCH } from "@/app/api/cards/[id]/route";
-import { createClient } from "@/lib/supabase/server";
+import { getSessionUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getBoardMutationAuthorization } from "@/lib/board-access";
 
-vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
+vi.mock("@/lib/supabase/server", () => ({ getSessionUser: vi.fn() }));
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: vi.fn() }));
 vi.mock("@/lib/board-access", () => ({
   getBoardMutationAuthorization: vi.fn(),
@@ -26,7 +26,7 @@ const BOARD_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const CREATOR_ID = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 const OTHER_ID = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
 
-const mockCreateClient = vi.mocked(createClient);
+const mockGetSessionUser = vi.mocked(getSessionUser);
 const mockCreateAdminClient = vi.mocked(createAdminClient);
 const mockGetBoardMutationAuthorization = vi.mocked(
   getBoardMutationAuthorization,
@@ -73,11 +73,6 @@ function makeSupabase(userId: string, card: Record<string, unknown>) {
   };
 
   return {
-    auth: {
-      getUser: vi
-        .fn()
-        .mockResolvedValue({ data: { user: { id: userId } }, error: null }),
-    },
     from: vi.fn((table: string) => {
       if (table === "cards") {
         return {
@@ -140,7 +135,10 @@ describe("PATCH /api/cards/[id] — deadline guard", () => {
       assignee_id: null,
       completed_at: null,
     };
-    mockCreateClient.mockResolvedValue(makeSupabase(CREATOR_ID, card) as never);
+    mockGetSessionUser.mockResolvedValue({
+      supabase: makeSupabase(CREATOR_ID, card) as never,
+      user: { id: CREATOR_ID } as never,
+    });
 
     const res = await PATCH(
       buildRequest({ dueDate: "2026-06-01T00:00:00.000Z" }),
@@ -161,7 +159,10 @@ describe("PATCH /api/cards/[id] — deadline guard", () => {
       assignee_id: null,
       completed_at: null,
     };
-    mockCreateClient.mockResolvedValue(makeSupabase(OTHER_ID, card) as never);
+    mockGetSessionUser.mockResolvedValue({
+      supabase: makeSupabase(OTHER_ID, card) as never,
+      user: { id: OTHER_ID } as never,
+    });
 
     const res = await PATCH(
       buildRequest({ dueDate: "2026-06-01T00:00:00.000Z" }),
@@ -183,7 +184,10 @@ describe("PATCH /api/cards/[id] — deadline guard", () => {
       assignee_id: null,
       completed_at: null,
     };
-    mockCreateClient.mockResolvedValue(makeSupabase(OTHER_ID, card) as never);
+    mockGetSessionUser.mockResolvedValue({
+      supabase: makeSupabase(OTHER_ID, card) as never,
+      user: { id: OTHER_ID } as never,
+    });
 
     const res = await PATCH(
       buildRequest({ dueDate: "2026-06-01T00:00:00.000Z" }),
@@ -204,7 +208,10 @@ describe("PATCH /api/cards/[id] — deadline guard", () => {
       assignee_id: null,
       completed_at: null,
     };
-    mockCreateClient.mockResolvedValue(makeSupabase(CREATOR_ID, card) as never);
+    mockGetSessionUser.mockResolvedValue({
+      supabase: makeSupabase(CREATOR_ID, card) as never,
+      user: { id: CREATOR_ID } as never,
+    });
 
     const res = await PATCH(buildRequest({ dueDate: null }), params);
 
@@ -221,7 +228,10 @@ describe("PATCH /api/cards/[id] — deadline guard", () => {
       assignee_id: null,
       completed_at: null,
     };
-    mockCreateClient.mockResolvedValue(makeSupabase(OTHER_ID, card) as never);
+    mockGetSessionUser.mockResolvedValue({
+      supabase: makeSupabase(OTHER_ID, card) as never,
+      user: { id: OTHER_ID } as never,
+    });
 
     const res = await PATCH(buildRequest({ title: "New title" }), params);
 

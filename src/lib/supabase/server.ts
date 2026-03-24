@@ -27,3 +27,16 @@ export async function createClient() {
     },
   );
 }
+
+/**
+ * Returns the current user from the session cookie without a network call.
+ * Use in API routes where the proxy has already verified the JWT.
+ * Only use getUser() when token revocation must be checked (e.g. proxy).
+ */
+export async function getSessionUser() {
+  const supabase = await createClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  return { supabase, user: session?.user ?? null };
+}

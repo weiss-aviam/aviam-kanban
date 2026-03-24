@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { getSessionUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getBoardMutationAuthorization } from "@/lib/board-access";
 import { createNotifications } from "@/lib/notifications";
@@ -25,16 +25,10 @@ const bulkUpdateSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const { supabase, user } = await getSessionUser();
     const boardAccessClient = supabase as unknown as BoardAccessClient;
 
-    // Get the current user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

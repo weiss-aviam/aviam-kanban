@@ -16,14 +16,13 @@ export default function BoardPage() {
   useEffect(() => {
     const getUser = async () => {
       const {
-        data: { user },
-        error,
-      } = await supabase.auth.getUser();
-      if (error || !user) {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.user) {
         router.push("/auth/login");
         return;
       }
-      setUser(user);
+      setUser(session.user);
       setIsLoading(false);
     };
 

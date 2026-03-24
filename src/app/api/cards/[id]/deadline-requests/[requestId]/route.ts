@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { getSessionUser } from "@/lib/supabase/server";
 import { getBoardMutationAuthorization } from "@/lib/board-access";
 import { z } from "zod";
 
@@ -20,13 +20,9 @@ export async function PATCH(
 ) {
   const { id: cardId, requestId } = await params;
   try {
-    const supabase = await createClient();
+    const { supabase, user } = await getSessionUser();
     const boardAccessClient = supabase as unknown as BoardAccessClient;
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     if (!uuidRegex.test(cardId) || !uuidRegex.test(requestId)) {

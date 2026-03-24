@@ -3,12 +3,12 @@ import { NextRequest } from "next/server";
 import { GET, POST } from "@/app/api/admin/users/route";
 
 // Mock Supabase
+const { mockGetSessionUser } = vi.hoisted(() => ({
+  mockGetSessionUser: vi.fn(),
+}));
+
 vi.mock("@/lib/supabase/server", () => ({
-  createClient: vi.fn(() => ({
-    auth: {
-      getUser: vi.fn(),
-    },
-  })),
+  getSessionUser: mockGetSessionUser,
 }));
 
 vi.mock("@/lib/supabase/admin", () => ({
@@ -50,15 +50,9 @@ describe("/api/admin/users", () => {
 
   describe("GET /api/admin/users", () => {
     it("should return unauthorized when user is not authenticated", async () => {
-      const { createClient } = await import("@/lib/supabase/server");
-      const mockSupabase = createClient as unknown as ReturnType<typeof vi.fn>;
-      mockSupabase.mockReturnValue({
-        auth: {
-          getUser: vi.fn().mockResolvedValue({
-            data: { user: null },
-            error: new Error("Unauthorized"),
-          }),
-        },
+      mockGetSessionUser.mockResolvedValue({
+        supabase: {} as never,
+        user: null,
       });
 
       const request = new NextRequest(
@@ -73,15 +67,9 @@ describe("/api/admin/users", () => {
     });
 
     it("should return bad request when boardId is missing", async () => {
-      const { createClient } = await import("@/lib/supabase/server");
-      const mockSupabase = createClient as ReturnType<typeof vi.fn>;
-      mockSupabase.mockReturnValue({
-        auth: {
-          getUser: vi.fn().mockResolvedValue({
-            data: { user: mockUser },
-            error: null,
-          }),
-        },
+      mockGetSessionUser.mockResolvedValue({
+        supabase: {} as never,
+        user: mockUser as never,
       });
 
       const request = new NextRequest("http://localhost:3000/api/admin/users");
@@ -94,17 +82,11 @@ describe("/api/admin/users", () => {
     });
 
     it("should return forbidden when user is not admin", async () => {
-      const { createClient } = await import("@/lib/supabase/server");
       const { requireAdminAccess } = await import("@/lib/supabase/admin");
 
-      const mockSupabase = createClient as ReturnType<typeof vi.fn>;
-      mockSupabase.mockReturnValue({
-        auth: {
-          getUser: vi.fn().mockResolvedValue({
-            data: { user: mockUser },
-            error: null,
-          }),
-        },
+      mockGetSessionUser.mockResolvedValue({
+        supabase: {} as never,
+        user: mockUser as never,
       });
 
       (requireAdminAccess as ReturnType<typeof vi.fn>).mockRejectedValue(
@@ -125,15 +107,9 @@ describe("/api/admin/users", () => {
 
   describe("POST /api/admin/users", () => {
     it("should return unauthorized when user is not authenticated", async () => {
-      const { createClient } = await import("@/lib/supabase/server");
-      const mockSupabase = createClient as ReturnType<typeof vi.fn>;
-      mockSupabase.mockReturnValue({
-        auth: {
-          getUser: vi.fn().mockResolvedValue({
-            data: { user: null },
-            error: new Error("Unauthorized"),
-          }),
-        },
+      mockGetSessionUser.mockResolvedValue({
+        supabase: {} as never,
+        user: null,
       });
 
       const request = new NextRequest("http://localhost:3000/api/admin/users", {
@@ -153,15 +129,9 @@ describe("/api/admin/users", () => {
     });
 
     it("should return validation error for invalid input", async () => {
-      const { createClient } = await import("@/lib/supabase/server");
-      const mockSupabase = createClient as ReturnType<typeof vi.fn>;
-      mockSupabase.mockReturnValue({
-        auth: {
-          getUser: vi.fn().mockResolvedValue({
-            data: { user: mockUser },
-            error: null,
-          }),
-        },
+      mockGetSessionUser.mockResolvedValue({
+        supabase: {} as never,
+        user: mockUser as never,
       });
 
       const request = new NextRequest("http://localhost:3000/api/admin/users", {
@@ -182,24 +152,11 @@ describe("/api/admin/users", () => {
     });
 
     it("should return forbidden when user lacks admin access", async () => {
-      const { createClient } = await import("@/lib/supabase/server");
       const { requireAdminAccess } = await import("@/lib/supabase/admin");
 
-      const mockSupabase = createClient as ReturnType<typeof vi.fn>;
-      mockSupabase.mockReturnValue({
-        auth: {
-          getUser: vi.fn().mockResolvedValue({
-            data: { user: mockUser },
-            error: null,
-          }),
-        },
-      });
-
-      (requireAdminAccess as ReturnType<typeof vi.fn>).mockResolvedValue({
-        userId: mockUser.id,
-        boardId: mockBoardId,
-        role: "admin",
-        permissions: { canInviteUsers: true },
+      mockGetSessionUser.mockResolvedValue({
+        supabase: {} as never,
+        user: mockUser as never,
       });
 
       (requireAdminAccess as ReturnType<typeof vi.fn>).mockRejectedValue(
@@ -223,17 +180,11 @@ describe("/api/admin/users", () => {
     });
 
     it("should return gone for legacy invite-by-email requests", async () => {
-      const { createClient } = await import("@/lib/supabase/server");
       const { requireAdminAccess } = await import("@/lib/supabase/admin");
 
-      const mockSupabase = createClient as ReturnType<typeof vi.fn>;
-      mockSupabase.mockReturnValue({
-        auth: {
-          getUser: vi.fn().mockResolvedValue({
-            data: { user: mockUser },
-            error: null,
-          }),
-        },
+      mockGetSessionUser.mockResolvedValue({
+        supabase: {} as never,
+        user: mockUser as never,
       });
 
       (requireAdminAccess as ReturnType<typeof vi.fn>).mockResolvedValue({

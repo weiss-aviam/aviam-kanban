@@ -1,14 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "@/app/api/auth/confirm-email/route";
-import { createClient } from "@/lib/supabase/server";
+import { getSessionUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
+vi.mock("@/lib/supabase/server", () => ({ getSessionUser: vi.fn() }));
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: vi.fn() }));
+vi.mock("@/lib/mailer", () => ({
+  sendNewUserPendingNotification: vi.fn().mockResolvedValue(undefined),
+}));
 
 const USER_ID = "11111111-1111-4111-8111-111111111111";
 
-const mockCreateClient = vi.mocked(createClient);
+const mockGetSessionUser = vi.mocked(getSessionUser);
 const mockCreateAdminClient = vi.mocked(createAdminClient);
 
 describe("POST /api/auth/confirm-email", () => {
@@ -17,58 +20,48 @@ describe("POST /api/auth/confirm-email", () => {
   });
 
   it("returns 401 when there is no authenticated session", async () => {
-    mockCreateClient.mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({
-          data: { user: null },
-          error: new Error("not authenticated"),
-        }),
-      },
-    } as never);
+    mockGetSessionUser.mockResolvedValue({
+      supabase: {} as never,
+      user: null,
+    });
 
     const res = await POST();
     expect(res.status).toBe(401);
   });
 
   it("returns 404 when the public.users profile is missing", async () => {
-    mockCreateClient.mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({
-          data: { user: { id: USER_ID } },
-          error: null,
-        }),
-      },
-      from: vi.fn(() => ({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            single: vi.fn().mockResolvedValue({ data: null, error: null }),
+    mockGetSessionUser.mockResolvedValue({
+      supabase: {
+        from: vi.fn(() => ({
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              single: vi.fn().mockResolvedValue({ data: null, error: null }),
+            })),
           })),
         })),
-      })),
-    } as never);
+      } as never,
+      user: { id: USER_ID } as never,
+    });
 
     const res = await POST();
     expect(res.status).toBe(404);
   });
 
   it("returns active status and skips banning for active users", async () => {
-    mockCreateClient.mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({
-          data: { user: { id: USER_ID } },
-          error: null,
-        }),
-      },
-      from: vi.fn(() => ({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            single: vi
-              .fn()
-              .mockResolvedValue({ data: { status: "active" }, error: null }),
+    mockGetSessionUser.mockResolvedValue({
+      supabase: {
+        from: vi.fn(() => ({
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              single: vi
+                .fn()
+                .mockResolvedValue({ data: { status: "active" }, error: null }),
+            })),
           })),
         })),
-      })),
-    } as never);
+      } as never,
+      user: { id: USER_ID } as never,
+    });
 
     const res = await POST();
     expect(res.status).toBe(200);
@@ -77,24 +70,25 @@ describe("POST /api/auth/confirm-email", () => {
   });
 
   it("promotes unconfirmed user to pending and bans them", async () => {
-    mockCreateClient.mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({
-          data: { user: { id: USER_ID } },
-          error: null,
-        }),
-      },
-      from: vi.fn(() => ({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            single: vi.fn().mockResolvedValue({
-              data: { status: "unconfirmed" },
-              error: null,
-            }),
+    mockGetSessionUser.mockResolvedValue({
+      supabase: {
+        from: vi.fn(() => ({
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              single: vi.fn().mockResolvedValue({
+                data: { status: "unconfirmed" },
+                error: null,
+              }),
+            })),
           })),
         })),
-      })),
-    } as never);
+      } as never,
+      user: {
+        id: USER_ID,
+        email: "test@example.com",
+        user_metadata: {},
+      } as never,
+    });
 
     const updateUserById = vi.fn().mockResolvedValue({ error: null });
     const updateEq = vi.fn().mockResolvedValue({ error: null });
@@ -121,24 +115,21 @@ describe("POST /api/auth/confirm-email", () => {
   });
 
   it("returns pending status immediately for already-pending users", async () => {
-    mockCreateClient.mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({
-          data: { user: { id: USER_ID } },
-          error: null,
-        }),
-      },
-      from: vi.fn(() => ({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            single: vi.fn().mockResolvedValue({
-              data: { status: "pending" },
-              error: null,
-            }),
+    mockGetSessionUser.mockResolvedValue({
+      supabase: {
+        from: vi.fn(() => ({
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              single: vi.fn().mockResolvedValue({
+                data: { status: "pending" },
+                error: null,
+              }),
+            })),
           })),
         })),
-      })),
-    } as never);
+      } as never,
+      user: { id: USER_ID } as never,
+    });
 
     const res = await POST();
     expect(res.status).toBe(200);

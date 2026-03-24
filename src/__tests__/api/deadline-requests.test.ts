@@ -5,10 +5,10 @@ import {
   POST as createDeadlineRequest,
 } from "@/app/api/cards/[id]/deadline-requests/route";
 import { PATCH as resolveDeadlineRequest } from "@/app/api/cards/[id]/deadline-requests/[requestId]/route";
-import { createClient } from "@/lib/supabase/server";
+import { getSessionUser } from "@/lib/supabase/server";
 import { getBoardMutationAuthorization } from "@/lib/board-access";
 
-vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
+vi.mock("@/lib/supabase/server", () => ({ getSessionUser: vi.fn() }));
 vi.mock("@/lib/board-access", () => ({
   getBoardMutationAuthorization: vi.fn(),
 }));
@@ -19,7 +19,7 @@ const REQUEST_ID = "33333333-3333-4333-8333-333333333333";
 const CREATOR_ID = "44444444-4444-4444-8444-444444444444";
 const MEMBER_ID = "55555555-5555-5555-8555-555555555555";
 
-const mockCreateClient = vi.mocked(createClient);
+const mockGetSessionUser = vi.mocked(getSessionUser);
 const mockGetBoardMutationAuthorization = vi.mocked(
   getBoardMutationAuthorization,
 );
@@ -54,16 +54,11 @@ const mockRequest = {
   suggested_due_date: "2026-04-01T00:00:00.000Z",
 };
 
-function makeSupabase(userId: string, fromImpl: (table: string) => unknown) {
-  return {
-    auth: {
-      getUser: vi.fn().mockResolvedValue({
-        data: { user: { id: userId } },
-        error: null,
-      }),
-    },
+function makeSessionUser(userId: string, fromImpl: (table: string) => unknown) {
+  const supabase = {
     from: vi.fn(fromImpl),
   };
+  return { supabase, user: { id: userId } };
 }
 
 describe("deadline-requests routes", () => {
@@ -79,15 +74,10 @@ describe("deadline-requests routes", () => {
 
   describe("GET /api/cards/[id]/deadline-requests", () => {
     it("returns 401 when unauthenticated", async () => {
-      mockCreateClient.mockResolvedValue({
-        auth: {
-          getUser: vi.fn().mockResolvedValue({
-            data: { user: null },
-            error: new Error("not authenticated"),
-          }),
-        },
-        from: vi.fn(),
-      } as never);
+      mockGetSessionUser.mockResolvedValue({
+        supabase: {} as never,
+        user: null,
+      });
 
       const res = await getDeadlineRequests(
         buildRequest(`/api/cards/${CARD_ID}/deadline-requests`, "GET"),
@@ -97,15 +87,10 @@ describe("deadline-requests routes", () => {
     });
 
     it("returns 400 for an invalid card ID", async () => {
-      mockCreateClient.mockResolvedValue({
-        auth: {
-          getUser: vi.fn().mockResolvedValue({
-            data: { user: { id: MEMBER_ID } },
-            error: null,
-          }),
-        },
-        from: vi.fn(),
-      } as never);
+      mockGetSessionUser.mockResolvedValue({
+        supabase: { from: vi.fn() } as never,
+        user: { id: MEMBER_ID } as never,
+      });
 
       const res = await getDeadlineRequests(
         buildRequest("/api/cards/not-a-uuid/deadline-requests", "GET"),
@@ -115,14 +100,17 @@ describe("deadline-requests routes", () => {
     });
 
     it("returns 404 when the card does not exist", async () => {
-      const supabase = makeSupabase(MEMBER_ID, () => ({
+      const { supabase, user } = makeSessionUser(MEMBER_ID, () => ({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
             single: vi.fn().mockResolvedValue({ data: null, error: null }),
           })),
         })),
       }));
-      mockCreateClient.mockResolvedValue(supabase as never);
+      mockGetSessionUser.mockResolvedValue({
+        supabase: supabase as never,
+        user: user as never,
+      });
 
       const res = await getDeadlineRequests(
         buildRequest(`/api/cards/${CARD_ID}/deadline-requests`, "GET"),
@@ -149,7 +137,7 @@ describe("deadline-requests routes", () => {
           resolver: null,
         },
       ];
-      const supabase = makeSupabase(MEMBER_ID, (table) => {
+      const { supabase, user } = makeSessionUser(MEMBER_ID, (table) => {
         if (table === "cards") {
           return {
             select: vi.fn(() => ({
@@ -174,7 +162,10 @@ describe("deadline-requests routes", () => {
         }
         throw new Error(`Unexpected table: ${table}`);
       });
-      mockCreateClient.mockResolvedValue(supabase as never);
+      mockGetSessionUser.mockResolvedValue({
+        supabase: supabase as never,
+        user: user as never,
+      });
 
       const res = await getDeadlineRequests(
         buildRequest(`/api/cards/${CARD_ID}/deadline-requests`, "GET"),
@@ -189,15 +180,10 @@ describe("deadline-requests routes", () => {
 
   describe("POST /api/cards/[id]/deadline-requests", () => {
     it("returns 400 for missing suggestedDueDate", async () => {
-      mockCreateClient.mockResolvedValue({
-        auth: {
-          getUser: vi.fn().mockResolvedValue({
-            data: { user: { id: MEMBER_ID } },
-            error: null,
-          }),
-        },
-        from: vi.fn(),
-      } as never);
+      mockGetSessionUser.mockResolvedValue({
+        supabase: { from: vi.fn() } as never,
+        user: { id: MEMBER_ID } as never,
+      });
 
       const res = await createDeadlineRequest(
         buildRequest(`/api/cards/${CARD_ID}/deadline-requests`, "POST", {
@@ -209,7 +195,7 @@ describe("deadline-requests routes", () => {
     });
 
     it("returns 400 when the card creator tries to suggest", async () => {
-      const supabase = makeSupabase(CREATOR_ID, (table) => {
+      const { supabase, user } = makeSessionUser(CREATOR_ID, (table) => {
         if (table === "cards") {
           return {
             select: vi.fn(() => ({
@@ -224,7 +210,10 @@ describe("deadline-requests routes", () => {
         }
         throw new Error(`Unexpected table: ${table}`);
       });
-      mockCreateClient.mockResolvedValue(supabase as never);
+      mockGetSessionUser.mockResolvedValue({
+        supabase: supabase as never,
+        user: user as never,
+      });
 
       const res = await createDeadlineRequest(
         buildRequest(`/api/cards/${CARD_ID}/deadline-requests`, "POST", {
@@ -239,7 +228,7 @@ describe("deadline-requests routes", () => {
     });
 
     it("returns 409 when the member already has a pending request", async () => {
-      const supabase = makeSupabase(MEMBER_ID, (table) => {
+      const { supabase, user } = makeSessionUser(MEMBER_ID, (table) => {
         if (table === "cards") {
           return {
             select: vi.fn(() => ({
@@ -258,12 +247,10 @@ describe("deadline-requests routes", () => {
               eq: vi.fn(() => ({
                 eq: vi.fn(() => ({
                   eq: vi.fn(() => ({
-                    maybeSingle: vi
-                      .fn()
-                      .mockResolvedValue({
-                        data: { id: REQUEST_ID },
-                        error: null,
-                      }),
+                    maybeSingle: vi.fn().mockResolvedValue({
+                      data: { id: REQUEST_ID },
+                      error: null,
+                    }),
                   })),
                 })),
               })),
@@ -272,7 +259,10 @@ describe("deadline-requests routes", () => {
         }
         throw new Error(`Unexpected table: ${table}`);
       });
-      mockCreateClient.mockResolvedValue(supabase as never);
+      mockGetSessionUser.mockResolvedValue({
+        supabase: supabase as never,
+        user: user as never,
+      });
 
       const res = await createDeadlineRequest(
         buildRequest(`/api/cards/${CARD_ID}/deadline-requests`, "POST", {
@@ -300,7 +290,7 @@ describe("deadline-requests routes", () => {
       }));
       const insert = vi.fn(() => ({ select: insertSelect }));
 
-      const supabase = makeSupabase(MEMBER_ID, (table) => {
+      const { supabase, user } = makeSessionUser(MEMBER_ID, (table) => {
         if (table === "cards") {
           return {
             select: vi.fn(() => ({
@@ -331,7 +321,10 @@ describe("deadline-requests routes", () => {
         }
         throw new Error(`Unexpected table: ${table}`);
       });
-      mockCreateClient.mockResolvedValue(supabase as never);
+      mockGetSessionUser.mockResolvedValue({
+        supabase: supabase as never,
+        user: user as never,
+      });
 
       const res = await createDeadlineRequest(
         buildRequest(`/api/cards/${CARD_ID}/deadline-requests`, "POST", {
@@ -351,7 +344,7 @@ describe("deadline-requests routes", () => {
     });
 
     it("returns 403 when board access is denied", async () => {
-      const supabase = makeSupabase(MEMBER_ID, (table) => {
+      const { supabase, user } = makeSessionUser(MEMBER_ID, (table) => {
         if (table === "cards") {
           return {
             select: vi.fn(() => ({
@@ -366,7 +359,10 @@ describe("deadline-requests routes", () => {
         }
         throw new Error(`Unexpected table: ${table}`);
       });
-      mockCreateClient.mockResolvedValue(supabase as never);
+      mockGetSessionUser.mockResolvedValue({
+        supabase: supabase as never,
+        user: user as never,
+      });
       mockGetBoardMutationAuthorization.mockResolvedValue({
         ok: false,
         status: 403,
@@ -387,15 +383,10 @@ describe("deadline-requests routes", () => {
 
   describe("PATCH /api/cards/[id]/deadline-requests/[requestId]", () => {
     it("returns 400 for an invalid action", async () => {
-      mockCreateClient.mockResolvedValue({
-        auth: {
-          getUser: vi.fn().mockResolvedValue({
-            data: { user: { id: CREATOR_ID } },
-            error: null,
-          }),
-        },
-        from: vi.fn(),
-      } as never);
+      mockGetSessionUser.mockResolvedValue({
+        supabase: { from: vi.fn() } as never,
+        user: { id: CREATOR_ID } as never,
+      });
 
       const res = await resolveDeadlineRequest(
         buildRequest(
@@ -409,7 +400,7 @@ describe("deadline-requests routes", () => {
     });
 
     it("returns 403 when a non-creator tries to resolve", async () => {
-      const supabase = makeSupabase(MEMBER_ID, (table) => {
+      const { supabase, user } = makeSessionUser(MEMBER_ID, (table) => {
         if (table === "cards") {
           return {
             select: vi.fn(() => ({
@@ -424,7 +415,10 @@ describe("deadline-requests routes", () => {
         }
         throw new Error(`Unexpected table: ${table}`);
       });
-      mockCreateClient.mockResolvedValue(supabase as never);
+      mockGetSessionUser.mockResolvedValue({
+        supabase: supabase as never,
+        user: user as never,
+      });
 
       const res = await resolveDeadlineRequest(
         buildRequest(
@@ -441,7 +435,7 @@ describe("deadline-requests routes", () => {
     });
 
     it("returns 409 when the request is already resolved", async () => {
-      const supabase = makeSupabase(CREATOR_ID, (table) => {
+      const { supabase, user } = makeSessionUser(CREATOR_ID, (table) => {
         if (table === "cards") {
           return {
             select: vi.fn(() => ({
@@ -470,7 +464,10 @@ describe("deadline-requests routes", () => {
         }
         throw new Error(`Unexpected table: ${table}`);
       });
-      mockCreateClient.mockResolvedValue(supabase as never);
+      mockGetSessionUser.mockResolvedValue({
+        supabase: supabase as never,
+        user: user as never,
+      });
 
       const res = await resolveDeadlineRequest(
         buildRequest(
@@ -487,7 +484,7 @@ describe("deadline-requests routes", () => {
       const updateEq = vi.fn().mockResolvedValue({ error: null });
       const update = vi.fn(() => ({ eq: updateEq }));
 
-      const supabase = makeSupabase(CREATOR_ID, (table) => {
+      const { supabase, user } = makeSessionUser(CREATOR_ID, (table) => {
         if (table === "cards") {
           return {
             select: vi.fn(() => ({
@@ -517,7 +514,10 @@ describe("deadline-requests routes", () => {
         }
         throw new Error(`Unexpected table: ${table}`);
       });
-      mockCreateClient.mockResolvedValue(supabase as never);
+      mockGetSessionUser.mockResolvedValue({
+        supabase: supabase as never,
+        user: user as never,
+      });
 
       const res = await resolveDeadlineRequest(
         buildRequest(
@@ -553,7 +553,7 @@ describe("deadline-requests routes", () => {
       }));
       let deadlineUpdateCallCount = 0;
 
-      const supabase = makeSupabase(CREATOR_ID, (table) => {
+      const { supabase, user } = makeSessionUser(CREATOR_ID, (table) => {
         if (table === "cards") {
           return {
             select: vi.fn(() => ({
@@ -592,7 +592,10 @@ describe("deadline-requests routes", () => {
         }
         throw new Error(`Unexpected table: ${table}`);
       });
-      mockCreateClient.mockResolvedValue(supabase as never);
+      mockGetSessionUser.mockResolvedValue({
+        supabase: supabase as never,
+        user: user as never,
+      });
 
       const res = await resolveDeadlineRequest(
         buildRequest(

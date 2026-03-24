@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 
 // ── Supabase mock ─────────────────────────────────────────────────────────────
 
-const mockGetUser = vi.fn();
+const mockGetSessionUser = vi.fn();
 
 /**
  * A chainable Supabase query builder stub.
@@ -36,7 +36,6 @@ function buildSupabaseMock(
   let selectCallCount = 0;
 
   return {
-    auth: { getUser: mockGetUser },
     from: vi.fn(() => ({
       select: vi.fn(() => {
         selectCallCount++;
@@ -49,7 +48,7 @@ function buildSupabaseMock(
 }
 
 vi.mock("@/lib/supabase/server", () => ({
-  createClient: vi.fn(async () => buildSupabaseMock()),
+  getSessionUser: mockGetSessionUser,
 }));
 
 // ── import routes after mocks ─────────────────────────────────────────────────
@@ -76,18 +75,15 @@ describe("GET /api/notifications", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("returns 401 when unauthenticated", async () => {
-    mockGetUser.mockResolvedValue({
-      data: { user: null },
-      error: new Error("not authed"),
-    });
+    mockGetSessionUser.mockResolvedValue({ supabase: {} as never, user: null });
     const res = await getNotifications();
     expect(res.status).toBe(401);
   });
 
   it("returns notifications array when authenticated", async () => {
-    mockGetUser.mockResolvedValue({
-      data: { user: { id: "user-1" } },
-      error: null,
+    mockGetSessionUser.mockResolvedValue({
+      supabase: buildSupabaseMock() as never,
+      user: { id: "user-1" } as never,
     });
     // The chainable mock already resolves with { data: [], error: null } by default
     const res = await getNotifications();
@@ -102,10 +98,7 @@ describe("PATCH /api/notifications/[id]", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("returns 401 when unauthenticated", async () => {
-    mockGetUser.mockResolvedValue({
-      data: { user: null },
-      error: new Error("not authed"),
-    });
+    mockGetSessionUser.mockResolvedValue({ supabase: {} as never, user: null });
     const req = new NextRequest("http://localhost/api/notifications/some-id", {
       method: "PATCH",
     });
@@ -120,18 +113,15 @@ describe("POST /api/notifications/mark-all-read", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("returns 401 when unauthenticated", async () => {
-    mockGetUser.mockResolvedValue({
-      data: { user: null },
-      error: new Error("not authed"),
-    });
+    mockGetSessionUser.mockResolvedValue({ supabase: {} as never, user: null });
     const res = await markAllRead();
     expect(res.status).toBe(401);
   });
 
   it("returns ok when authenticated", async () => {
-    mockGetUser.mockResolvedValue({
-      data: { user: { id: "user-1" } },
-      error: null,
+    mockGetSessionUser.mockResolvedValue({
+      supabase: buildSupabaseMock() as never,
+      user: { id: "user-1" } as never,
     });
     const res = await markAllRead();
     expect(res.status).toBe(200);

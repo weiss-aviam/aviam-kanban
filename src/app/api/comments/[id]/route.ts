@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "../../../../lib/supabase/server";
+import { getSessionUser } from "../../../../lib/supabase/server";
 import { z } from "zod";
 
 const updateCommentSchema = z.object({
@@ -15,15 +15,9 @@ export async function PATCH(
 ) {
   const { id } = await params;
   try {
-    const supabase = await createClient();
+    const { supabase, user } = await getSessionUser();
 
-    // Get the current user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -120,15 +114,9 @@ export async function DELETE(
 ) {
   const { id } = await params;
   try {
-    const supabase = await createClient();
+    const { supabase, user } = await getSessionUser();
 
-    // Get the current user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
