@@ -5,6 +5,7 @@ import {
   boardMembers,
   columns,
   cards,
+  cardSubtasks,
   labels,
   cardLabels,
   comments,
@@ -20,6 +21,8 @@ export type Board = InferSelectModel<typeof boards>;
 export type BoardMember = InferSelectModel<typeof boardMembers>;
 export type Column = InferSelectModel<typeof columns>;
 export type Card = InferSelectModel<typeof cards>;
+export type Subtask = InferSelectModel<typeof cardSubtasks>;
+export type NewSubtask = InferInsertModel<typeof cardSubtasks>;
 export type Label = InferSelectModel<typeof labels>;
 export type CardLabel = InferSelectModel<typeof cardLabels>;
 export type Comment = InferSelectModel<typeof comments>;

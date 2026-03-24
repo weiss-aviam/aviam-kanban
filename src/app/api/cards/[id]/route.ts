@@ -120,17 +120,27 @@ export async function PATCH(
     // Guard: only the card creator may change due_date directly.
     // Everyone else (including owners/admins) must use the suggestion workflow.
     // Cards with created_by = null pre-date creator tracking — allow deadline changes for those.
+    // Only trigger if the due date is actually changing (not just echoed back unchanged).
     if (dueDate !== undefined) {
-      const isCreator =
-        existingCard.created_by === null || existingCard.created_by === user.id;
-      if (!isCreator) {
-        return NextResponse.json(
-          {
-            error:
-              "Only the card creator can change the deadline directly. Use the suggestion workflow instead.",
-          },
-          { status: 403 },
-        );
+      const existingNorm = existingCard.due_date
+        ? new Date(existingCard.due_date as string).toISOString()
+        : null;
+      const incomingNorm = dueDate ? new Date(dueDate).toISOString() : null;
+      const dueDateChanged = existingNorm !== incomingNorm;
+
+      if (dueDateChanged) {
+        const isCreator =
+          existingCard.created_by === null ||
+          existingCard.created_by === user.id;
+        if (!isCreator) {
+          return NextResponse.json(
+            {
+              error:
+                "Only the card creator can change the deadline directly. Use the suggestion workflow instead.",
+            },
+            { status: 403 },
+          );
+        }
       }
     }
 

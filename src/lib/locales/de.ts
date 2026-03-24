@@ -283,6 +283,8 @@ export const de = {
     created: "Erstellt am {date}",
     showingCards: "Zeige {filtered} von {total} Karten",
     hiddenCards: "({count} ausgeblendet)",
+    constrainWidth: "Breite begrenzen",
+    constrainWidthOff: "Volle Breite",
   },
 
   boardDetail: {
@@ -396,6 +398,15 @@ export const de = {
     failedToDeleteComment: "Kommentar konnte nicht gelöscht werden",
     commentDeleted: "Kommentar gelöscht",
     commentEdited: "bearbeitet",
+    subtasks: "Aufgaben",
+    subtasksProgress: "{done}/{total}",
+    subtaskPlaceholder: "Aufgabe hinzufügen…",
+    subtaskAdd: "Hinzufügen",
+    subtaskDelete: "Aufgabe löschen",
+    subtaskFailedLoad: "Aufgaben konnten nicht geladen werden",
+    subtaskFailedCreate: "Aufgabe konnte nicht erstellt werden",
+    subtaskFailedToggle: "Status konnte nicht geändert werden",
+    subtaskFailedDelete: "Aufgabe konnte nicht gelöscht werden",
   },
 
   admin: {

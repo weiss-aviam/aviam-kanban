@@ -392,6 +392,18 @@ export function EditCardDialog({
   const mentionTextareaRef = useRef<MentionTextareaRef>(null);
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
+  // Subtasks state
+  type SubtaskItem = {
+    id: string;
+    title: string;
+    completedAt: string | null;
+    position: number;
+  };
+  const [subtasks, setSubtasks] = useState<SubtaskItem[]>([]);
+  const [subtasksLoading, setSubtasksLoading] = useState(false);
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
+  const [subtaskAdding, setSubtaskAdding] = useState(false);
+
   // Initialize form from card when editing, or defaults when creating.
   useEffect(() => {
     if (!open) return;
@@ -454,8 +466,22 @@ export function EditCardDialog({
         );
       }
     };
+    const fetchSubtasks = async () => {
+      if (!open || !card) return;
+      try {
+        setSubtasksLoading(true);
+        const res = await fetch(`/api/cards/${card.id}/subtasks`);
+        if (res.ok) {
+          const data = await res.json();
+          setSubtasks(data.subtasks ?? []);
+        }
+      } finally {
+        setSubtasksLoading(false);
+      }
+    };
     fetchComments();
     fetchAttachments();
+    fetchSubtasks();
   }, [open, card]);
 
   const handleSubmitComment = useCallback(
@@ -493,6 +519,73 @@ export function EditCardDialog({
     },
     [card, commentBody],
   );
+
+  // Subtask handlers
+  const handleAddSubtask = async () => {
+    if (!card || !newSubtaskTitle.trim()) return;
+    try {
+      setSubtaskAdding(true);
+      const nextPosition = subtasks.length;
+      const res = await fetch(`/api/cards/${card.id}/subtasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: newSubtaskTitle.trim(),
+          position: nextPosition,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSubtasks((prev) => [...prev, data.subtask]);
+        setNewSubtaskTitle("");
+      } else {
+        setError(t("editCard.subtaskFailedCreate"));
+      }
+    } finally {
+      setSubtaskAdding(false);
+    }
+  };
+
+  const handleToggleSubtask = async (subtask: SubtaskItem) => {
+    if (!card) return;
+    const nowCompleted = !subtask.completedAt;
+    // Optimistic update
+    setSubtasks((prev) =>
+      prev.map((s) =>
+        s.id === subtask.id
+          ? {
+              ...s,
+              completedAt: nowCompleted ? new Date().toISOString() : null,
+            }
+          : s,
+      ),
+    );
+    const res = await fetch(`/api/cards/${card.id}/subtasks/${subtask.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ completed: nowCompleted }),
+    });
+    if (!res.ok) {
+      // Revert on failure
+      setSubtasks((prev) =>
+        prev.map((s) =>
+          s.id === subtask.id ? { ...s, completedAt: subtask.completedAt } : s,
+        ),
+      );
+      setError(t("editCard.subtaskFailedToggle"));
+    }
+  };
+
+  const handleDeleteSubtask = async (subtaskId: string) => {
+    if (!card) return;
+    setSubtasks((prev) => prev.filter((s) => s.id !== subtaskId));
+    const res = await fetch(`/api/cards/${card.id}/subtasks/${subtaskId}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) {
+      setError(t("editCard.subtaskFailedDelete"));
+    }
+  };
 
   const handleStartEditComment = (comment: CommentItem) => {
     setEditingCommentId(comment.id);
@@ -974,6 +1067,120 @@ export function EditCardDialog({
                 </div>
               </div>
             </div>
+
+            {/* Subtasks: only in edit mode */}
+            {card ? (
+              <div className="rounded-lg border bg-muted/20 p-4">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-3">
+                  <Label className="text-sm font-medium">
+                    {t("editCard.subtasks")}
+                  </Label>
+                  {subtasks.length > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      {t("editCard.subtasksProgress", {
+                        done: String(
+                          subtasks.filter((s) => s.completedAt).length,
+                        ),
+                        total: String(subtasks.length),
+                      })}
+                    </span>
+                  )}
+                </div>
+
+                {/* Progress bar */}
+                {subtasks.length > 0 && (
+                  <div className="mb-3 h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-green-500 transition-all"
+                      style={{
+                        width: `${Math.round(
+                          (subtasks.filter((s) => s.completedAt).length /
+                            subtasks.length) *
+                            100,
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* Subtask list */}
+                {subtasksLoading ? (
+                  <div className="flex items-center gap-2 py-2 text-xs text-muted-foreground">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  </div>
+                ) : (
+                  <ul className="space-y-1 mb-3">
+                    {subtasks.map((subtask) => (
+                      <li
+                        key={subtask.id}
+                        className="group flex items-center gap-2"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={Boolean(subtask.completedAt)}
+                          onChange={() => handleToggleSubtask(subtask)}
+                          disabled={isViewer}
+                          className="h-4 w-4 shrink-0 rounded border-gray-300 accent-green-600 cursor-pointer disabled:cursor-default"
+                        />
+                        <span
+                          className={`flex-1 text-sm leading-snug ${
+                            subtask.completedAt
+                              ? "line-through text-muted-foreground"
+                              : "text-gray-800"
+                          }`}
+                        >
+                          {subtask.title}
+                        </span>
+                        {!isViewer && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteSubtask(subtask.id)}
+                            title={t("editCard.subtaskDelete")}
+                            className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-500 transition-opacity"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                {/* Add new subtask */}
+                {!isViewer && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={newSubtaskTitle}
+                      onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          void handleAddSubtask();
+                        }
+                      }}
+                      placeholder={t("editCard.subtaskPlaceholder")}
+                      maxLength={200}
+                      className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={!newSubtaskTitle.trim() || subtaskAdding}
+                      onClick={() => void handleAddSubtask()}
+                    >
+                      {subtaskAdding ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        t("editCard.subtaskAdd")
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ) : null}
 
             {/* Row 2 + Row 3: only in edit mode */}
             {card ? (

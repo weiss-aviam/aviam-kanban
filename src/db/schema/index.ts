@@ -121,6 +121,19 @@ export const cardLabels = pgTable(
   }),
 );
 
+// Card subtasks table - per-card checklist items
+export const cardSubtasks = pgTable("card_subtasks", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  cardId: uuid("card_id")
+    .notNull()
+    .references(() => cards.id, { onDelete: "cascade" }),
+  title: varchar("title", { length: 200 }).notNull(),
+  completedAt: timestamp("completed_at"),
+  position: integer("position").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  deletedAt: timestamp("deleted_at"),
+});
+
 // Comments table
 export const comments = pgTable("comments", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -290,7 +303,15 @@ export const cardsRelations = relations(cards, ({ one, many }) => ({
   }),
   labels: many(cardLabels),
   comments: many(comments),
+  subtasks: many(cardSubtasks),
   deadlineRequests: many(cardDeadlineRequests),
+}));
+
+export const cardSubtasksRelations = relations(cardSubtasks, ({ one }) => ({
+  card: one(cards, {
+    fields: [cardSubtasks.cardId],
+    references: [cards.id],
+  }),
 }));
 
 export const labelsRelations = relations(labels, ({ one, many }) => ({
