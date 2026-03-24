@@ -395,16 +395,18 @@ export function NotificationCenter() {
                   {t("notificationSettings.desktopNotifications")}
                 </button>
 
-                {/* Test button — only shown when enabled */}
-                {desktopEnabled && browserPermission === "granted" && (
-                  <button
-                    onClick={handleTestNotification}
-                    title={t("notifications.desktopTest")}
-                    className="rounded-md px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 transition-colors"
-                  >
-                    {t("notifications.desktopTest")}
-                  </button>
-                )}
+                {/* Test button — only shown when enabled and in development */}
+                {process.env.NODE_ENV === "development" &&
+                  desktopEnabled &&
+                  browserPermission === "granted" && (
+                    <button
+                      onClick={handleTestNotification}
+                      title={t("notifications.desktopTest")}
+                      className="rounded-md px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 transition-colors"
+                    >
+                      {t("notifications.desktopTest")}
+                    </button>
+                  )}
               </div>
             )}
           </div>
