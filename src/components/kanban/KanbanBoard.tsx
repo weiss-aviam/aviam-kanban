@@ -293,16 +293,21 @@ export function KanbanBoard({
       }
 
       // Update local state - remove from all columns first, then add to target
+      const targetCol = boardData.columns.find((c) => c.id === targetColumnId);
       const newColumns = boardData.columns.map((col) => {
         // Remove the card from all columns first
         const filteredCards = col.cards.filter((card) => card.id !== cardId);
 
         if (col.id === targetColumnId) {
-          // Add to target column
+          // Add to target column; auto-complete/reopen based on is_done flag
           const updatedCard = {
             ...draggedCard,
             columnId: targetColumnId,
             position: targetPosition,
+            // Cast: store type expects Date | null but API returns strings at runtime
+            completedAt: (targetCol?.isDone
+              ? new Date().toISOString()
+              : null) as unknown as Date | null,
           };
           return {
             ...col,

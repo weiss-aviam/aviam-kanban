@@ -12,7 +12,15 @@ import { KanbanCard } from "./KanbanCard";
 import { EditCardDialog } from "./EditCardDialog";
 import { EmptyColumn } from "./EmptyStates";
 import { Button } from "@/components/ui/button";
-import { Plus, MoreHorizontal, GripVertical, Edit, Trash2 } from "lucide-react";
+import {
+  Plus,
+  MoreHorizontal,
+  GripVertical,
+  Edit,
+  Trash2,
+  CheckCircle2,
+  Circle,
+} from "lucide-react";
 import { t } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
 import {
@@ -24,6 +32,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { DeleteColumnDialog } from "../columns/DeleteColumnDialog";
 import { EditColumnDialog } from "../columns/EditColumnDialog";
+import { useAppActions } from "@/store";
 import type {
   Column,
   Card as CardType,
@@ -74,6 +83,7 @@ export function KanbanColumn({
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const { updateColumn } = useAppActions();
 
   const isViewer = userRole === "viewer";
 
@@ -112,6 +122,25 @@ export function KanbanColumn({
     setShowDeleteDialog(true);
   };
 
+  const handleToggleDone = async () => {
+    const newIsDone = !column.isDone;
+    // Optimistic update
+    updateColumn({ ...column, isDone: newIsDone });
+    try {
+      const res = await fetch(`/api/columns/${column.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isDone: newIsDone }),
+      });
+      if (!res.ok) {
+        // Revert on failure
+        updateColumn({ ...column });
+      }
+    } catch {
+      updateColumn({ ...column });
+    }
+  };
+
   // Permission checks - allow owners, admins, and members to manage columns
   const _canEditColumn = ["owner", "admin", "member"].includes(userRole);
   const hasCards = cards && cards.length > 0;
@@ -125,7 +154,9 @@ export function KanbanColumn({
       className={`flex flex-col min-w-0 ${isColumnDragging ? "opacity-50 rotate-1 shadow-lg" : ""}`}
     >
       {/* Column Header */}
-      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-t-lg border border-b-0">
+      <div
+        className={`flex items-center justify-between p-4 rounded-t-lg border border-b-0 ${column.isDone ? "bg-green-50" : "bg-gray-50"}`}
+      >
         <div className="flex items-center space-x-2">
           {/* Drag Handle for Column — hidden for viewers */}
           {!isViewer && (
@@ -137,8 +168,17 @@ export function KanbanColumn({
               <GripVertical className="w-4 h-4 text-gray-400" />
             </div>
           )}
-          <h3 className="font-semibold text-gray-900">{column.title}</h3>
-          <span className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full">
+          {column.isDone && (
+            <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
+          )}
+          <h3
+            className={`font-semibold ${column.isDone ? "text-green-800" : "text-gray-900"}`}
+          >
+            {column.title}
+          </h3>
+          <span
+            className={`text-xs px-2 py-1 rounded-full ${column.isDone ? "bg-green-100 text-green-700" : "bg-gray-200 text-gray-700"}`}
+          >
             {cards.length}
           </span>
         </div>
@@ -150,10 +190,18 @@ export function KanbanColumn({
                 <MoreHorizontal className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuItem onClick={handleEditColumn}>
                 <Edit className="mr-2 h-4 w-4" />
                 {t("column.edit")}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => void handleToggleDone()}>
+                {column.isDone ? (
+                  <Circle className="mr-2 h-4 w-4 text-gray-500" />
+                ) : (
+                  <CheckCircle2 className="mr-2 h-4 w-4 text-green-600" />
+                )}
+                {t(column.isDone ? "column.markAsActive" : "column.markAsDone")}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem

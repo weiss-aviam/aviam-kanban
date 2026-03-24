@@ -63,6 +63,7 @@ export const columns = pgTable("columns", {
     .references(() => boards.id, { onDelete: "cascade" }),
   title: varchar("title", { length: 120 }).notNull(),
   position: integer("position").notNull(),
+  isDone: boolean("is_done").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -88,6 +89,7 @@ export const cards = pgTable("cards", {
     .default("medium")
     .notNull(),
   position: integer("position").notNull(),
+  completedAt: timestamp("completed_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

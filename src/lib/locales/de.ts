@@ -219,6 +219,9 @@ export const de = {
     delete: "Spalte löschen",
     addCard: "Karte hinzufügen",
     hasCards: "(hat Karten)",
+    markAsDone: "Als Erledigungs-Spalte markieren",
+    markAsActive: "Als aktive Spalte markieren",
+    doneColumn: "Erledigungs-Spalte",
   },
 
   createBoard: {
@@ -316,6 +319,9 @@ export const de = {
   card: {
     overdue: "Überfällig",
     dueSoon: "Bald fällig",
+    completed: "Erledigt",
+    markComplete: "Als erledigt markieren",
+    markIncomplete: "Als offen markieren",
   },
 
   editCard: {

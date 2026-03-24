@@ -27,6 +27,7 @@ const updateCardSchema = z.object({
     .int()
     .positive("Position must be a positive integer")
     .optional(),
+  completedAt: z.string().datetime().nullable().optional(),
 });
 
 type CardUpdateData = {
@@ -37,6 +38,7 @@ type CardUpdateData = {
   priority?: "high" | "medium" | "low";
   column_id?: number;
   position?: number;
+  completed_at?: string | null;
 };
 
 export async function PATCH(
@@ -89,6 +91,7 @@ export async function PATCH(
       priority,
       columnId,
       position,
+      completedAt,
     } = validation.data;
 
     // Get the existing card to verify access (using Supabase RLS)
@@ -160,6 +163,10 @@ export async function PATCH(
     if (priority !== undefined) updateData.priority = priority;
     if (columnId !== undefined) updateData.column_id = columnId;
     if (position !== undefined) updateData.position = position;
+    if (completedAt !== undefined)
+      updateData.completed_at = completedAt
+        ? new Date(completedAt).toISOString()
+        : null;
 
     // Update the card using Supabase (respects RLS)
     const { data: updatedCard, error: updateError } = await supabase
@@ -262,6 +269,7 @@ export async function PATCH(
       assigneeId: updatedCard.assignee_id,
       dueDate: updatedCard.due_date,
       priority: updatedCard.priority,
+      completedAt: updatedCard.completed_at,
       position: updatedCard.position,
       createdAt: updatedCard.created_at,
       createdBy: updatedCard.created_by,

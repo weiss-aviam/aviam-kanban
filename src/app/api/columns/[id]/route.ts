@@ -19,11 +19,13 @@ const updateColumnSchema = z.object({
     .int()
     .positive("Position must be a positive integer")
     .optional(),
+  isDone: z.boolean().optional(),
 });
 
 type ColumnUpdateData = {
   title?: string;
   position?: number;
+  is_done?: boolean;
 };
 
 export async function PATCH(
@@ -62,7 +64,7 @@ export async function PATCH(
       );
     }
 
-    const { title, position } = validation.data;
+    const { title, position, isDone } = validation.data;
 
     // Verify the column exists and user has access (using Supabase RLS)
     const { data: existingColumn, error: columnError } = await supabase
@@ -95,6 +97,7 @@ export async function PATCH(
     const updateData: ColumnUpdateData = {};
     if (title !== undefined) updateData.title = title;
     if (position !== undefined) updateData.position = position;
+    if (isDone !== undefined) updateData.is_done = isDone;
 
     // Update the column using Supabase (respects RLS)
     const { data: updatedColumn, error: updateError } = await supabase
@@ -118,6 +121,7 @@ export async function PATCH(
       boardId: updatedColumn.board_id,
       title: updatedColumn.title,
       position: updatedColumn.position,
+      isDone: updatedColumn.is_done,
       createdAt: updatedColumn.created_at,
     };
 

@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
 
     const { data: columns, error: columnsError } = await supabase
       .from("columns")
-      .select("id, board_id")
+      .select("id, board_id, is_done")
       .in("id", columnIds)
       .eq("board_id", boardId);
 
@@ -121,13 +121,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Build a map of columnId → is_done so we can auto-complete/reopen cards
+    const columnDoneMap = new Map<number, boolean>(
+      columns.map((col) => [
+        col.id,
+        (col as unknown as { is_done?: boolean }).is_done ?? false,
+      ]),
+    );
+
+    const now = new Date().toISOString();
+
     // Perform bulk update using Supabase
     const updatePromises = updates.map(async (update) => {
+      const isDone = columnDoneMap.get(update.columnId) ?? false;
       const { error } = await supabase
         .from("cards")
         .update({
           column_id: update.columnId,
           position: update.position,
+          // Auto-complete when moving to a done column; reopen when moving out
+          completed_at: isDone ? now : null,
         })
         .eq("id", update.id);
 

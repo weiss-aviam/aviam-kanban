@@ -140,6 +140,7 @@ export async function GET(
         id,
         title,
         position,
+        is_done,
         created_at,
         cards (
           id,
@@ -150,6 +151,7 @@ export async function GET(
           position,
           due_date,
           priority,
+          completed_at,
           created_at,
           created_by,
           assignee_id,
@@ -178,6 +180,7 @@ export async function GET(
       id: column.id,
       title: column.title,
       position: column.position,
+      isDone: (column as unknown as { is_done?: boolean }).is_done ?? false,
       createdAt: column.created_at,
       cards: (column.cards || []).map((card) => ({
         id: card.id,
@@ -188,6 +191,9 @@ export async function GET(
         position: card.position,
         dueDate: card.due_date,
         priority: card.priority || "medium",
+        completedAt:
+          (card as unknown as { completed_at?: string | null }).completed_at ??
+          null,
         createdAt: card.created_at,
         createdBy:
           (card as unknown as { created_by?: string | null }).created_by ??

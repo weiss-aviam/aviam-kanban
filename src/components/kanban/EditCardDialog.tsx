@@ -42,6 +42,8 @@ import {
   Paperclip,
   Calendar as CalendarIcon,
   X,
+  CheckCircle2,
+  Circle,
 } from "lucide-react";
 import type {
   Card,
@@ -288,7 +290,18 @@ export function EditCardDialog({
   const isViewer = userRole === "viewer";
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isCompletingCard, setIsCompletingCard] = useState(false);
   const [error, setError] = useState("");
+
+  // Local completion state (mirrors card.completedAt, can be toggled independently)
+  // card.completedAt is Date | null from the Drizzle type but string | null at runtime
+  const toCompletedStr = (
+    v: Date | string | null | undefined,
+  ): string | null => (v ? (v instanceof Date ? v.toISOString() : v) : null);
+  const [completedAt, setCompletedAt] = useState<string | null>(
+    toCompletedStr(card?.completedAt),
+  );
+  const isCompleted = Boolean(completedAt);
 
   // react-hook-form setup
   const CardFormSchema = z.object({
@@ -364,6 +377,11 @@ export function EditCardDialog({
       });
     }
   }, [open, card, defaultColumnId, currentUser, reset]);
+
+  // Sync completedAt with the card prop when the dialog opens for a different card
+  useEffect(() => {
+    setCompletedAt(toCompletedStr(card?.completedAt));
+  }, [card?.id, open]);
 
   // Load comments and attachments when dialog opens for an existing card
   useEffect(() => {
@@ -718,6 +736,32 @@ export function EditCardDialog({
       return;
     }
     onOpenChange(true);
+  };
+
+  const handleToggleComplete = async () => {
+    if (!card || isViewer) return;
+    const newCompletedAt = isCompleted ? null : new Date().toISOString();
+    setCompletedAt(newCompletedAt);
+    setIsCompletingCard(true);
+    try {
+      const res = await fetch(`/api/cards/${card.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completedAt: newCompletedAt }),
+      });
+      if (res.ok) {
+        const { card: updated } = (await res.json()) as {
+          card: Card & { completedAt?: string | null };
+        };
+        onCardUpdated?.({ ...card, ...updated } as Card);
+      } else {
+        setCompletedAt(toCompletedStr(card.completedAt));
+      }
+    } catch {
+      setCompletedAt(toCompletedStr(card.completedAt));
+    } finally {
+      setIsCompletingCard(false);
+    }
   };
 
   const watchedColumnId = watch("columnId");
@@ -1307,18 +1351,40 @@ export function EditCardDialog({
 
           <DialogFooter className="pt-6 border-t flex justify-between">
             {card && !isViewer && (
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={handleDelete}
-                disabled={isLoading || isDeleting}
-              >
-                {isDeleting && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                <Trash2 className="mr-2 h-4 w-4" />
-                {t("common.delete")}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant={isCompleted ? "outline" : "outline"}
+                  onClick={() => void handleToggleComplete()}
+                  disabled={isLoading || isDeleting || isCompletingCard}
+                  className={
+                    isCompleted
+                      ? "border-green-300 text-green-700 hover:bg-green-50"
+                      : ""
+                  }
+                >
+                  {isCompletingCard ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : isCompleted ? (
+                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                  ) : (
+                    <Circle className="mr-2 h-4 w-4" />
+                  )}
+                  {t(isCompleted ? "card.markIncomplete" : "card.markComplete")}
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={handleDelete}
+                  disabled={isLoading || isDeleting}
+                >
+                  {isDeleting && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  {t("common.delete")}
+                </Button>
+              </div>
             )}
             <div className="flex space-x-2 ml-auto">
               <Button

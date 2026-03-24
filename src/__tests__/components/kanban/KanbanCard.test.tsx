@@ -41,6 +41,7 @@ const createCard = (overrides: Partial<TestCard> = {}): TestCard => ({
   position: 1,
   dueDate: null,
   priority: "medium",
+  completedAt: null,
   createdAt: new Date("2026-03-05T12:00:00Z"),
   assigneeId: null,
   createdBy: null,

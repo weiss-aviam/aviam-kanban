@@ -16,6 +16,7 @@ const makeCard = (overrides: Partial<Card> = {}): Card => ({
   position: 0,
   dueDate: null,
   priority: "medium",
+  completedAt: null,
   createdAt: new Date("2026-01-01"),
   assigneeId: null,
   createdBy: null,
@@ -29,6 +30,7 @@ const makeColumn = (id: number, cards: Card[] = []): Column => ({
   boardId: "board-1",
   title: `Column ${id}`,
   position: id,
+  isDone: false,
   createdAt: new Date("2026-01-01"),
   cards,
 });
@@ -247,6 +249,7 @@ describe("addColumn", () => {
       boardId: "board-1",
       title: "New",
       position: 1,
+      isDone: false,
       createdAt: new Date(),
     });
 
@@ -263,6 +266,7 @@ describe("addColumn", () => {
       boardId: "board-1",
       title: "New",
       position: 1,
+      isDone: false,
       createdAt: new Date(),
     });
 
@@ -280,6 +284,7 @@ describe("updateColumn", () => {
       boardId: "board-1",
       title: "Renamed",
       position: 1,
+      isDone: false,
       createdAt: new Date(),
     });
 

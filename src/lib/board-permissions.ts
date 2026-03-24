@@ -73,8 +73,13 @@ export function formatDueDate(dueDate: DueDateInput): string {
 
 /**
  * Returns true when the given due date is strictly in the past.
+ * Always returns false for completed cards.
  */
-export function isOverdue(dueDate: DueDateInput): boolean {
+export function isOverdue(
+  dueDate: DueDateInput,
+  completedAt?: DueDateInput,
+): boolean {
+  if (completedAt) return false;
   const parsed = parseDueDate(dueDate);
   if (!parsed) return false;
 
@@ -83,8 +88,13 @@ export function isOverdue(dueDate: DueDateInput): boolean {
 
 /**
  * Returns true when the due date is in the future but within the next 24 hours.
+ * Always returns false for completed cards.
  */
-export function isDueSoon(dueDate: DueDateInput): boolean {
+export function isDueSoon(
+  dueDate: DueDateInput,
+  completedAt?: DueDateInput,
+): boolean {
+  if (completedAt) return false;
   const parsed = parseDueDate(dueDate);
   if (!parsed) return false;
 
