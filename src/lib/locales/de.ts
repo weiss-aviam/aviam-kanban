@@ -173,6 +173,7 @@ export const de = {
   },
 
   filters: {
+    filters: "Filter",
     priority: "Priorität",
     assignee: "Bearbeiter",
     myCards: "Meine Karten",
