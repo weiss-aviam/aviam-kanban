@@ -8,6 +8,15 @@ const nextConfig: NextConfig = {
       bodySizeLimit: `${uploadLimitMb}mb`,
     },
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "*.supabase.co",
+        pathname: "/storage/v1/**",
+      },
+    ],
+  },
 };
 
 export default nextConfig;
