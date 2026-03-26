@@ -5,6 +5,8 @@ import { createNotifications } from "@/lib/notifications";
 
 const BUCKET = "card-attachments";
 const SIGNED_URL_TTL = 3600; // 1 hour
+const MAX_UPLOAD_BYTES =
+  parseInt(process.env.UPLOAD_MAX_SIZE_MB ?? "10", 10) * 1024 * 1024;
 
 function sanitizeFilename(name: string): string {
   return name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 200);
@@ -115,9 +117,11 @@ export async function POST(
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    if (file.size > 20 * 1024 * 1024) {
+    if (file.size > MAX_UPLOAD_BYTES) {
       return NextResponse.json(
-        { error: "File too large (max 20 MB)" },
+        {
+          error: `File too large (max ${process.env.UPLOAD_MAX_SIZE_MB ?? "10"} MB)`,
+        },
         { status: 400 },
       );
     }
