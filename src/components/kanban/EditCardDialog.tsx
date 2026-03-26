@@ -892,27 +892,27 @@ export function EditCardDialog({
   return (
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="sm:max-w-4xl w-[95vw] max-h-[90dvh] overflow-hidden flex flex-col p-0">
-        <DialogHeader className="shrink-0 px-4 sm:px-8 pt-4 sm:pt-8 pb-2">
-          <DialogTitle>
-            {card ? t("editCard.titleEdit") : t("editCard.titleCreate")}
-          </DialogTitle>
-          <DialogDescription>
-            {card
-              ? t("editCard.descriptionEdit", {
-                  column: selectedColumn?.title || t("editCard.theBoard"),
-                })
-              : t("editCard.descriptionCreate", {
-                  column:
-                    selectedColumn?.title || t("editCard.theSelectedColumn"),
-                })}
-          </DialogDescription>
-        </DialogHeader>
-
         <form
           onSubmit={rhfHandleSubmit(handleSubmit)}
           className="flex flex-col flex-1 min-h-0"
         >
-          <div className="flex flex-col gap-4 sm:gap-6 flex-1 min-h-0 overflow-y-auto px-4 sm:px-8 py-4 sm:py-6">
+          <div className="flex flex-col gap-4 sm:gap-6 flex-1 min-h-0 overflow-y-auto px-4 sm:px-8 pt-4 sm:pt-8 pb-4 sm:pb-6">
+            <DialogHeader>
+              <DialogTitle>
+                {card ? t("editCard.titleEdit") : t("editCard.titleCreate")}
+              </DialogTitle>
+              <DialogDescription>
+                {card
+                  ? t("editCard.descriptionEdit", {
+                      column: selectedColumn?.title || t("editCard.theBoard"),
+                    })
+                  : t("editCard.descriptionCreate", {
+                      column:
+                        selectedColumn?.title ||
+                        t("editCard.theSelectedColumn"),
+                    })}
+              </DialogDescription>
+            </DialogHeader>
             {isViewer && (
               <div className="text-sm text-amber-700 bg-amber-50 p-3 rounded-md border border-amber-200">
                 {t("editCard.viewerReadOnly")}
