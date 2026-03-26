@@ -148,11 +148,16 @@ export const config = {
   matcher: [
     /*
      * Run on page/auth routes only — exclude:
-     * - /api/*          (API routes handle their own auth; skipping saves
-     *                    one Supabase getUser() call per API request, which
-     *                    was causing hundreds of unnecessary auth requests)
-     * - _next/static, _next/image, favicon, image files
+     * - /api/*               (API routes handle their own auth; skipping saves
+     *                         one Supabase getUser() call per API request)
+     * - /_next/*             (all Next.js internals: static, image, prefetch,
+     *                         RSC payloads, etc.)
+     * - /sw.js, /workbox-*   (PWA service worker files — SW installation
+     *                         fetches these and would trigger getUser() in a
+     *                         burst on every app install/update)
+     * - /manifest.webmanifest, /offline.html, /icons/*
+     * - favicon and image files
      */
-    "/((?!api/|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!api/|_next/|sw\\.js|workbox-.*\\.js|manifest\\.webmanifest|offline\\.html|icons/|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

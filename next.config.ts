@@ -23,7 +23,10 @@ const nextConfig: NextConfig = {
 const withPWA = withPWAInit({
   dest: "public",
   cacheOnFrontEndNav: true,
-  aggressiveFrontEndNavCaching: true,
+  // aggressiveFrontEndNavCaching caches navigation responses via the SW,
+  // causing every page navigation to re-run the proxy middleware and trigger
+  // a supabase.auth.getUser() call — same pattern as the API-route issue.
+  aggressiveFrontEndNavCaching: false,
   reloadOnOnline: true,
   disable: process.env.NODE_ENV === "development",
   fallbacks: {
