@@ -891,8 +891,8 @@ export function EditCardDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
-      <DialogContent className="sm:max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto p-4 sm:p-8">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-4xl w-[95vw] max-h-[90dvh] overflow-hidden flex flex-col p-0">
+        <DialogHeader className="shrink-0 px-4 sm:px-8 pt-4 sm:pt-8 pb-2">
           <DialogTitle>
             {card ? t("editCard.titleEdit") : t("editCard.titleCreate")}
           </DialogTitle>
@@ -910,685 +910,703 @@ export function EditCardDialog({
 
         <form
           onSubmit={rhfHandleSubmit(handleSubmit)}
-          className="flex flex-col gap-4 sm:gap-6 mt-2"
+          className="flex flex-col flex-1 min-h-0"
         >
-          {isViewer && (
-            <div className="text-sm text-amber-700 bg-amber-50 p-3 rounded-md border border-amber-200">
-              {t("editCard.viewerReadOnly")}
-            </div>
-          )}
-          {error && (
-            <div className="text-sm text-red-600 bg-red-50 p-4 rounded-md border border-red-200">
-              {error}
-            </div>
-          )}
-
-          <fieldset
-            disabled={isViewer}
-            className="flex flex-col gap-4 sm:gap-6"
-          >
-            {/* Title + Description — grouped as card content */}
-            <div className="rounded-lg border p-4 flex flex-col gap-4">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="title" className="text-sm font-medium">
-                  {t("editCard.titleLabel")}
-                </Label>
-                <Input
-                  id="title"
-                  placeholder={t("editCard.titlePlaceholder")}
-                  disabled={isLoading || isDeleting}
-                  required
-                  className="h-10"
-                  {...register("title")}
-                />
+          <div className="flex flex-col gap-4 sm:gap-6 flex-1 min-h-0 overflow-y-auto px-4 sm:px-8 py-4 sm:py-6">
+            {isViewer && (
+              <div className="text-sm text-amber-700 bg-amber-50 p-3 rounded-md border border-amber-200">
+                {t("editCard.viewerReadOnly")}
               </div>
-
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="description" className="text-sm font-medium">
-                  {t("editCard.descriptionLabel")}
-                </Label>
-                <Controller
-                  name="description"
-                  control={control}
-                  render={({ field }) => (
-                    <MarkdownEditor
-                      value={field.value || ""}
-                      onChange={field.onChange}
-                      placeholder={t("editCard.descriptionPlaceholder")}
-                      height={160}
-                      className={
-                        isLoading || isDeleting
-                          ? "opacity-50 pointer-events-none"
-                          : ""
-                      }
-                    />
-                  )}
-                />
+            )}
+            {error && (
+              <div className="text-sm text-red-600 bg-red-50 p-4 rounded-md border border-red-200">
+                {error}
               </div>
-            </div>
+            )}
 
-            {/* Row 1: Priority | Column | Assignee */}
-            <div className="rounded-lg border bg-muted/20 p-3 sm:p-4">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-5">
-                {/* Priority */}
+            <fieldset
+              disabled={isViewer}
+              className="flex flex-col gap-4 sm:gap-6"
+            >
+              {/* Title + Description — grouped as card content */}
+              <div className="rounded-lg border p-4 flex flex-col gap-4">
                 <div className="flex flex-col gap-2">
-                  <Label className="flex items-center gap-1.5 text-sm font-medium">
-                    <Flag className="h-3.5 w-3.5 text-muted-foreground" />
-                    {t("editCard.priorityLabel")}
+                  <Label htmlFor="title" className="text-sm font-medium">
+                    {t("editCard.titleLabel")}
+                  </Label>
+                  <Input
+                    id="title"
+                    placeholder={t("editCard.titlePlaceholder")}
+                    disabled={isLoading || isDeleting}
+                    required
+                    className="h-10"
+                    {...register("title")}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="description" className="text-sm font-medium">
+                    {t("editCard.descriptionLabel")}
                   </Label>
                   <Controller
-                    name="priority"
+                    name="description"
                     control={control}
                     render={({ field }) => (
-                      <PrioritySelector
-                        value={field.value as CardPriority}
+                      <MarkdownEditor
+                        value={field.value || ""}
                         onChange={field.onChange}
-                        disabled={isLoading || isDeleting}
-                        size="md"
+                        placeholder={t("editCard.descriptionPlaceholder")}
+                        height={160}
+                        className={
+                          isLoading || isDeleting
+                            ? "opacity-50 pointer-events-none"
+                            : ""
+                        }
                       />
                     )}
                   />
                 </div>
+              </div>
 
-                {/* Column */}
-                <div className="flex flex-col gap-2">
-                  <Label className="flex items-center gap-1.5 text-sm font-medium">
-                    <Columns2 className="h-3.5 w-3.5 text-muted-foreground" />
-                    {t("editCard.columnLabel")}
-                  </Label>
-                  <Controller
-                    name="columnId"
-                    control={control}
-                    render={({ field }) => (
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                        disabled={isLoading || isDeleting}
-                      >
-                        <SelectTrigger className="h-10">
-                          <SelectValue
-                            placeholder={t("editCard.columnPlaceholder")}
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {columns.map((column) => (
-                            <SelectItem
-                              key={column.id}
-                              value={column.id.toString()}
-                            >
-                              {column.title}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
-                </div>
+              {/* Row 1: Priority | Column | Assignee */}
+              <div className="rounded-lg border bg-muted/20 p-3 sm:p-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-5">
+                  {/* Priority */}
+                  <div className="flex flex-col gap-2">
+                    <Label className="flex items-center gap-1.5 text-sm font-medium">
+                      <Flag className="h-3.5 w-3.5 text-muted-foreground" />
+                      {t("editCard.priorityLabel")}
+                    </Label>
+                    <Controller
+                      name="priority"
+                      control={control}
+                      render={({ field }) => (
+                        <PrioritySelector
+                          value={field.value as CardPriority}
+                          onChange={field.onChange}
+                          disabled={isLoading || isDeleting}
+                          size="md"
+                        />
+                      )}
+                    />
+                  </div>
 
-                {/* Assignee */}
-                <div className="flex flex-col gap-2">
-                  <Label className="flex items-center gap-1.5 text-sm font-medium">
-                    <UserCircle className="h-3.5 w-3.5 text-muted-foreground" />
-                    {t("editCard.assigneeLabel")}
-                  </Label>
-                  <Controller
-                    name="assigneeId"
-                    control={control}
-                    render={({ field }) => (
-                      <Select
-                        value={field.value || "none"}
-                        onValueChange={field.onChange}
-                        disabled={isLoading || isDeleting}
-                      >
-                        <SelectTrigger className="h-10">
-                          <SelectValue
-                            placeholder={t("editCard.assigneePlaceholder")}
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">
-                            {t("editCard.noAssignee")}
-                          </SelectItem>
-                          {currentUser && (
-                            <SelectItem
-                              key={currentUser.id}
-                              value={currentUser.id}
-                            >
-                              <div className="flex items-center gap-2">
-                                <UserAvatar
-                                  name={currentUser.name}
-                                  email={currentUser.email}
-                                  avatarUrl={
-                                    (
-                                      currentUser as {
-                                        avatarUrl?: string | null;
-                                      }
-                                    ).avatarUrl
-                                  }
-                                  className="h-5 w-5 shrink-0"
-                                />
-                                <span>
-                                  {currentUser.name || currentUser.email} (
-                                  {t("boardDetail.you")})
-                                </span>
-                              </div>
-                            </SelectItem>
-                          )}
-                          {boardMembers
-                            ?.filter((member) => member.id !== currentUser?.id)
-                            .map((member) => (
-                              <SelectItem key={member.id} value={member.id}>
-                                <div className="flex items-center gap-2">
-                                  <UserAvatar
-                                    name={member.name}
-                                    email={member.email}
-                                    avatarUrl={member.avatarUrl}
-                                    className="h-5 w-5 shrink-0"
-                                  />
-                                  <span>{member.name || member.email}</span>
-                                </div>
+                  {/* Column */}
+                  <div className="flex flex-col gap-2">
+                    <Label className="flex items-center gap-1.5 text-sm font-medium">
+                      <Columns2 className="h-3.5 w-3.5 text-muted-foreground" />
+                      {t("editCard.columnLabel")}
+                    </Label>
+                    <Controller
+                      name="columnId"
+                      control={control}
+                      render={({ field }) => (
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          disabled={isLoading || isDeleting}
+                        >
+                          <SelectTrigger className="h-10">
+                            <SelectValue
+                              placeholder={t("editCard.columnPlaceholder")}
+                            />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {columns.map((column) => (
+                              <SelectItem
+                                key={column.id}
+                                value={column.id.toString()}
+                              >
+                                {column.title}
                               </SelectItem>
                             ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Subtasks: only in edit mode */}
-            {card ? (
-              <div className="rounded-lg border bg-muted/20 p-3 sm:p-4">
-                {/* Header */}
-                <div className="flex items-center justify-between mb-3">
-                  <Label className="flex items-center gap-1.5 text-sm font-medium">
-                    <ListChecks className="h-3.5 w-3.5 text-muted-foreground" />
-                    {t("editCard.subtasks")}
-                  </Label>
-                  {subtasks.length > 0 && (
-                    <span className="text-xs text-muted-foreground">
-                      {t("editCard.subtasksProgress", {
-                        done: String(
-                          subtasks.filter((s) => s.completedAt).length,
-                        ),
-                        total: String(subtasks.length),
-                      })}
-                    </span>
-                  )}
-                </div>
-
-                {/* Progress bar */}
-                {subtasks.length > 0 && (
-                  <div className="mb-3 h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-green-500 transition-all"
-                      style={{
-                        width: `${Math.round(
-                          (subtasks.filter((s) => s.completedAt).length /
-                            subtasks.length) *
-                            100,
-                        )}%`,
-                      }}
-                    />
-                  </div>
-                )}
-
-                {/* Subtask list */}
-                {subtasksLoading ? (
-                  <div className="flex items-center gap-2 py-2 text-xs text-muted-foreground">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  </div>
-                ) : (
-                  <ul className="space-y-1 mb-3">
-                    {subtasks.map((subtask) => (
-                      <li
-                        key={subtask.id}
-                        className="group flex items-center gap-2"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={Boolean(subtask.completedAt)}
-                          onChange={() => handleToggleSubtask(subtask)}
-                          disabled={isViewer}
-                          className="h-4 w-4 shrink-0 rounded border-gray-300 accent-green-600 cursor-pointer disabled:cursor-default"
-                        />
-                        <span
-                          className={`flex-1 text-sm leading-snug ${
-                            subtask.completedAt
-                              ? "line-through text-muted-foreground"
-                              : "text-gray-800"
-                          }`}
-                        >
-                          {subtask.title}
-                        </span>
-                        {!isViewer && (
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteSubtask(subtask.id)}
-                            title={t("editCard.subtaskDelete")}
-                            className="sm:opacity-0 sm:group-hover:opacity-100 text-muted-foreground hover:text-red-500 transition-opacity"
-                          >
-                            <X className="h-3.5 w-3.5" />
-                          </button>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-
-                {/* Add new subtask */}
-                {!isViewer && (
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={newSubtaskTitle}
-                      onChange={(e) => setNewSubtaskTitle(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          void handleAddSubtask();
-                        }
-                      }}
-                      placeholder={t("editCard.subtaskPlaceholder")}
-                      maxLength={200}
-                      className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-                    />
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      disabled={!newSubtaskTitle.trim() || subtaskAdding}
-                      onClick={() => void handleAddSubtask()}
-                      title={t("editCard.subtaskAdd")}
-                    >
-                      {subtaskAdding ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <Plus className="h-3.5 w-3.5" />
+                          </SelectContent>
+                        </Select>
                       )}
-                      <span className="hidden sm:inline">
-                        {t("editCard.subtaskAdd")}
-                      </span>
-                    </Button>
+                    />
                   </div>
-                )}
-              </div>
-            ) : null}
 
-            {/* Row 2 + Row 3: only in edit mode */}
-            {card ? (
-              <>
-                {/* Row 2: Due Date | Attachments */}
-                <div className="rounded-lg border bg-muted/20 p-3 sm:p-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                    {/* Due Date */}
-                    <div className="flex flex-col gap-2">
-                      <Controller
-                        name="dueDate"
-                        control={control}
-                        render={({ field }) => {
-                          // Allow direct editing when createdBy is null (old cards without
-                          // creator tracking) or when the current user is the creator.
-                          const canEditDirectly =
-                            !card?.createdBy ||
-                            card?.createdBy === currentUser?.id;
-                          return (
-                            <DeadlineSection
-                              cardId={card!.id}
-                              currentDueDate={field.value || undefined}
-                              canEditDirectly={canEditDirectly}
-                              disabled={isLoading || isDeleting}
-                              onDueDateChange={(val) => field.onChange(val)}
-                              onDeadlineApproved={(newDate) => {
-                                field.onChange(
-                                  newDate ? newDate.slice(0, 10) : "",
-                                );
-                              }}
+                  {/* Assignee */}
+                  <div className="flex flex-col gap-2">
+                    <Label className="flex items-center gap-1.5 text-sm font-medium">
+                      <UserCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                      {t("editCard.assigneeLabel")}
+                    </Label>
+                    <Controller
+                      name="assigneeId"
+                      control={control}
+                      render={({ field }) => (
+                        <Select
+                          value={field.value || "none"}
+                          onValueChange={field.onChange}
+                          disabled={isLoading || isDeleting}
+                        >
+                          <SelectTrigger className="h-10">
+                            <SelectValue
+                              placeholder={t("editCard.assigneePlaceholder")}
                             />
-                          );
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">
+                              {t("editCard.noAssignee")}
+                            </SelectItem>
+                            {currentUser && (
+                              <SelectItem
+                                key={currentUser.id}
+                                value={currentUser.id}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <UserAvatar
+                                    name={currentUser.name}
+                                    email={currentUser.email}
+                                    avatarUrl={
+                                      (
+                                        currentUser as {
+                                          avatarUrl?: string | null;
+                                        }
+                                      ).avatarUrl
+                                    }
+                                    className="h-5 w-5 shrink-0"
+                                  />
+                                  <span>
+                                    {currentUser.name || currentUser.email} (
+                                    {t("boardDetail.you")})
+                                  </span>
+                                </div>
+                              </SelectItem>
+                            )}
+                            {boardMembers
+                              ?.filter(
+                                (member) => member.id !== currentUser?.id,
+                              )
+                              .map((member) => (
+                                <SelectItem key={member.id} value={member.id}>
+                                  <div className="flex items-center gap-2">
+                                    <UserAvatar
+                                      name={member.name}
+                                      email={member.email}
+                                      avatarUrl={member.avatarUrl}
+                                      className="h-5 w-5 shrink-0"
+                                    />
+                                    <span>{member.name || member.email}</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Subtasks: only in edit mode */}
+              {card ? (
+                <div className="rounded-lg border bg-muted/20 p-3 sm:p-4">
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-3">
+                    <Label className="flex items-center gap-1.5 text-sm font-medium">
+                      <ListChecks className="h-3.5 w-3.5 text-muted-foreground" />
+                      {t("editCard.subtasks")}
+                    </Label>
+                    {subtasks.length > 0 && (
+                      <span className="text-xs text-muted-foreground">
+                        {t("editCard.subtasksProgress", {
+                          done: String(
+                            subtasks.filter((s) => s.completedAt).length,
+                          ),
+                          total: String(subtasks.length),
+                        })}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Progress bar */}
+                  {subtasks.length > 0 && (
+                    <div className="mb-3 h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-green-500 transition-all"
+                        style={{
+                          width: `${Math.round(
+                            (subtasks.filter((s) => s.completedAt).length /
+                              subtasks.length) *
+                              100,
+                          )}%`,
                         }}
                       />
-                      {isCompleted && card?.completedAt && (
-                        <div className="mt-1 inline-flex items-center gap-1.5 rounded-md border border-green-200 bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">
-                          <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-                          <span>
-                            {t("card.doneOn", {
-                              date: formatDisplayDate(card.completedAt),
-                            })}
-                          </span>
-                        </div>
-                      )}
                     </div>
+                  )}
 
-                    {/* Attachments */}
-                    <div className="flex flex-col gap-2">
-                      <div className="flex items-center justify-between">
-                        <Label className="flex items-center gap-1.5 text-sm font-medium">
-                          <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
-                          {t("editCard.attachments")}
-                        </Label>
-                        {uploading && (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
-                        )}
-                      </div>
-                      {/* Drop zone */}
-                      <div
-                        className={`border-2 border-dashed rounded-md p-3 cursor-pointer text-sm flex items-center justify-center gap-2 transition-colors ${
-                          isDragging
-                            ? "bg-muted/50 border-primary"
-                            : "hover:bg-muted/40"
-                        }`}
-                        onClick={handleFileInputClick}
-                        onDragOver={handleDragOver}
-                        onDragLeave={handleDragLeave}
-                        onDrop={handleDrop}
-                        role="button"
-                        tabIndex={0}
+                  {/* Subtask list */}
+                  {subtasksLoading ? (
+                    <div className="flex items-center gap-2 py-2 text-xs text-muted-foreground">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    </div>
+                  ) : (
+                    <ul className="space-y-1 mb-3">
+                      {subtasks.map((subtask) => (
+                        <li
+                          key={subtask.id}
+                          className="group flex items-center gap-2"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={Boolean(subtask.completedAt)}
+                            onChange={() => handleToggleSubtask(subtask)}
+                            disabled={isViewer}
+                            className="h-4 w-4 shrink-0 rounded border-gray-300 accent-green-600 cursor-pointer disabled:cursor-default"
+                          />
+                          <span
+                            className={`flex-1 text-sm leading-snug ${
+                              subtask.completedAt
+                                ? "line-through text-muted-foreground"
+                                : "text-gray-800"
+                            }`}
+                          >
+                            {subtask.title}
+                          </span>
+                          {!isViewer && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteSubtask(subtask.id)}
+                              title={t("editCard.subtaskDelete")}
+                              className="sm:opacity-0 sm:group-hover:opacity-100 text-muted-foreground hover:text-red-500 transition-opacity"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  {/* Add new subtask */}
+                  {!isViewer && (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={newSubtaskTitle}
+                        onChange={(e) => setNewSubtaskTitle(e.target.value)}
                         onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
+                          if (e.key === "Enter") {
                             e.preventDefault();
-                            handleFileInputClick();
+                            void handleAddSubtask();
                           }
                         }}
-                        aria-label={t("kanban.uploadFile")}
-                      >
-                        <Paperclip className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-muted-foreground text-xs">
-                          {t("editCard.uploadHint")}
-                        </span>
-                      </div>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        multiple
-                        onChange={handleInputChange}
-                        disabled={uploading || isLoading || isDeleting}
-                        className="hidden"
+                        placeholder={t("editCard.subtaskPlaceholder")}
+                        maxLength={200}
+                        className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                       />
-                      {/* Attachment grid */}
-                      {attachments.length > 0 ? (
-                        <div className="grid grid-cols-2 gap-2 mt-1">
-                          {attachments.map((a) => (
-                            <AttachmentThumbnail
-                              key={a.path}
-                              attachment={a}
-                              onDelete={handleDeleteAttachment}
-                              disabled={uploading || isLoading || isDeleting}
-                            />
-                          ))}
-                        </div>
-                      ) : (
-                        !uploading && (
-                          <p className="text-xs text-muted-foreground">
-                            {t("editCard.noFiles")}
-                          </p>
-                        )
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Row 3: Discussion */}
-                <div className="space-y-3 sm:space-y-4 pt-4 sm:pt-6 border-t">
-                  <Label className="flex items-center gap-1.5 text-sm font-medium">
-                    <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
-                    {t("editCard.discussion")}
-                  </Label>
-
-                  {/* Comment list */}
-                  <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
-                    {commentsLoading && comments.length === 0 && (
-                      <div className="flex justify-center py-4">
-                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                      </div>
-                    )}
-                    {!commentsLoading && comments.length === 0 && (
-                      <p className="text-sm text-muted-foreground">
-                        {t("editCard.noComments")}
-                      </p>
-                    )}
-                    {comments.map((c) => {
-                      const isOwn = currentUser?.id === c.author.id;
-                      const isEditing = editingCommentId === c.id;
-                      const isDeleted = !!c.deletedAt;
-
-                      return (
-                        <div
-                          key={c.id}
-                          className={`group flex gap-3 rounded-lg border p-4 ${isDeleted ? "bg-muted/10 opacity-60" : "bg-muted/20"}`}
-                        >
-                          {/* Avatar */}
-                          <UserAvatar
-                            name={c.author.name}
-                            email={c.author.email}
-                            avatarUrl={c.author.avatarUrl}
-                            className="h-7 w-7 shrink-0 mt-0.5"
-                          />
-
-                          <div className="flex-1 min-w-0">
-                            {/* Header */}
-                            <div className="flex items-baseline justify-between gap-2">
-                              <span className="text-sm font-medium leading-none">
-                                {c.author.name || c.author.email}
-                                {isOwn && (
-                                  <span className="ml-1 text-xs text-muted-foreground font-normal">
-                                    ({t("boardDetail.you")})
-                                  </span>
-                                )}
-                              </span>
-                              <div className="flex items-center gap-1 shrink-0">
-                                <span className="text-xs text-muted-foreground">
-                                  {formatDateTime(c.createdAt)}
-                                </span>
-                                {isOwn && !isViewer && !isDeleted && (
-                                  <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-6 w-6"
-                                      onClick={() => handleStartEditComment(c)}
-                                      disabled={commentsLoading}
-                                      aria-label={t("common.edit")}
-                                    >
-                                      <Pencil className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-6 w-6 hover:text-destructive"
-                                      onClick={() => handleDeleteComment(c.id)}
-                                      disabled={commentsLoading}
-                                      aria-label={t("common.delete")}
-                                    >
-                                      <Trash2 className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Body, deleted notice, or inline editor */}
-                            {isDeleted ? (
-                              <p className="mt-1.5 text-sm italic text-muted-foreground">
-                                {t("editCard.commentDeleted")} ·{" "}
-                                {formatDateTime(c.deletedAt!)}
-                              </p>
-                            ) : isEditing ? (
-                              <div className="mt-2 space-y-2">
-                                <Textarea
-                                  value={editingCommentBody}
-                                  onChange={(e) =>
-                                    setEditingCommentBody(e.target.value)
-                                  }
-                                  rows={3}
-                                  className="text-sm resize-none"
-                                  autoFocus
-                                />
-                                <div className="flex gap-2">
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    onClick={() => handleSaveComment(c.id)}
-                                    disabled={
-                                      commentsLoading ||
-                                      !editingCommentBody.trim()
-                                    }
-                                  >
-                                    {commentsLoading ? (
-                                      <Loader2 className="h-3 w-3 animate-spin" />
-                                    ) : (
-                                      <Send className="h-3 w-3" />
-                                    )}
-                                    <span className="hidden sm:inline">
-                                      {t("common.save")}
-                                    </span>
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                      setEditingCommentId(null);
-                                      setEditingCommentBody("");
-                                    }}
-                                  >
-                                    <X className="h-3 w-3 sm:hidden" />
-                                    <span className="hidden sm:inline">
-                                      {t("common.cancel")}
-                                    </span>
-                                  </Button>
-                                </div>
-                              </div>
-                            ) : (
-                              <div>
-                                <p
-                                  className="mt-1.5 text-sm whitespace-pre-wrap wrap-break-word"
-                                  dangerouslySetInnerHTML={{
-                                    __html: renderCommentBody(c.body),
-                                  }}
-                                />
-                                {c.editedAt && (
-                                  <p className="mt-1 text-xs text-muted-foreground italic">
-                                    {t("editCard.commentEdited")} ·{" "}
-                                    {formatDateTime(c.editedAt)}
-                                  </p>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* New comment input */}
-                  {!isViewer && (
-                    <div className="flex items-start gap-2 pt-1">
-                      <div className="flex-1">
-                        <MentionTextarea
-                          ref={mentionTextareaRef}
-                          value={commentBody}
-                          onChange={setCommentBody}
-                          boardMembers={boardMembers}
-                          placeholder={t("editCard.commentMentionPlaceholder")}
-                          disabled={commentsLoading || isLoading || isDeleting}
-                          onSubmit={() => void handleSubmitComment()}
-                        />
-                      </div>
                       <Button
                         type="button"
                         size="sm"
-                        onClick={() => void handleSubmitComment()}
-                        title={t("editCard.commentButton")}
-                        disabled={
-                          !commentBody.trim() ||
-                          commentsLoading ||
-                          isLoading ||
-                          isDeleting
-                        }
+                        variant="outline"
+                        disabled={!newSubtaskTitle.trim() || subtaskAdding}
+                        onClick={() => void handleAddSubtask()}
+                        title={t("editCard.subtaskAdd")}
                       >
-                        {commentsLoading ? (
+                        {subtaskAdding ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
                         ) : (
-                          <Send className="h-3.5 w-3.5" />
+                          <Plus className="h-3.5 w-3.5" />
                         )}
                         <span className="hidden sm:inline">
-                          {t("editCard.commentButton")}
+                          {t("editCard.subtaskAdd")}
                         </span>
                       </Button>
                     </div>
                   )}
                 </div>
-              </>
-            ) : (
-              /* Create mode: just due date */
-              <div className="flex flex-col gap-2 max-w-xs">
-                <Label htmlFor="dueDateCreate" className="text-sm font-medium">
-                  {t("editCard.dueDateLabel")}
-                </Label>
-                <Controller
-                  name="dueDate"
-                  control={control}
-                  render={({ field }) => {
-                    const selectedDate = parseCalendarDate(field.value);
-                    return (
-                      <div className="flex items-center gap-2">
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              id="dueDateCreate"
-                              type="button"
-                              variant="outline"
-                              disabled={isLoading || isDeleting}
-                              className={cn(
-                                "h-10 flex-1 justify-start text-left font-normal",
-                                !selectedDate && "text-muted-foreground",
-                              )}
-                            >
-                              <CalendarIcon className="h-4 w-4" />
-                              <span>
-                                {selectedDate
-                                  ? formatDisplayDate(selectedDate)
-                                  : t("editCard.dueDatePlaceholder")}
-                              </span>
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={selectedDate}
-                              onSelect={(date) =>
-                                field.onChange(getCalendarFieldValue(date))
-                              }
-                              disabled={isLoading || isDeleting}
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        {field.value ? (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            disabled={isLoading || isDeleting}
-                            onClick={() => field.onChange("")}
-                            aria-label={t("editCard.clearDueDate")}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        ) : null}
-                      </div>
-                    );
-                  }}
-                />
-              </div>
-            )}
-          </fieldset>
+              ) : null}
 
-          <DialogFooter className="pt-4 sm:pt-6 border-t flex justify-between">
+              {/* Row 2 + Row 3: only in edit mode */}
+              {card ? (
+                <>
+                  {/* Row 2: Due Date | Attachments */}
+                  <div className="rounded-lg border bg-muted/20 p-3 sm:p-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                      {/* Due Date */}
+                      <div className="flex flex-col gap-2">
+                        <Controller
+                          name="dueDate"
+                          control={control}
+                          render={({ field }) => {
+                            // Allow direct editing when createdBy is null (old cards without
+                            // creator tracking) or when the current user is the creator.
+                            const canEditDirectly =
+                              !card?.createdBy ||
+                              card?.createdBy === currentUser?.id;
+                            return (
+                              <DeadlineSection
+                                cardId={card!.id}
+                                currentDueDate={field.value || undefined}
+                                canEditDirectly={canEditDirectly}
+                                disabled={isLoading || isDeleting}
+                                onDueDateChange={(val) => field.onChange(val)}
+                                onDeadlineApproved={(newDate) => {
+                                  field.onChange(
+                                    newDate ? newDate.slice(0, 10) : "",
+                                  );
+                                }}
+                              />
+                            );
+                          }}
+                        />
+                        {isCompleted && card?.completedAt && (
+                          <div className="mt-1 inline-flex items-center gap-1.5 rounded-md border border-green-200 bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">
+                            <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                            <span>
+                              {t("card.doneOn", {
+                                date: formatDisplayDate(card.completedAt),
+                              })}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Attachments */}
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="flex items-center gap-1.5 text-sm font-medium">
+                            <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
+                            {t("editCard.attachments")}
+                          </Label>
+                          {uploading && (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                          )}
+                        </div>
+                        {/* Drop zone */}
+                        <div
+                          className={`border-2 border-dashed rounded-md p-3 cursor-pointer text-sm flex items-center justify-center gap-2 transition-colors ${
+                            isDragging
+                              ? "bg-muted/50 border-primary"
+                              : "hover:bg-muted/40"
+                          }`}
+                          onClick={handleFileInputClick}
+                          onDragOver={handleDragOver}
+                          onDragLeave={handleDragLeave}
+                          onDrop={handleDrop}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              handleFileInputClick();
+                            }
+                          }}
+                          aria-label={t("kanban.uploadFile")}
+                        >
+                          <Paperclip className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-muted-foreground text-xs">
+                            {t("editCard.uploadHint")}
+                          </span>
+                        </div>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          multiple
+                          onChange={handleInputChange}
+                          disabled={uploading || isLoading || isDeleting}
+                          className="hidden"
+                        />
+                        {/* Attachment grid */}
+                        {attachments.length > 0 ? (
+                          <div className="grid grid-cols-2 gap-2 mt-1">
+                            {attachments.map((a) => (
+                              <AttachmentThumbnail
+                                key={a.path}
+                                attachment={a}
+                                onDelete={handleDeleteAttachment}
+                                disabled={uploading || isLoading || isDeleting}
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          !uploading && (
+                            <p className="text-xs text-muted-foreground">
+                              {t("editCard.noFiles")}
+                            </p>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Row 3: Discussion */}
+                  <div className="space-y-3 sm:space-y-4 pt-4 sm:pt-6 border-t">
+                    <Label className="flex items-center gap-1.5 text-sm font-medium">
+                      <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
+                      {t("editCard.discussion")}
+                    </Label>
+
+                    {/* Comment list */}
+                    <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                      {commentsLoading && comments.length === 0 && (
+                        <div className="flex justify-center py-4">
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        </div>
+                      )}
+                      {!commentsLoading && comments.length === 0 && (
+                        <p className="text-sm text-muted-foreground">
+                          {t("editCard.noComments")}
+                        </p>
+                      )}
+                      {comments.map((c) => {
+                        const isOwn = currentUser?.id === c.author.id;
+                        const isEditing = editingCommentId === c.id;
+                        const isDeleted = !!c.deletedAt;
+
+                        return (
+                          <div
+                            key={c.id}
+                            className={`group flex gap-3 rounded-lg border p-4 ${isDeleted ? "bg-muted/10 opacity-60" : "bg-muted/20"}`}
+                          >
+                            {/* Avatar */}
+                            <UserAvatar
+                              name={c.author.name}
+                              email={c.author.email}
+                              avatarUrl={c.author.avatarUrl}
+                              className="h-7 w-7 shrink-0 mt-0.5"
+                            />
+
+                            <div className="flex-1 min-w-0">
+                              {/* Header */}
+                              <div className="flex items-baseline justify-between gap-2">
+                                <span className="text-sm font-medium leading-none">
+                                  {c.author.name || c.author.email}
+                                  {isOwn && (
+                                    <span className="ml-1 text-xs text-muted-foreground font-normal">
+                                      ({t("boardDetail.you")})
+                                    </span>
+                                  )}
+                                </span>
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <span className="text-xs text-muted-foreground">
+                                    {formatDateTime(c.createdAt)}
+                                  </span>
+                                  {isOwn && !isViewer && !isDeleted && (
+                                    <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6"
+                                        onClick={() =>
+                                          handleStartEditComment(c)
+                                        }
+                                        disabled={commentsLoading}
+                                        aria-label={t("common.edit")}
+                                      >
+                                        <Pencil className="h-3 w-3" />
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6 hover:text-destructive"
+                                        onClick={() =>
+                                          handleDeleteComment(c.id)
+                                        }
+                                        disabled={commentsLoading}
+                                        aria-label={t("common.delete")}
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Body, deleted notice, or inline editor */}
+                              {isDeleted ? (
+                                <p className="mt-1.5 text-sm italic text-muted-foreground">
+                                  {t("editCard.commentDeleted")} ·{" "}
+                                  {formatDateTime(c.deletedAt!)}
+                                </p>
+                              ) : isEditing ? (
+                                <div className="mt-2 space-y-2">
+                                  <Textarea
+                                    value={editingCommentBody}
+                                    onChange={(e) =>
+                                      setEditingCommentBody(e.target.value)
+                                    }
+                                    rows={3}
+                                    className="text-sm resize-none"
+                                    autoFocus
+                                  />
+                                  <div className="flex gap-2">
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      onClick={() => handleSaveComment(c.id)}
+                                      disabled={
+                                        commentsLoading ||
+                                        !editingCommentBody.trim()
+                                      }
+                                    >
+                                      {commentsLoading ? (
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                      ) : (
+                                        <Send className="h-3 w-3" />
+                                      )}
+                                      <span className="hidden sm:inline">
+                                        {t("common.save")}
+                                      </span>
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => {
+                                        setEditingCommentId(null);
+                                        setEditingCommentBody("");
+                                      }}
+                                    >
+                                      <X className="h-3 w-3 sm:hidden" />
+                                      <span className="hidden sm:inline">
+                                        {t("common.cancel")}
+                                      </span>
+                                    </Button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div>
+                                  <p
+                                    className="mt-1.5 text-sm whitespace-pre-wrap wrap-break-word"
+                                    dangerouslySetInnerHTML={{
+                                      __html: renderCommentBody(c.body),
+                                    }}
+                                  />
+                                  {c.editedAt && (
+                                    <p className="mt-1 text-xs text-muted-foreground italic">
+                                      {t("editCard.commentEdited")} ·{" "}
+                                      {formatDateTime(c.editedAt)}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* New comment input */}
+                    {!isViewer && (
+                      <div className="flex items-start gap-2 pt-1">
+                        <div className="flex-1">
+                          <MentionTextarea
+                            ref={mentionTextareaRef}
+                            value={commentBody}
+                            onChange={setCommentBody}
+                            boardMembers={boardMembers}
+                            placeholder={t(
+                              "editCard.commentMentionPlaceholder",
+                            )}
+                            disabled={
+                              commentsLoading || isLoading || isDeleting
+                            }
+                            onSubmit={() => void handleSubmitComment()}
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => void handleSubmitComment()}
+                          title={t("editCard.commentButton")}
+                          disabled={
+                            !commentBody.trim() ||
+                            commentsLoading ||
+                            isLoading ||
+                            isDeleting
+                          }
+                        >
+                          {commentsLoading ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Send className="h-3.5 w-3.5" />
+                          )}
+                          <span className="hidden sm:inline">
+                            {t("editCard.commentButton")}
+                          </span>
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                /* Create mode: just due date */
+                <div className="flex flex-col gap-2 max-w-xs">
+                  <Label
+                    htmlFor="dueDateCreate"
+                    className="text-sm font-medium"
+                  >
+                    {t("editCard.dueDateLabel")}
+                  </Label>
+                  <Controller
+                    name="dueDate"
+                    control={control}
+                    render={({ field }) => {
+                      const selectedDate = parseCalendarDate(field.value);
+                      return (
+                        <div className="flex items-center gap-2">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                id="dueDateCreate"
+                                type="button"
+                                variant="outline"
+                                disabled={isLoading || isDeleting}
+                                className={cn(
+                                  "h-10 flex-1 justify-start text-left font-normal",
+                                  !selectedDate && "text-muted-foreground",
+                                )}
+                              >
+                                <CalendarIcon className="h-4 w-4" />
+                                <span>
+                                  {selectedDate
+                                    ? formatDisplayDate(selectedDate)
+                                    : t("editCard.dueDatePlaceholder")}
+                                </span>
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent
+                              className="w-auto p-0"
+                              align="start"
+                            >
+                              <Calendar
+                                mode="single"
+                                selected={selectedDate}
+                                onSelect={(date) =>
+                                  field.onChange(getCalendarFieldValue(date))
+                                }
+                                disabled={isLoading || isDeleting}
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          {field.value ? (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              disabled={isLoading || isDeleting}
+                              onClick={() => field.onChange("")}
+                              aria-label={t("editCard.clearDueDate")}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          ) : null}
+                        </div>
+                      );
+                    }}
+                  />
+                </div>
+              )}
+            </fieldset>
+          </div>
+
+          <DialogFooter className="shrink-0 px-4 sm:px-8 py-4 sm:py-6 border-t flex justify-between">
             {card && !isViewer && (
               <Button
                 type="button"
