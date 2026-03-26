@@ -7,12 +7,19 @@ import {
   Plus,
   Users,
   Search,
-  // Filter,
   Grid,
   List,
   Archive,
   Star,
+  SlidersHorizontal,
+  Check,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../../components/ui/dropdown-menu";
 import { CreateBoardDialog } from "../../components/boards/CreateBoardDialog";
 import { EditBoardDialog } from "../../components/boards/EditBoardDialog";
 import { DeleteBoardDialog } from "../../components/boards/DeleteBoardDialog";
@@ -160,63 +167,123 @@ export default function BoardsPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Search and Filters */}
         <div className="mb-8">
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            <div className="flex-1 max-w-md">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  placeholder={t("boardsPage.searchPlaceholder")}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+          {/* Search — full width on all screen sizes */}
+          <div className="relative mb-3">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Input
+              placeholder={t("boardsPage.searchPlaceholder")}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+          <div className="flex items-center justify-between gap-2">
+            {/* ── Mobile: filter dropdown ──────────────────────────────── */}
+            {(() => {
+              const FILTERS = [
+                {
+                  key: "all",
+                  label: t("boardsPage.filterAll"),
+                  Icon: SlidersHorizontal,
+                },
+                {
+                  key: "owned",
+                  label: t("boardsPage.filterOwned"),
+                  Icon: Star,
+                },
+                {
+                  key: "member",
+                  label: t("boardsPage.filterMember"),
+                  Icon: Users,
+                },
+                {
+                  key: "archived",
+                  label: t("boardsPage.filterArchived"),
+                  Icon: Archive,
+                },
+              ] as const;
+              const active = FILTERS.find((f) => f.key === filterBy)!;
+              return (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant={filterBy !== "all" ? "default" : "outline"}
+                      size="sm"
+                      className="h-8 gap-1.5 sm:hidden"
+                    >
+                      <active.Icon className="w-4 h-4" />
+                      <span className="text-xs">{active.label}</span>
+                      <span className="text-xs opacity-70">
+                        ({getFilterCount(filterBy)})
+                      </span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-48">
+                    {FILTERS.map(({ key, label, Icon }) => (
+                      <DropdownMenuItem
+                        key={key}
+                        onClick={() => setFilterBy(key)}
+                        className="gap-2"
+                      >
+                        {filterBy === key ? (
+                          <Check className="w-4 h-4 shrink-0" />
+                        ) : (
+                          <span className="w-4 h-4 shrink-0" />
+                        )}
+                        <Icon className="w-4 h-4 shrink-0 text-muted-foreground" />
+                        {label}
+                        <span className="ml-auto text-xs text-muted-foreground">
+                          {getFilterCount(key)}
+                        </span>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              );
+            })()}
+
+            {/* ── Desktop: filter pill bar ─────────────────────────────── */}
+            <div className="hidden sm:flex items-center space-x-1 bg-white rounded-lg border p-1">
+              {[
+                { key: "all", label: t("boardsPage.filterAll"), icon: null },
+                {
+                  key: "owned",
+                  label: t("boardsPage.filterOwned"),
+                  icon: Star,
+                },
+                {
+                  key: "member",
+                  label: t("boardsPage.filterMember"),
+                  icon: Users,
+                },
+                {
+                  key: "archived",
+                  label: t("boardsPage.filterArchived"),
+                  icon: Archive,
+                },
+              ].map(({ key, label, icon: Icon }) => (
+                <Button
+                  key={key}
+                  variant={filterBy === key ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setFilterBy(key as typeof filterBy)}
+                  className="text-xs"
+                >
+                  {Icon && <Icon className="w-3 h-3 mr-1" />}
+                  {label} ({getFilterCount(key)})
+                </Button>
+              ))}
             </div>
 
-            <div className="flex items-center space-x-2">
-              {/* Filter Buttons */}
-              <div className="flex items-center space-x-1 bg-white rounded-lg border p-1">
-                {[
-                  { key: "all", label: t("boardsPage.filterAll"), icon: null },
-                  {
-                    key: "owned",
-                    label: t("boardsPage.filterOwned"),
-                    icon: Star,
-                  },
-                  {
-                    key: "member",
-                    label: t("boardsPage.filterMember"),
-                    icon: Users,
-                  },
-                  {
-                    key: "archived",
-                    label: t("boardsPage.filterArchived"),
-                    icon: Archive,
-                  },
-                ].map(({ key, label, icon: Icon }) => (
-                  <Button
-                    key={key}
-                    variant={filterBy === key ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() =>
-                      setFilterBy(
-                        key as "all" | "owned" | "member" | "archived",
-                      )
-                    }
-                    className="text-xs"
-                  >
-                    {Icon && <Icon className="w-3 h-3 mr-1" />}
-                    {label} ({getFilterCount(key)})
-                  </Button>
-                ))}
-              </div>
-
-              {/* View Mode Toggle */}
+            {/* View toggle + Create — right side, all screen sizes */}
+            <div className="flex items-center gap-1.5 ml-auto">
               <div className="flex items-center space-x-1 bg-white rounded-lg border p-1">
                 <Button
                   variant={viewMode === "grid" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setViewMode("grid")}
+                  aria-label="Rasteransicht"
                 >
                   <Grid className="w-4 h-4" />
                 </Button>
@@ -224,18 +291,20 @@ export default function BoardsPage() {
                   variant={viewMode === "list" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setViewMode("list")}
+                  aria-label="Listenansicht"
                 >
                   <List className="w-4 h-4" />
                 </Button>
               </div>
 
-              {/* Create Board Button */}
               <CreateBoardDialog
                 onBoardCreated={handleBoardCreated}
                 trigger={
                   <Button>
-                    <Plus className="w-4 h-4 mr-2" />
-                    {t("boardsPage.newBoard")}
+                    <Plus className="w-4 h-4 sm:mr-2" />
+                    <span className="hidden sm:inline">
+                      {t("boardsPage.newBoard")}
+                    </span>
                   </Button>
                 }
               />
