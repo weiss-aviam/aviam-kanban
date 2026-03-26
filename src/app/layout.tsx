@@ -24,7 +24,18 @@ export const metadata: Metadata = {
     default: de.metadata.title,
   },
   description: de.metadata.description,
-  icons: { icon: "/favicon.png" },
+  icons: {
+    icon: "/favicon.png",
+    apple: "/icons/apple-touch-icon.png",
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Aviam Kanban",
+  },
+  formatDetection: {
+    telephone: false,
+  },
 };
 
 export default function RootLayout({
