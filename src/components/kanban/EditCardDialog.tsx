@@ -50,6 +50,8 @@ import {
   ListChecks,
   Send,
   Plus,
+  Download,
+  ExternalLink,
 } from "lucide-react";
 import type {
   Card,
@@ -116,7 +118,7 @@ type CommentItem = {
 type AttachmentItem = {
   name: string;
   path: string;
-  url: string;
+  downloadUrl: string;
   createdAt: string;
   size: number | undefined;
 };
@@ -270,7 +272,7 @@ function AttachmentThumbnail({
     <div className="group relative flex flex-col rounded-lg border bg-muted/30 overflow-hidden hover:border-primary/50 transition-colors">
       {/* Preview area */}
       <a
-        href={attachment.url}
+        href={attachment.downloadUrl}
         target="_blank"
         rel="noreferrer"
         className="block"
@@ -279,7 +281,7 @@ function AttachmentThumbnail({
         {isImageFile(attachment.name) ? (
           <div className="relative h-24 w-full bg-muted">
             <Image
-              src={attachment.url}
+              src={attachment.downloadUrl}
               alt={attachment.name}
               fill
               className="object-cover"
@@ -300,16 +302,30 @@ function AttachmentThumbnail({
 
       {/* Footer */}
       <div className="flex items-center gap-1 px-2.5 py-2">
-        <a
-          href={attachment.url}
-          download={attachment.name}
-          className="flex-1 min-w-0"
+        <span
+          className="flex-1 min-w-0 truncate text-xs text-foreground"
           title={attachment.name}
-          onClick={(e) => e.stopPropagation()}
         >
-          <span className="block truncate text-xs text-foreground hover:text-primary hover:underline">
-            {displayName}
-          </span>
+          {displayName}
+        </span>
+        <a
+          href={attachment.downloadUrl}
+          download={attachment.name}
+          onClick={(e) => e.stopPropagation()}
+          aria-label={t("kanban.downloadAttachment")}
+          className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent"
+        >
+          <Download className="h-3.5 w-3.5" />
+        </a>
+        <a
+          href={attachment.downloadUrl}
+          target="_blank"
+          rel="noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          aria-label={t("kanban.openAttachment")}
+          className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent"
+        >
+          <ExternalLink className="h-3.5 w-3.5" />
         </a>
         <Button
           type="button"

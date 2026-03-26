@@ -166,6 +166,8 @@ export const de = {
     failedToUpload: "Datei konnte nicht hochgeladen werden",
     failedToDelete: "Anhang konnte nicht gelöscht werden",
     deleteAttachment: "Anhang löschen",
+    downloadAttachment: "Anhang herunterladen",
+    openAttachment: "Anhang in neuem Tab öffnen",
     showingCards: "Zeige {filtered} von {total} Karten",
     hiddenCards: "({count} ausgeblendet)",
   },
