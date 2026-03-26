@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(cat /Users/user/aviam/aviam-pm-kanban/src/app/api/cards/[id]/attachments/route.ts)",
+      "Bash(node -e \"require\\(''sharp''\\)\")",
+      "Bash(convert --version)",
+      "Bash(rsvg-convert --version)",
+      "Bash(rsvg-convert -w 192 -h 192 /Users/user/aviam/aviam-pm-kanban/public/aviam_signet_circle.svg -o /Users/user/aviam/aviam-pm-kanban/public/icons/icon-192.png)",
+      "Bash(rsvg-convert -w 512 -h 512 /Users/user/aviam/aviam-pm-kanban/public/aviam_signet_circle.svg -o /Users/user/aviam/aviam-pm-kanban/public/icons/icon-512.png)",
+      "Bash(rsvg-convert -w 180 -h 180 /Users/user/aviam/aviam-pm-kanban/public/aviam_signet_circle.svg -o /Users/user/aviam/aviam-pm-kanban/public/icons/apple-touch-icon.png)"
+    ]
+  }
+}
