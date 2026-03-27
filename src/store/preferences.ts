@@ -84,14 +84,29 @@ export function showDesktopNotification(
     return "not-granted";
   }
   try {
-    // Always use the Notification constructor directly.
-    // ServiceWorker.showNotification() requires a SW with a notificationclick
-    // handler; without one Chrome/Firefox silently drop it.
-    //
     // Use an absolute icon URL — relative paths are not reliably resolved by
     // the OS notification system in Firefox (and some Linux environments).
-    const icon = `${window.location.origin}/favicon.png`;
-    new Notification(title, { body, icon });
+    const icon = `${window.location.origin}/icons/icon-192.png`;
+
+    if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+      // In installed PWAs (standalone mode) new Notification() is not
+      // supported. Route through the service worker instead.  The SW must have
+      // a notificationclick handler (worker/index.ts) or Chrome will silently
+      // drop the notification.
+      navigator.serviceWorker.ready
+        .then((registration) =>
+          registration.showNotification(title, { body, icon }),
+        )
+        .catch(() => {
+          try {
+            new Notification(title, { body, icon });
+          } catch {
+            /* ignore */
+          }
+        });
+    } else {
+      new Notification(title, { body, icon });
+    }
     console.info("[Desktop Notifications] Notification created:", {
       title,
       body,

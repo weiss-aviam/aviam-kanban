@@ -123,18 +123,41 @@ export const MentionTextarea = forwardRef<
     [value, onChange],
   );
 
-  // Recalculate dropdown position whenever it opens or query changes
+  // Recalculate dropdown position whenever it opens or query changes.
+  // Uses visualViewport so the position stays correct when the soft keyboard
+  // is open on mobile (window.innerHeight does not shrink on iOS Safari).
   useEffect(() => {
-    if (query !== null && wrapperRef.current) {
+    if (query === null || !wrapperRef.current) {
+      // Dropdown is already hidden by the `query !== null` guard in the render;
+      // no state update needed here.
+      return;
+    }
+
+    const updatePosition = () => {
+      if (!wrapperRef.current) return;
       const rect = wrapperRef.current.getBoundingClientRect();
+      const vh = window.visualViewport?.height ?? window.innerHeight;
+      const offsetTop = window.visualViewport?.offsetTop ?? 0;
       setDropdownPos({
-        bottom: window.innerHeight - rect.top + 4,
-        left: rect.left,
+        bottom: vh - (rect.top - offsetTop) + 4,
+        left: rect.left + (window.visualViewport?.offsetLeft ?? 0),
         width: rect.width,
       });
-    } else {
-      setDropdownPos(null);
+    };
+
+    updatePosition();
+
+    // Re-position when the keyboard opens/closes or the viewport scrolls
+    const vv = window.visualViewport;
+    if (vv) {
+      vv.addEventListener("resize", updatePosition);
+      vv.addEventListener("scroll", updatePosition);
+      return () => {
+        vv.removeEventListener("resize", updatePosition);
+        vv.removeEventListener("scroll", updatePosition);
+      };
     }
+    return undefined;
   }, [query]);
 
   const handleKeyDown = useCallback(

@@ -77,10 +77,16 @@ describe("usePreferencesStore — setDesktopNotificationsEnabled", () => {
 });
 
 describe("showDesktopNotification", () => {
-  it("calls new Notification when permission is granted", () => {
+  it("calls new Notification when permission is granted and no SW controller", () => {
     const mockNotification = vi.fn();
     Object.defineProperty(window, "Notification", {
       value: Object.assign(mockNotification, { permission: "granted" }),
+      writable: true,
+      configurable: true,
+    });
+    // Ensure no SW controller so we take the new Notification() path
+    Object.defineProperty(navigator, "serviceWorker", {
+      value: { controller: null },
       writable: true,
       configurable: true,
     });
@@ -89,7 +95,7 @@ describe("showDesktopNotification", () => {
 
     expect(mockNotification).toHaveBeenCalledWith("Test title", {
       body: "Test body",
-      icon: `${window.location.origin}/favicon.png`,
+      icon: `${window.location.origin}/icons/icon-192.png`,
     });
   });
 

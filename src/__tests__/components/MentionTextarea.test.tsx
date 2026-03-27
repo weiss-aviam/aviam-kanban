@@ -68,7 +68,7 @@ describe("MentionTextarea", () => {
     expect(screen.queryByText("Alice Smith")).toBeNull();
   });
 
-  it("selects a member on mousedown and adds their id to mentionedUserIds", () => {
+  it("selects a member on pointerdown and adds their id to mentionedUserIds", () => {
     const onChange = vi.fn();
     const ref = createRef<MentionTextareaRef>();
     render(
@@ -83,7 +83,7 @@ describe("MentionTextarea", () => {
     const textarea = screen.getByRole("textbox");
     fireEvent.change(textarea, { target: { value: "@Ali" } });
     const button = screen.getByText("Alice Smith").closest("button")!;
-    fireEvent.mouseDown(button);
+    fireEvent.pointerDown(button);
     // onChange is called (value replacement depends on controlled prop updating in real app)
     expect(onChange).toHaveBeenCalled();
     // The mentioned user id must be tracked in the ref
@@ -106,7 +106,7 @@ describe("MentionTextarea", () => {
     fireEvent.change(textarea, { target: { value: "@Ali" } });
     // Select a member
     const button = screen.getByText("Alice Smith").closest("button")!;
-    fireEvent.mouseDown(button);
+    fireEvent.pointerDown(button);
     expect(ref.current?.getMentionedUserIds()).toContain("u1");
 
     ref.current?.reset();

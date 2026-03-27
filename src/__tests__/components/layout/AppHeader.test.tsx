@@ -34,12 +34,13 @@ describe("AppHeader", () => {
       <AppHeader
         title="All Boards"
         subtitle="Manage and organize your projects"
-        actions={<button type="button">Menu</button>}
+        navActions={<button type="button">Menu</button>}
       />,
     );
 
     const headerContent = container.querySelector("header > div");
 
+    // navActions goes in Row 1 only — no Row 2 renders, so 2 children total
     expect(headerContent?.children.length).toBe(2);
 
     const [topRow, bottomRow] = Array.from(headerContent?.children ?? []);
