@@ -564,9 +564,26 @@ export const de = {
   header: {
     menu: "Menü",
     allBoards: "Alle Boards",
+    calendar: "Kalender",
     profile: "Profil",
     settings: "Einstellungen",
     signOut: "Abmelden",
+  },
+
+  calendar: {
+    title: "Kalender",
+    subtitle: "Fälligkeitsdaten über alle Boards",
+    month: "Monat",
+    week: "Woche",
+    day: "Tag",
+    today: "Heute",
+    openModal: "Kalender öffnen",
+    noDeadlinesDay: "Keine Aufgaben fällig",
+    loading: "Kalender wird geladen...",
+    overdue: "Überfällig",
+    completed: "Erledigt",
+    moreItems: "+{count} weitere",
+    errorLoading: "Fehler beim Laden des Kalenders",
   },
 
   dashboard: {
