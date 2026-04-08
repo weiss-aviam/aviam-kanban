@@ -24,8 +24,19 @@ import {
   isWithinInterval,
 } from "date-fns";
 import { de as dateFnsLocale } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  CalendarDays,
+  MoreVertical,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { t } from "@/lib/i18n";
 import { createClient } from "@/lib/supabase/client";
 import type { CalendarCard } from "@/app/api/calendar/cards/route";
@@ -84,7 +95,7 @@ function CardChip({
         e.stopPropagation();
         onClick();
       }}
-      className={`w-full truncate rounded px-1.5 py-0.5 text-left text-[11px] font-medium leading-snug transition-opacity hover:opacity-75 ${getCardChipClasses(card)}`}
+      className={`w-full cursor-pointer truncate rounded px-1.5 py-0.5 text-left text-[11px] font-medium leading-snug transition-opacity hover:opacity-75 ${getCardChipClasses(card)}`}
       title={`${card.title} — ${card.boardName}`}
     >
       {card.title}
@@ -317,7 +328,7 @@ function DayView({
           <button
             key={card.id}
             onClick={() => onCardClick(card)}
-            className="w-full rounded-lg border bg-white p-4 text-left shadow-sm transition-shadow hover:shadow-md"
+            className="w-full cursor-pointer rounded-lg border bg-white p-4 text-left shadow-sm transition-shadow hover:shadow-md"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -584,9 +595,9 @@ export function CalendarView() {
   // ── Render ───────────────────────────────────────────────────────────────────
 
   return (
-    <div>
+    <div className="flex h-full flex-col">
       {/* Toolbar */}
-      <div className="flex items-center justify-between gap-3 border-b bg-white px-4 py-3 sm:px-6">
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b bg-white px-4 pt-12 pb-3 sm:px-6 sm:py-3">
         <div className="flex min-w-0 items-center gap-1">
           <Button
             variant="outline"
@@ -616,13 +627,32 @@ export function CalendarView() {
           </h2>
         </div>
 
-        {/* View switcher */}
-        <div className="flex shrink-0 items-center rounded-lg border bg-gray-50 p-0.5">
+        {/* View switcher — dropdown on mobile, segmented on desktop */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="sm:hidden">
+              {t(`calendar.${view}`)}
+              <MoreVertical className="ml-1 h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {(["month", "week", "day"] as const).map((v) => (
+              <DropdownMenuItem
+                key={v}
+                onClick={() => setView(v)}
+                className={view === v ? "font-semibold" : ""}
+              >
+                {t(`calendar.${v}`)}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <div className="hidden shrink-0 items-center rounded-lg border bg-gray-50 p-0.5 sm:flex">
           {(["month", "week", "day"] as const).map((v) => (
             <button
               key={v}
               onClick={() => setView(v)}
-              className={`rounded px-2.5 py-1.5 text-xs font-medium transition-colors sm:px-3 ${
+              className={`cursor-pointer rounded px-3 py-1.5 text-xs font-medium transition-colors ${
                 view === v
                   ? "bg-white text-gray-900 shadow-sm"
                   : "text-gray-500 hover:text-gray-700"
@@ -636,12 +666,12 @@ export function CalendarView() {
 
       {/* Content */}
       {error ? (
-        <div className="flex min-h-[60vh] items-center justify-center text-sm text-red-600">
+        <div className="flex min-h-0 flex-1 items-center justify-center text-sm text-red-600">
           {error}
         </div>
       ) : (
         <div
-          className={`transition-opacity duration-150 ${fetching ? "opacity-50" : "opacity-100"}`}
+          className={`min-h-0 flex-1 overflow-auto transition-opacity duration-150 ${fetching ? "opacity-50" : "opacity-100"}`}
         >
           {view === "month" && (
             <MonthView

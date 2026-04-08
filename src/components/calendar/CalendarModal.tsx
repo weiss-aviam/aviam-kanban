@@ -23,7 +23,7 @@ export function CalendarModal() {
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent
-          className="sm:max-w-7xl p-0 overflow-hidden"
+          className="h-dvh max-w-none rounded-none border-0 p-0 overflow-hidden sm:h-auto sm:max-w-7xl sm:rounded-lg sm:border"
           aria-describedby={undefined}
         >
           {/* Visually hidden title for accessibility */}
