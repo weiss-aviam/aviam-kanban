@@ -124,6 +124,10 @@ export function NotificationToast() {
           }}
           className="w-80 flex items-start rounded-lg border border-border bg-white shadow-lg overflow-hidden transition-all"
         >
+          {/* Signet icon */}
+          <div className="shrink-0 flex items-center justify-center pl-3 pt-3">
+            <img src="/aviam_signet_flat.svg" alt="" className="h-6 w-6" />
+          </div>
           {/* Clickable body */}
           <button
             onClick={() => handleClick(entry)}
