@@ -31,7 +31,8 @@
       "Bash(pnpm install:*)",
       "Bash(find /Users/user/aviam/aviam-pm-kanban/src -name *.test.ts* -o -name *.spec.ts*)",
       "Bash(find /Users/user/aviam/aviam-pm-kanban/src -name *notification* -o -name *mention*)",
-      "Bash(find /Users/user/aviam/aviam-pm-kanban/src/components/kanban -name *Board* -o -name *Column*)"
+      "Bash(find /Users/user/aviam/aviam-pm-kanban/src/components/kanban -name *Board* -o -name *Column*)",
+      "Bash(pnpm lint *)"
     ]
   }
 }
