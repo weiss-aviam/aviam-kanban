@@ -286,8 +286,6 @@ export const de = {
     created: "Erstellt am {date}",
     showingCards: "Zeige {filtered} von {total} Karten",
     hiddenCards: "({count} ausgeblendet)",
-    constrainWidth: "Breite begrenzen",
-    constrainWidthOff: "Volle Breite",
   },
 
   boardDetail: {
@@ -561,12 +559,14 @@ export const de = {
       },
     },
   },
-  header: {
-    menu: "Menü",
-    allBoards: "Alle Boards",
+  sidebar: {
+    navigation: "Navigation",
+    dashboard: "Dashboard",
+    boards: "Boards",
     calendar: "Kalender",
+    admin: "Benutzerverwaltung",
+    adminSection: "Administration",
     profile: "Profil",
-    settings: "Einstellungen",
     signOut: "Abmelden",
   },
 

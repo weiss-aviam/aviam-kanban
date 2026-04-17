@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useState } from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -14,15 +14,13 @@ import {
   DialogTrigger,
 } from "../ui/dialog";
 import { Plus, Loader2 } from "lucide-react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import type { Column } from "@/types/database";
 import { t } from "@/lib/i18n";
 import {
-  createColumnSchema,
-  getColumnMutationErrorMessage,
-  type ColumnFormValues,
-} from "./column-dialog.utils";
+  createColumnAction,
+  INITIAL_COLUMN_STATE,
+  type ColumnActionState,
+} from "@/app/actions/columns";
 
 interface CreateColumnDialogProps {
   boardId: string;
@@ -40,64 +38,27 @@ export function CreateColumnDialog({
   onOpenChange: controlledOnOpenChange,
 }: CreateColumnDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  const schema = createColumnSchema();
-  const {
-    register,
-    handleSubmit: rhfHandleSubmit,
-    reset,
-  } = useForm<ColumnFormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: { title: "" },
-  });
-
-  // Use controlled or internal state
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
   const setOpen = controlledOnOpenChange || setInternalOpen;
 
-  const onSubmit = async ({ title }: ColumnFormValues) => {
-    setIsLoading(true);
-    setError("");
-
-    try {
-      const response = await fetch("/api/columns", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          boardId,
-          title: title.trim(),
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData: unknown = await response.json().catch(() => null);
-        throw new Error(
-          getColumnMutationErrorMessage(errorData, "failedToCreate"),
-        );
-      }
-
-      const column = await response.json();
-
-      // Reset form
-      reset({ title: "" });
+  const handleAction = async (
+    prev: ColumnActionState,
+    formData: FormData,
+  ): Promise<ColumnActionState> => {
+    const result = await createColumnAction(prev, formData);
+    if (result.status === "success") {
+      onColumnCreated?.(result.column);
       setOpen(false);
-
-      // Notify parent component
-      if (onColumnCreated) {
-        onColumnCreated(column);
-      }
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : t("common.unexpectedError"),
-      );
-    } finally {
-      setIsLoading(false);
     }
+    return result;
   };
+
+  const [state, formAction, isPending] = useActionState(
+    handleAction,
+    INITIAL_COLUMN_STATE,
+  );
+
+  const errorMessage = state.status === "error" ? state.error : null;
 
   const defaultTrigger = (
     <Button
@@ -122,31 +83,35 @@ export function CreateColumnDialog({
             {t("columns.addNewColumnDescription")}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={rhfHandleSubmit(onSubmit)}>
+        <form action={formAction}>
+          <input type="hidden" name="boardId" value={boardId} />
           <div className="grid gap-3 py-3 sm:gap-4 sm:py-4">
             <div className="grid gap-2">
               <Label htmlFor="title">{t("columns.columnTitle")}</Label>
               <Input
                 id="title"
+                name="title"
                 placeholder={t("columns.enterColumnTitle")}
-                disabled={isLoading}
+                disabled={isPending}
                 autoFocus
-                {...register("title")}
+                required
               />
             </div>
-            {error && <div className="text-sm text-red-600">{error}</div>}
+            {errorMessage && (
+              <div className="text-sm text-red-600">{errorMessage}</div>
+            )}
           </div>
           <DialogFooter>
             <Button
               type="button"
               variant="outline"
               onClick={() => setOpen(false)}
-              disabled={isLoading}
+              disabled={isPending}
             >
               {t("common.cancel")}
             </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? (
+            <Button type="submit" disabled={isPending}>
+              {isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   {t("columns.creating")}

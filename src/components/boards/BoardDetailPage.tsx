@@ -6,7 +6,7 @@ import { Button } from "../ui/button";
 // Removed unused Card imports
 import { Badge } from "../ui/badge";
 import {
-  ArrowLeft,
+  ChevronLeft,
   Plus,
   Users,
   Trash2,
@@ -29,7 +29,6 @@ import {
 } from "@/hooks/useBoardPresence";
 import { useBoardRealtime } from "@/hooks/useBoardRealtime";
 import { KanbanBoard } from "../kanban/KanbanBoard";
-import { HeaderActions } from "../layout/HeaderActions";
 import { DeleteBoardDialog } from "./DeleteBoardDialog";
 import { EditBoardDialog } from "./EditBoardDialog";
 import { UserManagementModal } from "../admin/UserManagementModal";
@@ -41,7 +40,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
-import { AppHeader } from "../layout/AppHeader";
+import { ContentTopBar } from "../layout/ContentTopBar";
 
 import type { BoardWithDetails, Column } from "../../types/database";
 import { canEditBoard, canManageBoardMembers } from "@/lib/board-permissions";
@@ -143,7 +142,6 @@ export function BoardDetailPage({
           initialBoard.memberCount ?? initialBoard.members?.length ?? 0,
       };
 
-      // Initialize store with initial board data
       setCurrentBoard(normalizedInitialBoard);
       setBoard(normalizedInitialBoard);
       setUserRole(normalizedInitialBoard.role);
@@ -175,7 +173,6 @@ export function BoardDetailPage({
         memberCount: board.memberCount ?? board.members?.length ?? 0,
       } as BoardWithDetails;
 
-      // Update both local state and Zustand store
       setBoard(normalizedBoard);
       setCurrentBoard(normalizedBoard);
       setUserRole(normalizedBoard.role);
@@ -253,10 +250,12 @@ export function BoardDetailPage({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex flex-1 items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">{t("boardDetail.loading")}</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-muted-foreground">
+            {t("boardDetail.loading")}
+          </p>
         </div>
       </div>
     );
@@ -264,16 +263,16 @@ export function BoardDetailPage({
 
   if (error || !board) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex flex-1 items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          <h1 className="text-2xl font-bold text-foreground mb-2">
             {t("boardDetail.notFoundTitle")}
           </h1>
-          <p className="text-gray-600 mb-4">
+          <p className="text-muted-foreground mb-4">
             {error || t("boardDetail.notFoundMessage")}
           </p>
           <Button onClick={() => router.push("/boards")} variant="outline">
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <ChevronLeft className="w-4 h-4 mr-1" />
             {t("boardDetail.backToBoards")}
           </Button>
         </div>
@@ -282,8 +281,8 @@ export function BoardDetailPage({
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50">
-      <AppHeader
+    <div className="flex min-h-screen flex-col">
+      <ContentTopBar
         title={board.name}
         subtitle={
           <>
@@ -296,7 +295,7 @@ export function BoardDetailPage({
             {board.isArchived && (
               <Badge variant="secondary">{t("board.archived")}</Badge>
             )}
-            <span>
+            <span className="hidden sm:inline">
               {t("boardDetail.columnCount", {
                 count: board.columns?.length || 0,
               })}{" "}
@@ -305,25 +304,30 @@ export function BoardDetailPage({
                 count: memberCount,
               })}
             </span>
+            <span className="sm:hidden">
+              {t("boardDetail.cardCount", { count: getTotalCards() })}
+            </span>
             {presenceMembers.length > 0 ? (
-              <BoardPresenceSummary
-                currentUserId={currentUser?.id ?? null}
-                members={presenceMembers}
-              />
+              <span className="hidden sm:inline-flex">
+                <BoardPresenceSummary
+                  currentUserId={currentUser?.id ?? null}
+                  members={presenceMembers}
+                />
+              </span>
             ) : null}
           </>
         }
-        navActions={<HeaderActions />}
         actionsStart={
           <Button
             variant="ghost"
             size="sm"
             onClick={() => router.push("/boards")}
             title={t("boardDetail.backToBoards")}
+            className="h-8 gap-0.5 px-1.5 text-primary hover:bg-primary/5 hover:text-primary"
           >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="hidden sm:inline">
-              {t("boardDetail.backToBoards")}
+            <ChevronLeft className="size-4" strokeWidth={2.25} />
+            <span className="hidden sm:inline text-[13px] font-medium">
+              {t("sidebar.boards")}
             </span>
           </Button>
         }
@@ -331,13 +335,14 @@ export function BoardDetailPage({
           <>
             {canAddColumns && (
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={() => setShowCreateColumn(true)}
                 title={t("boardDetail.addColumn")}
+                className="h-8 gap-1 px-2 text-primary hover:bg-primary/5 hover:text-primary"
               >
-                <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline">
+                <Plus className="size-4" strokeWidth={2.25} />
+                <span className="hidden sm:inline text-[13px] font-medium">
                   {t("boardDetail.addColumn")}
                 </span>
               </Button>
@@ -345,26 +350,29 @@ export function BoardDetailPage({
 
             {canManageBoard && (
               <Button
-                variant="outline"
-                size="sm"
+                variant="ghost"
+                size="icon"
                 onClick={() => setShowMembersModal(true)}
                 title={t("boardDetail.manageUsers")}
+                className="size-8 text-muted-foreground hover:text-foreground"
               >
-                <Users className="w-4 h-4" />
-                <span className="hidden sm:inline">
-                  {t("boardDetail.manageUsers")}
-                </span>
+                <Users className="size-4" />
+                <span className="sr-only">{t("boardDetail.manageUsers")}</span>
               </Button>
             )}
 
             {canManageBoard && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <MoreHorizontal className="w-4 h-4" />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-8 text-muted-foreground hover:text-foreground"
+                  >
+                    <MoreHorizontal className="size-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuContent align="end" className="w-48 rounded-xl">
                   <DropdownMenuItem onClick={() => setShowEditBoard(true)}>
                     <Edit className="mr-2 h-4 w-4" />
                     {t("board.editBoard")}
@@ -380,7 +388,7 @@ export function BoardDetailPage({
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         onClick={() => setShowDeleteBoard(true)}
-                        className="text-red-600 focus:text-red-600"
+                        className="text-destructive focus:text-destructive"
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
                         {t("board.deleteBoard")}

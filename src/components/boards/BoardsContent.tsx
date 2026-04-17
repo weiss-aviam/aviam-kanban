@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
+import { useState, useMemo } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Plus,
   Users,
@@ -19,22 +19,37 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "../../components/ui/dropdown-menu";
-import { CreateBoardDialog } from "../../components/boards/CreateBoardDialog";
-import { EditBoardDialog } from "../../components/boards/EditBoardDialog";
-import { DeleteBoardDialog } from "../../components/boards/DeleteBoardDialog";
-import { BoardCard, BoardCardData } from "../../components/boards/BoardCard";
-import type { Board, BoardWithDetails } from "../../types/database";
-import { AppHeader } from "../../components/layout/AppHeader";
-import { HeaderActions } from "../../components/layout/HeaderActions";
-import { t } from "../../lib/i18n";
-import { useBoards, useAppActions } from "../../store";
+} from "@/components/ui/dropdown-menu";
+import { CreateBoardDialog } from "@/components/boards/CreateBoardDialog";
+import { EditBoardDialog } from "@/components/boards/EditBoardDialog";
+import { DeleteBoardDialog } from "@/components/boards/DeleteBoardDialog";
+import { BoardCard, BoardCardData } from "@/components/boards/BoardCard";
+import type { Board, BoardWithDetails } from "@/types/database";
+import { ContentTopBar } from "@/components/layout/ContentTopBar";
+import { t } from "@/lib/i18n";
+import { useBoards, useAppActions } from "@/store";
 
-export default function BoardsPage() {
+function BoardsActions({
+  onBoardCreated,
+}: {
+  onBoardCreated: (b: Board) => void;
+}) {
+  return (
+    <CreateBoardDialog
+      onBoardCreated={onBoardCreated}
+      trigger={
+        <Button size="sm">
+          <Plus className="w-4 h-4 sm:mr-1.5" />
+          <span className="hidden sm:inline">{t("boardsPage.newBoard")}</span>
+        </Button>
+      }
+    />
+  );
+}
+
+export function BoardsContent() {
   const boards = useBoards();
-  const { fetchBoards, addBoard, removeBoard, updateBoardInList } =
-    useAppActions();
-  const [isFetching, setIsFetching] = useState(boards.length === 0);
+  const { addBoard, removeBoard, updateBoardInList } = useAppActions();
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [filterBy, setFilterBy] = useState<
@@ -47,11 +62,6 @@ export default function BoardsPage() {
   const [deletingBoard, setDeletingBoard] = useState<BoardWithDetails | null>(
     null,
   );
-
-  useEffect(() => {
-    fetchBoards().then(() => setIsFetching(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const filteredBoards = useMemo(() => {
     let filtered = [...boards];
@@ -144,32 +154,18 @@ export default function BoardsPage() {
     }
   };
 
-  if (isFetching) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">{t("boardsPage.loading")}</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      <AppHeader
+    <div className="flex min-h-screen flex-col">
+      <ContentTopBar
         title={t("boardsPage.title")}
         subtitle={t("boardsPage.subtitle")}
-        navActions={<HeaderActions />}
+        actions={<BoardsActions onBoardCreated={handleBoardCreated} />}
       />
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Search and Filters */}
+      <main className="flex-1 px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          {/* Search — full width on all screen sizes */}
           <div className="relative mb-3">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <Input
               placeholder={t("boardsPage.searchPlaceholder")}
               value={searchQuery}
@@ -179,7 +175,6 @@ export default function BoardsPage() {
           </div>
 
           <div className="flex items-center justify-between gap-2">
-            {/* ── Mobile: filter dropdown ──────────────────────────────── */}
             {(() => {
               const FILTERS = [
                 {
@@ -243,8 +238,7 @@ export default function BoardsPage() {
               );
             })()}
 
-            {/* ── Desktop: filter pill bar ─────────────────────────────── */}
-            <div className="hidden sm:flex items-center space-x-1 bg-white rounded-lg border p-1">
+            <div className="hidden sm:flex items-center space-x-1 rounded-lg border bg-card p-1">
               {[
                 { key: "all", label: t("boardsPage.filterAll"), icon: null },
                 {
@@ -276,9 +270,8 @@ export default function BoardsPage() {
               ))}
             </div>
 
-            {/* View toggle + Create — right side, all screen sizes */}
             <div className="flex items-center gap-1.5 ml-auto">
-              <div className="flex items-center space-x-1 bg-white rounded-lg border p-1">
+              <div className="flex items-center space-x-1 rounded-lg border bg-card p-1">
                 <Button
                   variant={viewMode === "grid" ? "default" : "ghost"}
                   size="sm"
@@ -296,38 +289,25 @@ export default function BoardsPage() {
                   <List className="w-4 h-4" />
                 </Button>
               </div>
-
-              <CreateBoardDialog
-                onBoardCreated={handleBoardCreated}
-                trigger={
-                  <Button>
-                    <Plus className="w-4 h-4 sm:mr-2" />
-                    <span className="hidden sm:inline">
-                      {t("boardsPage.newBoard")}
-                    </span>
-                  </Button>
-                }
-              />
             </div>
           </div>
         </div>
 
-        {/* Boards Content */}
         {filteredBoards.length === 0 ? (
           <div className="text-center py-12">
-            <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+            <div className="mx-auto w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-4">
               {searchQuery || filterBy !== "all" ? (
-                <Search className="w-12 h-12 text-gray-400" />
+                <Search className="w-12 h-12 text-muted-foreground" />
               ) : (
-                <Plus className="w-12 h-12 text-gray-400" />
+                <Plus className="w-12 h-12 text-muted-foreground" />
               )}
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <h3 className="text-lg font-medium text-foreground mb-2">
               {searchQuery || filterBy !== "all"
                 ? t("boardsPage.noBoardsFound")
                 : t("boardsPage.noBoardsYet")}
             </h3>
-            <p className="text-gray-600 mb-6">
+            <p className="text-muted-foreground mb-6">
               {searchQuery || filterBy !== "all"
                 ? t("boardsPage.tryFilters")
                 : t("boardsPage.getStarted")}
@@ -365,7 +345,6 @@ export default function BoardsPage() {
           </div>
         )}
 
-        {/* Edit Board Dialog */}
         {editingBoard && (
           <EditBoardDialog
             board={editingBoard}
@@ -375,7 +354,6 @@ export default function BoardsPage() {
           />
         )}
 
-        {/* Delete Board Dialog */}
         <DeleteBoardDialog
           open={!!deletingBoard}
           onOpenChange={(open) => !open && setDeletingBoard(null)}

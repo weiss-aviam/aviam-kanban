@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useMemo } from "react";
+import useSWR from "swr";
 
 export interface Membership {
   id: string;
@@ -39,13 +40,21 @@ export interface UseBoardMembershipsOptions {
   onError?: (error: string) => void;
 }
 
-export function useBoardMemberships(options: UseBoardMembershipsOptions) {
-  const [memberships, setMemberships] = useState<Membership[]>([]);
-  const [summary, setSummary] = useState<MembershipSummary | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
+interface MembershipsResponse {
+  memberships: Membership[];
+  summary: MembershipSummary | null;
+}
 
+interface MembershipsParams {
+  page: number;
+  limit: number;
+  sortBy: string;
+  sortOrder: "asc" | "desc";
+  search?: string;
+  role?: string;
+}
+
+export function useBoardMemberships(options: UseBoardMembershipsOptions) {
   const {
     boardId,
     autoRefresh = false,
@@ -54,30 +63,72 @@ export function useBoardMemberships(options: UseBoardMembershipsOptions) {
     onError,
   } = options;
 
-  const handleError = useCallback(
-    (err: unknown) => {
-      const errorMessage =
-        err instanceof Error ? err.message : "An unexpected error occurred";
-      setError(errorMessage);
-      onError?.(errorMessage);
+  const [params, setParams] = useState<MembershipsParams>({
+    page: 1,
+    limit: 100,
+    sortBy: "name",
+    sortOrder: "asc",
+  });
+  const [mutationError, setMutationError] = useState<string | null>(null);
+
+  const url = useMemo(() => {
+    const sp = new URLSearchParams({
+      boardId,
+      page: String(params.page),
+      limit: String(params.limit),
+      sortBy: params.sortBy,
+      sortOrder: params.sortOrder,
+    });
+    if (params.search) sp.append("search", params.search);
+    if (params.role) sp.append("role", params.role);
+    return `/api/admin/memberships?${sp}`;
+  }, [boardId, params]);
+
+  const {
+    data,
+    error: swrError,
+    isLoading,
+    mutate,
+  } = useSWR<MembershipsResponse>(boardId ? url : null, {
+    refreshInterval: autoRefresh ? refreshInterval : 0,
+    onError: (err) => {
+      const msg =
+        err instanceof Error ? err.message : "Failed to fetch memberships";
+      onError?.(msg);
     },
-    [onError],
-  );
+  });
+
+  const memberships = data?.memberships ?? [];
+  const summary = data?.summary ?? null;
+  const error =
+    mutationError ??
+    (swrError
+      ? swrError instanceof Error
+        ? swrError.message
+        : "Failed"
+      : null);
 
   const handleSuccess = useCallback(
     (message: string) => {
-      setError(null);
+      setMutationError(null);
       onSuccess?.(message);
     },
     [onSuccess],
   );
 
-  /**
-   * Fetch board memberships
-   */
+  const handleError = useCallback(
+    (err: unknown) => {
+      const msg =
+        err instanceof Error ? err.message : "An unexpected error occurred";
+      setMutationError(msg);
+      onError?.(msg);
+    },
+    [onError],
+  );
+
   const fetchMemberships = useCallback(
-    async (
-      params: {
+    (
+      next: {
         page?: number;
         limit?: number;
         search?: string;
@@ -86,137 +137,99 @@ export function useBoardMemberships(options: UseBoardMembershipsOptions) {
         sortOrder?: "asc" | "desc";
       } = {},
     ) => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        const searchParams = new URLSearchParams({
-          boardId,
-          page: (params.page || 1).toString(),
-          limit: (params.limit || 100).toString(),
-          sortBy: params.sortBy || "name",
-          sortOrder: params.sortOrder || "asc",
-        });
-
-        if (params.search) searchParams.append("search", params.search);
-        if (params.role) searchParams.append("role", params.role);
-
-        const response = await fetch(`/api/admin/memberships?${searchParams}`);
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "Failed to fetch memberships");
-        }
-
-        const data = await response.json();
-        setMemberships(data.memberships);
-        setSummary(data.summary);
-        return data;
-      } catch (err) {
-        handleError(err);
-        throw err;
-      } finally {
-        setLoading(false);
-      }
+      setParams((prev) => ({
+        ...prev,
+        ...(next.page !== undefined ? { page: next.page } : {}),
+        ...(next.limit !== undefined ? { limit: next.limit } : {}),
+        ...(next.sortBy !== undefined ? { sortBy: next.sortBy } : {}),
+        ...(next.sortOrder !== undefined ? { sortOrder: next.sortOrder } : {}),
+        ...(next.search !== undefined ? { search: next.search } : {}),
+        ...(next.role !== undefined ? { role: next.role } : {}),
+      }));
+      return mutate();
     },
-    [boardId, handleError],
+    [mutate],
   );
 
-  /**
-   * Update membership role
-   */
   const updateMembership = useCallback(
-    async (data: UpdateMembershipData) => {
-      setError(null);
-
+    async (patch: UpdateMembershipData) => {
+      setMutationError(null);
       try {
         const response = await fetch(
           `/api/admin/memberships?boardId=${boardId}`,
           {
             method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(data),
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(patch),
           },
         );
-
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.error || "Failed to update membership");
         }
-
         const result = await response.json();
 
-        // Optimistically update the local state
-        setMemberships((prev) =>
-          prev.map((membership) =>
-            membership.id === data.userId
-              ? { ...membership, role: data.role }
-              : membership,
-          ),
+        await mutate(
+          (prev) => {
+            if (!prev) return prev;
+            const oldMembership = prev.memberships.find(
+              (m) => m.id === patch.userId,
+            );
+            const updatedSummary =
+              prev.summary && oldMembership
+                ? {
+                    ...prev.summary,
+                    roleDistribution: {
+                      ...prev.summary.roleDistribution,
+                      [oldMembership.role]:
+                        prev.summary.roleDistribution[oldMembership.role] - 1,
+                      [patch.role]:
+                        prev.summary.roleDistribution[patch.role] + 1,
+                    },
+                  }
+                : prev.summary;
+            return {
+              ...prev,
+              memberships: prev.memberships.map((m) =>
+                m.id === patch.userId ? { ...m, role: patch.role } : m,
+              ),
+              summary: updatedSummary,
+            };
+          },
+          { revalidate: false },
         );
-
-        // Update summary
-        setSummary((prev) => {
-          if (!prev) return prev;
-
-          const oldMembership = memberships.find((m) => m.id === data.userId);
-          if (!oldMembership) return prev;
-
-          const newDistribution = { ...prev.roleDistribution };
-          newDistribution[oldMembership.role]--;
-          newDistribution[data.role]++;
-
-          return {
-            ...prev,
-            roleDistribution: newDistribution,
-          };
-        });
 
         handleSuccess("Membership role updated successfully");
         return result;
       } catch (err) {
         handleError(err);
-        // Refresh data on error to ensure consistency
-        fetchMemberships();
+        mutate();
         throw err;
       }
     },
-    [boardId, memberships, handleError, handleSuccess, fetchMemberships],
+    [boardId, mutate, handleSuccess, handleError],
   );
 
-  /**
-   * Bulk update memberships
-   */
   const bulkUpdateMemberships = useCallback(
     async (updates: UpdateMembershipData[]) => {
-      setError(null);
-
+      setMutationError(null);
       try {
         const response = await fetch(
           `/api/admin/memberships?boardId=${boardId}`,
           {
             method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ updates, boardId }),
           },
         );
-
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(
             errorData.error || "Failed to bulk update memberships",
           );
         }
-
         const result = await response.json();
-
-        // Refresh data after bulk update
-        await fetchMemberships();
-
+        await mutate();
         handleSuccess(
           `Successfully updated ${updates.length} membership${updates.length > 1 ? "s" : ""}`,
         );
@@ -226,39 +239,23 @@ export function useBoardMemberships(options: UseBoardMembershipsOptions) {
         throw err;
       }
     },
-    [boardId, handleError, handleSuccess, fetchMemberships],
+    [boardId, mutate, handleSuccess, handleError],
   );
 
-  /**
-   * Refresh memberships data
-   */
-  const refresh = useCallback(() => {
-    setRefreshTrigger((prev) => prev + 1);
-  }, []);
+  const refresh = useCallback(() => mutate(), [mutate]);
+  const clearError = useCallback(() => setMutationError(null), []);
 
-  /**
-   * Get membership by user ID
-   */
   const getMembershipById = useCallback(
-    (userId: string) => {
-      return memberships.find((membership) => membership.id === userId);
-    },
+    (userId: string) => memberships.find((m) => m.id === userId),
     [memberships],
   );
 
-  /**
-   * Get memberships by role
-   */
   const getMembershipsByRole = useCallback(
-    (role: "owner" | "admin" | "member" | "viewer") => {
-      return memberships.filter((membership) => membership.role === role);
-    },
+    (role: "owner" | "admin" | "member" | "viewer") =>
+      memberships.filter((m) => m.role === role),
     [memberships],
   );
 
-  /**
-   * Check if user can change another user's role
-   */
   const canChangeRole = useCallback(
     (currentUserRole: string, targetRole: string) => {
       if (targetRole === "owner") return false;
@@ -269,45 +266,16 @@ export function useBoardMemberships(options: UseBoardMembershipsOptions) {
     [],
   );
 
-  /**
-   * Clear error state
-   */
-  const clearError = useCallback(() => {
-    setError(null);
-  }, []);
-
-  // Auto-refresh effect
-  useEffect(() => {
-    if (autoRefresh && refreshInterval > 0) {
-      const interval = setInterval(() => {
-        fetchMemberships();
-      }, refreshInterval);
-
-      return () => clearInterval(interval);
-    }
-    return undefined;
-  }, [autoRefresh, refreshInterval, fetchMemberships]);
-
-  // Initial fetch and refresh trigger effect
-  useEffect(() => {
-    fetchMemberships();
-  }, [fetchMemberships, refreshTrigger]);
-
   return {
-    // State
     memberships,
     summary,
-    loading,
+    loading: isLoading,
     error,
-
-    // Actions
     fetchMemberships,
     updateMembership,
     bulkUpdateMemberships,
     refresh,
     clearError,
-
-    // Utilities
     getMembershipById,
     getMembershipsByRole,
     canChangeRole,

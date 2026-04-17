@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -41,8 +41,23 @@ interface EditUserModalProps {
   onUserUpdated: () => void;
 }
 
-export function EditUserModal({
-  open,
+export function EditUserModal(props: EditUserModalProps) {
+  return (
+    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Edit className="w-5 h-5" />
+            {t("admin.editUserTitle")}
+          </DialogTitle>
+        </DialogHeader>
+        {props.open && <EditUserForm key={props.user.id} {...props} />}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EditUserForm({
   onOpenChange,
   user,
   boardId,
@@ -58,14 +73,6 @@ export function EditUserModal({
     currentUserRole === "owner" ||
     (currentUserRole === "admin" && user.role !== "owner");
   const canAssignAdmin = currentUserRole === "owner";
-
-  useEffect(() => {
-    if (open) {
-      setName(user.name || "");
-      setRole(user.role);
-      setError(null);
-    }
-  }, [open, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,127 +142,112 @@ export function EditUserModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Edit className="w-5 h-5" />
-            {t("admin.editUserTitle")}
-          </DialogTitle>
-        </DialogHeader>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
+      {/* User Info */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <Label className="text-sm font-medium">{t("admin.email")}</Label>
+          <Badge variant="outline" className="text-xs">
+            {t("common.cannotBeChanged")}
+          </Badge>
+        </div>
+        <Input value={user.email} disabled className="bg-gray-50" />
+      </div>
+
+      {/* Name */}
+      <div className="space-y-2">
+        <Label htmlFor="name">{t("admin.displayName")}</Label>
+        <Input
+          id="name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder={t("admin.enterDisplayName")}
+          maxLength={100}
+        />
+      </div>
+
+      {/* Role */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <Label>{t("admin.role")}</Label>
+          {!canChangeRole && (
+            <Badge variant="outline" className="text-xs">
+              {t("common.cannotBeChanged")}
+            </Badge>
           )}
+        </div>
 
-          {/* User Info */}
-          <div className="space-y-2">
+        {canChangeRole ? (
+          <Select
+            value={role}
+            onValueChange={(value) => setRole(value as typeof role)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {canAssignAdmin && (
+                <SelectItem value="admin">{t("roles.admin")}</SelectItem>
+              )}
+              <SelectItem value="member">{t("roles.member")}</SelectItem>
+              <SelectItem value="viewer">{t("roles.viewer")}</SelectItem>
+            </SelectContent>
+          </Select>
+        ) : (
+          <div className="p-2 bg-gray-50 rounded border">
             <div className="flex items-center gap-2">
-              <Label className="text-sm font-medium">{t("admin.email")}</Label>
-              <Badge variant="outline" className="text-xs">
-                {t("common.cannotBeChanged")}
+              <Badge variant="outline">
+                {role.charAt(0).toUpperCase() + role.slice(1)}
               </Badge>
-            </div>
-            <Input value={user.email} disabled className="bg-gray-50" />
-          </div>
-
-          {/* Name */}
-          <div className="space-y-2">
-            <Label htmlFor="name">{t("admin.displayName")}</Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={t("admin.enterDisplayName")}
-              maxLength={100}
-            />
-          </div>
-
-          {/* Role */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Label>{t("admin.role")}</Label>
-              {!canChangeRole && (
-                <Badge variant="outline" className="text-xs">
-                  {t("common.cannotBeChanged")}
-                </Badge>
-              )}
-            </div>
-
-            {canChangeRole ? (
-              <Select
-                value={role}
-                onValueChange={(value) => setRole(value as typeof role)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {canAssignAdmin && (
-                    <SelectItem value="admin">{t("roles.admin")}</SelectItem>
-                  )}
-                  <SelectItem value="member">{t("roles.member")}</SelectItem>
-                  <SelectItem value="viewer">{t("roles.viewer")}</SelectItem>
-                </SelectContent>
-              </Select>
-            ) : (
-              <div className="p-2 bg-gray-50 rounded border">
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">
-                    {role.charAt(0).toUpperCase() + role.slice(1)}
-                  </Badge>
-                  <span className="text-sm text-gray-600">
-                    {getRoleDescription(role)}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {canChangeRole && (
-              <p className="text-xs text-gray-600">
+              <span className="text-sm text-gray-600">
                 {getRoleDescription(role)}
-              </p>
-            )}
+              </span>
+            </div>
           </div>
+        )}
 
-          {/* Warnings */}
-          {role !== user.role && (
-            <Alert>
-              <AlertDescription>
-                {t("admin.roleChangeWarning")}
-              </AlertDescription>
-            </Alert>
+        {canChangeRole && (
+          <p className="text-xs text-gray-600">{getRoleDescription(role)}</p>
+        )}
+      </div>
+
+      {/* Warnings */}
+      {role !== user.role && (
+        <Alert>
+          <AlertDescription>{t("admin.roleChangeWarning")}</AlertDescription>
+        </Alert>
+      )}
+
+      <DialogFooter className="flex gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => onOpenChange(false)}
+          disabled={loading}
+        >
+          <X className="w-4 h-4 mr-2" />
+          {t("common.cancel")}
+        </Button>
+        <Button type="submit" disabled={loading}>
+          {loading ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              {t("common.saving")}
+            </>
+          ) : (
+            <>
+              <Save className="w-4 h-4 mr-2" />
+              {t("common.saveChanges")}
+            </>
           )}
-
-          <DialogFooter className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={loading}
-            >
-              <X className="w-4 h-4 mr-2" />
-              {t("common.cancel")}
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  {t("common.saving")}
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4 mr-2" />
-                  {t("common.saveChanges")}
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+        </Button>
+      </DialogFooter>
+    </form>
   );
 }

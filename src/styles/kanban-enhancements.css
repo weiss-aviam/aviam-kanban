@@ -608,3 +608,50 @@
 .comment-link:hover {
   color: #1d4ed8;
 }
+
+/* -----------------------------------------------------------------------
+   Apple Design System — Global Enhancements
+   ----------------------------------------------------------------------- */
+
+/* Sidebar — frosted glass translucency */
+[data-sidebar="sidebar"] {
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+/* Sidebar active item — pill shape with AVIAM blue */
+[data-sidebar="menu-button"][data-active="true"] {
+  border-radius: 0.5rem;
+  font-weight: 500;
+}
+
+/* Sidebar nav labels — Barlow Medium weight */
+[data-sidebar="group-label"] {
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: 0.6875rem;
+}
+
+/* Apple-style smooth transitions everywhere */
+button,
+a,
+[role="button"],
+[data-sidebar="menu-button"] {
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.15s ease;
+}
+
+/* Notification badge — AVIAM Kupfer accent */
+.notification-badge {
+  background-color: #b7876f;
+  color: white;
+}
+
+/* Apple-style content area — subtle inner shadow from sidebar edge */
+main {
+  background: var(--background);
+}

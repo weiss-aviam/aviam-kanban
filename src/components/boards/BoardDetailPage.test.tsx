@@ -9,10 +9,6 @@ vi.mock("../kanban/KanbanBoard", () => ({
   KanbanBoard: () => <div data-testid="kanban-board" />,
 }));
 
-vi.mock("../layout/HeaderMenu", () => ({
-  HeaderMenu: () => <div data-testid="header-menu" />,
-}));
-
 vi.mock("../columns/CreateColumnDialog", () => ({
   CreateColumnDialog: () => null,
 }));
@@ -21,8 +17,8 @@ vi.mock("./DeleteBoardDialog", () => ({
   DeleteBoardDialog: () => null,
 }));
 
-vi.mock("../layout/AppHeader", () => ({
-  AppHeader: ({
+vi.mock("../layout/ContentTopBar", () => ({
+  ContentTopBar: ({
     title,
     subtitle,
     actions,

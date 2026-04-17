@@ -1,50 +1,25 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Button } from "../../components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../../components/ui/card";
-// import { Badge } from '../../components/ui/badge';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Kanban, Plus, Users, Calendar } from "lucide-react";
-import { CreateBoardDialog } from "../../components/boards/CreateBoardDialog";
-import { EditBoardDialog } from "../../components/boards/EditBoardDialog";
-import { BoardCard } from "../../components/boards/BoardCard";
-import { AppHeader } from "../../components/layout/AppHeader";
-import { HeaderActions } from "../../components/layout/HeaderActions";
-import { t } from "../../lib/i18n";
-import { useBoards, useActiveTaskCount, useAppActions } from "../../store";
-import type { BoardWithDetails } from "../../types/database";
+import { CreateBoardDialog } from "@/components/boards/CreateBoardDialog";
+import { EditBoardDialog } from "@/components/boards/EditBoardDialog";
+import { BoardCard } from "@/components/boards/BoardCard";
+import { ContentTopBar } from "@/components/layout/ContentTopBar";
+import { t } from "@/lib/i18n";
+import { useBoards, useActiveTaskCount, useAppActions } from "@/store";
+import type { BoardWithDetails } from "@/types/database";
 
 type Board = BoardWithDetails;
 
-export default function DashboardPage() {
+export function DashboardContent() {
   const boards = useBoards();
   const activeTaskCount = useActiveTaskCount();
-  const {
-    fetchBoards,
-    fetchDashboardStats,
-    setBoards,
-    addBoard,
-    removeBoard,
-    updateBoardInList,
-  } = useAppActions();
-  const [isFetching, setIsFetching] = useState(boards.length === 0);
+  const { addBoard, removeBoard, updateBoardInList } = useAppActions();
   const [editingBoard, setEditingBoard] = useState<Board | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-
-  useEffect(() => {
-    const load = async () => {
-      await Promise.all([fetchBoards(), fetchDashboardStats()]);
-      setIsFetching(false);
-    };
-    void load();
-    // fetchBoards/fetchDashboardStats are stable Zustand actions
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const handleBoardCreated = (newBoard: {
     id: string;
@@ -103,37 +78,21 @@ export default function DashboardPage() {
     }
   };
 
-  void setBoards; // available for force-refresh if needed
-
-  if (isFetching) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Kanban className="h-12 w-12 text-blue-600 mx-auto mb-4 animate-pulse" />
-          <p className="text-gray-600">{t("dashboard.loading")}</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      <AppHeader
+    <div className="flex min-h-screen flex-col">
+      <ContentTopBar
         title={t("dashboard.title")}
         subtitle={t("dashboard.subtitle")}
-        navActions={<HeaderActions />}
       />
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome Section — only shown when user has no boards */}
+      <main className="flex-1 px-4 sm:px-6 lg:px-8 py-8">
         {boards.length === 0 && (
           <div className="mb-8">
-            <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-6 text-white">
+            <div className="bg-linear-to-r from-primary to-primary/80 rounded-xl p-6 text-primary-foreground">
               <h2 className="text-2xl font-bold mb-2">
                 {t("dashboard.welcomeTitle")}
               </h2>
-              <p className="text-blue-100 mb-4">
+              <p className="text-primary-foreground/70 mb-4">
                 {t("dashboard.welcomeSubtitle")}
               </p>
               <CreateBoardDialog
@@ -141,7 +100,7 @@ export default function DashboardPage() {
                 trigger={
                   <Button
                     variant="secondary"
-                    className="bg-white text-blue-600 hover:bg-gray-100"
+                    className="bg-white text-primary hover:bg-white/90"
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     {t("dashboard.createFirstBoard")}
@@ -152,7 +111,6 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -198,7 +156,7 @@ export default function DashboardPage() {
             <CardContent>
               <div className="text-2xl font-bold">
                 {activeTaskCount ?? (
-                  <span className="inline-block h-7 w-8 animate-pulse rounded bg-gray-200" />
+                  <span className="inline-block h-7 w-8 animate-pulse rounded bg-muted" />
                 )}
               </div>
               <p className="text-xs text-muted-foreground">
@@ -212,10 +170,9 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Recent Boards Section */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-foreground">
               {t("dashboard.yourBoards")}
             </h3>
             <CreateBoardDialog
@@ -230,14 +187,13 @@ export default function DashboardPage() {
           </div>
 
           {boards.length === 0 ? (
-            /* Empty State */
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
-                <Kanban className="h-12 w-12 text-gray-400 mb-4" />
-                <h4 className="text-lg font-medium text-gray-900 mb-2">
+                <Kanban className="h-12 w-12 text-muted-foreground mb-4" />
+                <h4 className="text-lg font-medium text-foreground mb-2">
                   {t("dashboard.noBoardsYet")}
                 </h4>
-                <p className="text-gray-600 text-center mb-6 max-w-sm">
+                <p className="text-muted-foreground text-center mb-6 max-w-sm">
                   {t("dashboard.noBoardsDescription")}
                 </p>
                 <CreateBoardDialog
@@ -252,7 +208,6 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           ) : (
-            /* Boards Grid */
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {boards.map((board) => (
                 <BoardCard
@@ -270,7 +225,6 @@ export default function DashboardPage() {
         </div>
       </main>
 
-      {/* Edit Board Dialog */}
       <EditBoardDialog
         board={editingBoard}
         open={editDialogOpen}

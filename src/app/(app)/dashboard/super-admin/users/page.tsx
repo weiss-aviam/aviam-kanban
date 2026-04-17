@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, Shield } from "lucide-react";
+import { ChevronLeft, Shield } from "lucide-react";
 import { SuperAdminUserManagement } from "@/components/admin/SuperAdminUserManagement";
-import { AppHeader } from "@/components/layout/AppHeader";
-import { HeaderActions } from "@/components/layout/HeaderActions";
+import { ContentTopBar } from "@/components/layout/ContentTopBar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { requireSuperAdmin } from "@/lib/auth";
@@ -21,17 +20,21 @@ export default async function SuperAdminUsersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <AppHeader
+    <div className="flex min-h-screen flex-col">
+      <ContentTopBar
         title={t("superAdmin.title")}
         subtitle={t("superAdmin.subtitle")}
-        navActions={<HeaderActions />}
         actionsStart={
-          <Button asChild variant="outline" size="sm">
+          <Button
+            asChild
+            variant="ghost"
+            size="sm"
+            className="h-8 gap-0.5 px-1.5 text-primary hover:bg-primary/5 hover:text-primary"
+          >
             <Link href="/dashboard" title={t("superAdmin.backToDashboard")}>
-              <ArrowLeft className="h-4 w-4" />
-              <span className="hidden sm:inline">
-                {t("superAdmin.backToDashboard")}
+              <ChevronLeft className="size-4" strokeWidth={2.25} />
+              <span className="hidden sm:inline text-[13px] font-medium">
+                {t("sidebar.dashboard")}
               </span>
             </Link>
           </Button>
@@ -39,12 +42,14 @@ export default async function SuperAdminUsersPage() {
         actions={
           <Badge>
             <Shield className="h-3 w-3" />
-            {t("superAdmin.superAdminBadge")}
+            <span className="hidden sm:inline">
+              {t("superAdmin.superAdminBadge")}
+            </span>
           </Badge>
         }
       />
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <main className="flex-1 px-4 py-4 sm:px-6 sm:py-8 lg:px-8">
         <SuperAdminUserManagement />
       </main>
     </div>
