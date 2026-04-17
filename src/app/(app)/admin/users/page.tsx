@@ -18,8 +18,7 @@ import { UserList } from "@/components/admin/UserList";
 import { InviteUserForm } from "@/components/admin/InviteUserForm";
 import { MembershipTable } from "@/components/admin/MembershipTable";
 import { AuditLogTable } from "@/components/admin/AuditLogTable";
-import { AppHeader } from "@/components/layout/AppHeader";
-import { HeaderActions } from "@/components/layout/HeaderActions";
+import { ContentTopBar } from "@/components/layout/ContentTopBar";
 
 export default function AdminUsersPage() {
   const router = useRouter();
@@ -101,10 +100,10 @@ export default function AdminUsersPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex flex-1 items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading admin panel...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading admin panel...</p>
         </div>
       </div>
     );
@@ -115,11 +114,10 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <AppHeader
+    <div className="flex min-h-screen flex-col">
+      <ContentTopBar
         title="User Management"
         subtitle={`Manage members, roles, and audit activity for ${boardName}`}
-        navActions={<HeaderActions />}
         actionsStart={
           <Button
             variant="outline"
@@ -132,17 +130,15 @@ export default function AdminUsersPage() {
           </Button>
         }
         actions={
-          <>
-            <Badge variant={userRole === "owner" ? "default" : "secondary"}>
-              <Shield className="h-3 w-3 mr-1" />
-              {userRole}
-            </Badge>
-          </>
+          <Badge variant={userRole === "owner" ? "default" : "secondary"}>
+            <Shield className="h-3 w-3 mr-1" />
+            {userRole}
+          </Badge>
         }
       />
 
       {/* Main Content */}
-      <div className="mx-auto w-full max-w-screen-2xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8 xl:px-10">
+      <div className="flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
         <Tabs defaultValue="users" className="space-y-5 lg:space-y-6">
           <TabsList className="grid h-auto w-full grid-cols-2 gap-1 rounded-xl p-1 sm:grid-cols-4">
             <TabsTrigger
@@ -176,7 +172,7 @@ export default function AdminUsersPage() {
           </TabsList>
 
           <TabsContent value="users" className="space-y-6">
-            <Card className="overflow-hidden border-gray-200 shadow-sm">
+            <Card className="overflow-hidden border-border shadow-sm">
               <CardHeader className="gap-2 px-5 py-5 sm:px-6 lg:px-8">
                 <CardTitle className="text-xl">Board Users</CardTitle>
                 <CardDescription className="max-w-3xl text-sm leading-6">
@@ -197,7 +193,7 @@ export default function AdminUsersPage() {
           </TabsContent>
 
           <TabsContent value="members" className="space-y-6">
-            <Card className="overflow-hidden border-gray-200 shadow-sm">
+            <Card className="overflow-hidden border-border shadow-sm">
               <CardHeader className="gap-2 px-5 py-5 sm:px-6 lg:px-8">
                 <CardTitle className="text-xl">Add Registered Users</CardTitle>
                 <CardDescription className="max-w-3xl text-sm leading-6">
@@ -217,7 +213,7 @@ export default function AdminUsersPage() {
           </TabsContent>
 
           <TabsContent value="memberships" className="space-y-6">
-            <Card className="overflow-hidden border-gray-200 shadow-sm">
+            <Card className="overflow-hidden border-border shadow-sm">
               <CardHeader className="gap-2 px-5 py-5 sm:px-6 lg:px-8">
                 <CardTitle className="text-xl">Board Memberships</CardTitle>
                 <CardDescription className="max-w-3xl text-sm leading-6">
@@ -238,7 +234,7 @@ export default function AdminUsersPage() {
           </TabsContent>
 
           <TabsContent value="audit" className="space-y-6">
-            <Card className="overflow-hidden border-gray-200 shadow-sm">
+            <Card className="overflow-hidden border-border shadow-sm">
               <CardHeader className="gap-2 px-5 py-5 sm:px-6 lg:px-8">
                 <CardTitle className="text-xl">Audit Log</CardTitle>
                 <CardDescription className="max-w-3xl text-sm leading-6">

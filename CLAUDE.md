@@ -34,3 +34,14 @@ If a task seems to require any of these, **stop and ask** rather than running th
 ## Testing with Vitest
 
 - Vitest is the project's test runner. New logic must be covered by unit tests. Run `pnpm test` before committing. Tests must pass on `main` at all times.
+
+# React Coding Standards
+
+- **NO `useEffect`** for data transformation or state synchronization.
+- **NEVER** use `useEffect` to fetch data. Use TanStack Query, SWR, or React 19 `use(promise)`.
+- **NEVER** use `useEffect` to update state based on props/state changes. Use derived state, `useMemo`, or `useReducer`.
+- **Prefer `use(Promise)`** for reading async data in Server Components.
+- **Prefer `useOptimistic`** for handling UI updates immediately.
+- **Prefer `useActionState`** for form handling.
+- **Prefer `useSyncExternalStore`** for listening to external data sources (browser APIs, store).
+- Use `useCallback` for functions passed to memoized children.

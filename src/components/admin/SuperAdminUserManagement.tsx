@@ -437,6 +437,129 @@ function CreateUserDialog({
 
 // ── User table ───────────────────────────────────────────────────────────────
 
+function UserStatusDot({ online, label }: { online: boolean; label: string }) {
+  if (online) {
+    return (
+      <span className="relative flex h-2.5 w-2.5 flex-shrink-0" title={label}>
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+        <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500" />
+      </span>
+    );
+  }
+  return (
+    <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full bg-muted-foreground/30" />
+  );
+}
+
+function UserActionButtons({
+  user,
+  status,
+  actionLoading,
+  onEdit,
+  onApprove,
+  onReject,
+  onDeactivate,
+  onReactivate,
+  onPurge,
+}: {
+  user: ManagedUser;
+  status: UserStatus;
+  actionLoading: string | null;
+  onEdit: ((user: ManagedUser) => void) | undefined;
+  onApprove: ((user: ManagedUser) => void) | undefined;
+  onReject: ((user: ManagedUser) => void) | undefined;
+  onDeactivate: ((user: ManagedUser) => void) | undefined;
+  onReactivate: ((user: ManagedUser) => void) | undefined;
+  onPurge: ((user: ManagedUser) => void) | undefined;
+}) {
+  const isLoading = actionLoading === user.id;
+
+  if (status === "pending") {
+    return (
+      <>
+        <Button
+          size="sm"
+          onClick={() => onApprove?.(user)}
+          disabled={isLoading}
+          className="bg-green-600 hover:bg-green-700 text-white"
+        >
+          {isLoading ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : (
+            <Check className="h-3 w-3" />
+          )}
+          {t("superAdmin.approveButton")}
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => onReject?.(user)}
+          disabled={isLoading}
+          className="text-red-600 border-red-200 hover:bg-red-50"
+        >
+          <X className="h-3 w-3" />
+          {t("superAdmin.rejectButton")}
+        </Button>
+      </>
+    );
+  }
+
+  if (status === "active") {
+    return (
+      <>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => onEdit?.(user)}
+          disabled={isLoading}
+        >
+          <Pencil className="h-3 w-3" />
+          {t("superAdmin.editButton")}
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => onDeactivate?.(user)}
+          disabled={isLoading}
+          className="text-red-600 border-red-200 hover:bg-red-50"
+        >
+          <UserMinus className="h-3 w-3" />
+          {t("superAdmin.deactivateButton")}
+        </Button>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => onReactivate?.(user)}
+        disabled={isLoading}
+        className="text-green-600 border-green-200 hover:bg-green-50"
+      >
+        {isLoading ? (
+          <Loader2 className="h-3 w-3 animate-spin" />
+        ) : (
+          <UserPlus className="h-3 w-3" />
+        )}
+        {t("superAdmin.reactivateButton")}
+      </Button>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => onPurge?.(user)}
+        disabled={isLoading}
+        className="text-red-700 border-red-300 hover:bg-red-50"
+      >
+        <Trash2 className="h-3 w-3" />
+        {t("superAdmin.purgeButton")}
+      </Button>
+    </>
+  );
+}
+
 function UserTable({
   users,
   loading,
@@ -469,20 +592,44 @@ function UserTable({
   onlineUserIds: Set<string>;
 }) {
   const colSpan = status === "active" ? 4 : 3;
+  const dateLabel =
+    status === "deactivated"
+      ? t("superAdmin.deactivatedColumn")
+      : t("superAdmin.createdColumn");
+
+  const renderLastSeen = (user: ManagedUser) => {
+    if (onlineUserIds.has(user.id)) {
+      return (
+        <span className="font-medium text-green-600">
+          {t("superAdmin.onlineNow")}
+        </span>
+      );
+    }
+    if (user.lastSeenAt) {
+      return (
+        <span className="text-muted-foreground">
+          {t("superAdmin.lastSeenPrefix")} {formatRelativeDate(user.lastSeenAt)}
+        </span>
+      );
+    }
+    return (
+      <span className="text-muted-foreground/60">
+        {t("superAdmin.neverSeen")}
+      </span>
+    );
+  };
+
   return (
     <div className="space-y-4">
-      <div className="overflow-hidden rounded-lg border bg-white">
-        <table className="min-w-full divide-y divide-gray-200 text-sm">
-          <thead className="bg-gray-50 text-left text-gray-600">
+      {/* Desktop table */}
+      <div className="hidden overflow-hidden rounded-lg border bg-card md:block">
+        <table className="min-w-full divide-y divide-border text-sm">
+          <thead className="bg-muted/40 text-left text-muted-foreground">
             <tr>
               <th className="px-4 py-3 font-medium">
                 {t("superAdmin.userColumn")}
               </th>
-              <th className="px-4 py-3 font-medium">
-                {status === "deactivated"
-                  ? t("superAdmin.deactivatedColumn")
-                  : t("superAdmin.createdColumn")}
-              </th>
+              <th className="px-4 py-3 font-medium">{dateLabel}</th>
               {status === "active" && (
                 <th className="px-4 py-3 font-medium">
                   {t("superAdmin.lastSeenColumn")}
@@ -493,11 +640,11 @@ function UserTable({
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-border/60">
             {loading ? (
               <tr>
                 <td
-                  className="px-4 py-8 text-center text-gray-500"
+                  className="px-4 py-8 text-center text-muted-foreground"
                   colSpan={colSpan}
                 >
                   <div className="inline-flex items-center gap-2">
@@ -509,7 +656,7 @@ function UserTable({
             ) : users.length === 0 ? (
               <tr>
                 <td
-                  className="px-4 py-8 text-center text-gray-500"
+                  className="px-4 py-8 text-center text-muted-foreground"
                   colSpan={colSpan}
                 >
                   {emptyMessage}
@@ -517,25 +664,18 @@ function UserTable({
               </tr>
             ) : (
               users.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50">
+                <tr key={user.id} className="hover:bg-muted/40">
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-2">
-                      {onlineUserIds.has(user.id) ? (
-                        <span
-                          className="relative flex h-2.5 w-2.5 flex-shrink-0"
-                          title={t("superAdmin.onlineNow")}
-                        >
-                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
-                          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500" />
-                        </span>
-                      ) : (
-                        <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full bg-gray-200" />
-                      )}
+                      <UserStatusDot
+                        online={onlineUserIds.has(user.id)}
+                        label={t("superAdmin.onlineNow")}
+                      />
                       <div>
-                        <div className="font-medium text-gray-900">
+                        <div className="font-medium text-foreground">
                           {user.name || t("superAdmin.unnamedUser")}
                         </div>
-                        <div className="text-gray-500 text-xs">
+                        <div className="text-muted-foreground text-xs">
                           {user.email}
                         </div>
                         {user.status === "unconfirmed" && (
@@ -546,107 +686,27 @@ function UserTable({
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-4 text-gray-600 text-sm">
+                  <td className="px-4 py-4 text-muted-foreground text-sm">
                     {formatRelativeDate(user.createdAt)}
                   </td>
                   {status === "active" && (
                     <td className="px-4 py-4 text-sm">
-                      {onlineUserIds.has(user.id) ? (
-                        <span className="font-medium text-green-600">
-                          {t("superAdmin.onlineNow")}
-                        </span>
-                      ) : user.lastSeenAt ? (
-                        <span className="text-gray-600">
-                          {t("superAdmin.lastSeenPrefix")}{" "}
-                          {formatRelativeDate(user.lastSeenAt)}
-                        </span>
-                      ) : (
-                        <span className="text-gray-400">
-                          {t("superAdmin.neverSeen")}
-                        </span>
-                      )}
+                      {renderLastSeen(user)}
                     </td>
                   )}
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-2 flex-wrap">
-                      {status === "pending" && (
-                        <>
-                          <Button
-                            size="sm"
-                            onClick={() => onApprove?.(user)}
-                            disabled={actionLoading === user.id}
-                            className="bg-green-600 hover:bg-green-700 text-white"
-                          >
-                            {actionLoading === user.id ? (
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                            ) : (
-                              <Check className="h-3 w-3" />
-                            )}
-                            {t("superAdmin.approveButton")}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => onReject?.(user)}
-                            disabled={actionLoading === user.id}
-                            className="text-red-600 border-red-200 hover:bg-red-50"
-                          >
-                            <X className="h-3 w-3" />
-                            {t("superAdmin.rejectButton")}
-                          </Button>
-                        </>
-                      )}
-                      {status === "active" && (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => onEdit?.(user)}
-                            disabled={actionLoading === user.id}
-                          >
-                            <Pencil className="h-3 w-3" />
-                            {t("superAdmin.editButton")}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => onDeactivate?.(user)}
-                            disabled={actionLoading === user.id}
-                            className="text-red-600 border-red-200 hover:bg-red-50"
-                          >
-                            <UserMinus className="h-3 w-3" />
-                            {t("superAdmin.deactivateButton")}
-                          </Button>
-                        </>
-                      )}
-                      {status === "deactivated" && (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => onReactivate?.(user)}
-                            disabled={actionLoading === user.id}
-                            className="text-green-600 border-green-200 hover:bg-green-50"
-                          >
-                            {actionLoading === user.id ? (
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                            ) : (
-                              <UserPlus className="h-3 w-3" />
-                            )}
-                            {t("superAdmin.reactivateButton")}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => onPurge?.(user)}
-                            disabled={actionLoading === user.id}
-                            className="text-red-700 border-red-300 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                            {t("superAdmin.purgeButton")}
-                          </Button>
-                        </>
-                      )}
+                      <UserActionButtons
+                        user={user}
+                        status={status}
+                        actionLoading={actionLoading}
+                        onEdit={onEdit}
+                        onApprove={onApprove}
+                        onReject={onReject}
+                        onDeactivate={onDeactivate}
+                        onReactivate={onReactivate}
+                        onPurge={onPurge}
+                      />
                     </div>
                   </td>
                 </tr>
@@ -656,7 +716,79 @@ function UserTable({
         </table>
       </div>
 
-      <div className="flex flex-col gap-3 text-sm text-gray-500 md:flex-row md:items-center md:justify-between">
+      {/* Mobile cards */}
+      <div className="space-y-3 md:hidden">
+        {loading ? (
+          <div className="rounded-lg border bg-card px-4 py-8 text-center text-muted-foreground">
+            <div className="inline-flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              {t("superAdmin.loadingUsers")}
+            </div>
+          </div>
+        ) : users.length === 0 ? (
+          <div className="rounded-lg border bg-card px-4 py-8 text-center text-muted-foreground">
+            {emptyMessage}
+          </div>
+        ) : (
+          users.map((user) => (
+            <div
+              key={user.id}
+              className="rounded-lg border bg-card p-4 space-y-3"
+            >
+              <div className="flex items-start gap-2.5">
+                <UserStatusDot
+                  online={onlineUserIds.has(user.id)}
+                  label={t("superAdmin.onlineNow")}
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium text-foreground truncate">
+                    {user.name || t("superAdmin.unnamedUser")}
+                  </div>
+                  <div className="text-muted-foreground text-xs truncate">
+                    {user.email}
+                  </div>
+                  {user.status === "unconfirmed" && (
+                    <span className="mt-1.5 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                      {t("superAdmin.emailNotConfirmed")}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-muted-foreground/70">{dateLabel}</span>
+                  <span>{formatRelativeDate(user.createdAt)}</span>
+                </div>
+                {status === "active" && (
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-muted-foreground/70">
+                      {t("superAdmin.lastSeenColumn")}
+                    </span>
+                    <span className="text-right">{renderLastSeen(user)}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-border/60">
+                <UserActionButtons
+                  user={user}
+                  status={status}
+                  actionLoading={actionLoading}
+                  onEdit={onEdit}
+                  onApprove={onApprove}
+                  onReject={onReject}
+                  onDeactivate={onDeactivate}
+                  onReactivate={onReactivate}
+                  onPurge={onPurge}
+                />
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="flex flex-col gap-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
         <span>
           {t("superAdmin.paginationInfo", {
             page: pagination.page,
@@ -887,7 +1019,7 @@ export function SuperAdminUserManagement() {
   const SortControls = ({ tab }: { tab: ReturnType<typeof useUserTab> }) => (
     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
       <div className="relative w-full md:max-w-sm">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           className="pl-9"
           placeholder={t("superAdmin.searchPlaceholder")}
@@ -923,7 +1055,7 @@ export function SuperAdminUserManagement() {
             value={activeTab}
             onValueChange={(v) => setActiveTab(v as UserStatus)}
           >
-            <TabsList className="mb-4">
+            <TabsList className="mb-4 grid w-full grid-cols-3">
               <TabsTrigger value="pending" className="gap-2">
                 {t("superAdmin.tabPending")}
                 {pending.pagination.total > 0 && (
@@ -932,7 +1064,7 @@ export function SuperAdminUserManagement() {
                   </Badge>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="active">
+              <TabsTrigger value="active" className="gap-2">
                 {t("superAdmin.tabActive")}
                 {active.pagination.total > 0 && (
                   <Badge variant="secondary" className="text-xs px-1.5 py-0">

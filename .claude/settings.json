@@ -9,7 +9,20 @@
       "Bash(rsvg-convert --version)",
       "Bash(rsvg-convert -w 192 -h 192 /Users/user/aviam/aviam-pm-kanban/public/aviam_signet_circle.svg -o /Users/user/aviam/aviam-pm-kanban/public/icons/icon-192.png)",
       "Bash(rsvg-convert -w 512 -h 512 /Users/user/aviam/aviam-pm-kanban/public/aviam_signet_circle.svg -o /Users/user/aviam/aviam-pm-kanban/public/icons/icon-512.png)",
-      "Bash(rsvg-convert -w 180 -h 180 /Users/user/aviam/aviam-pm-kanban/public/aviam_signet_circle.svg -o /Users/user/aviam/aviam-pm-kanban/public/icons/apple-touch-icon.png)"
+      "Bash(rsvg-convert -w 180 -h 180 /Users/user/aviam/aviam-pm-kanban/public/aviam_signet_circle.svg -o /Users/user/aviam/aviam-pm-kanban/public/icons/apple-touch-icon.png)",
+      "Bash(find /Users/user/aviam/aviam-pm-kanban -name service-worker* -o -name sw.* -o -name *service*worker*)",
+      "Bash(git stash:*)",
+      "Bash(find node_modules/@radix-ui -name dismissable* -o -name dismiss*)",
+      "Bash(find /Users/user/aviam/aviam-pm-kanban -type f -name \"package.json\" ! -path \"*/node_modules/*\" -exec head -50 {} \\\\;)",
+      "Bash(git checkout:*)",
+      "Bash(npx shadcn@latest add sidebar --yes)",
+      "Bash(yes \"n\")",
+      "Bash(npx shadcn@latest add sidebar)",
+      "Bash(mkdir -p /Users/user/aviam/aviam-pm-kanban/src/app/\\\\\\(app\\\\\\))",
+      "Bash(mv /Users/user/aviam/aviam-pm-kanban/src/app/dashboard /Users/user/aviam/aviam-pm-kanban/src/app/\\\\\\(app\\\\\\)/dashboard)",
+      "Bash(mv /Users/user/aviam/aviam-pm-kanban/src/app/boards /Users/user/aviam/aviam-pm-kanban/src/app/\\\\\\(app\\\\\\)/boards)",
+      "Bash(mv /Users/user/aviam/aviam-pm-kanban/src/app/calendar /Users/user/aviam/aviam-pm-kanban/src/app/\\\\\\(app\\\\\\)/calendar)",
+      "Bash(mv /Users/user/aviam/aviam-pm-kanban/src/app/profile /Users/user/aviam/aviam-pm-kanban/src/app/\\\\\\(app\\\\\\)/profile)"
     ]
   }
 }
