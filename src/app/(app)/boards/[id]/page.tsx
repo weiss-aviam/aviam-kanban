@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { createClient } from "../../../lib/supabase/client";
-import { BoardDetailPage } from "../../../components/boards/BoardDetailPage";
+import { createClient } from "@/lib/supabase/client";
+import { BoardDetailPage } from "@/components/boards/BoardDetailPage";
 import type { User as UserType } from "@supabase/supabase-js";
 
 export default function BoardPage() {
@@ -31,10 +31,10 @@ export default function BoardPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex flex-1 items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
@@ -51,15 +51,17 @@ export default function BoardPage() {
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!uuidRegex.test(boardId)) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex flex-1 items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          <h1 className="text-2xl font-bold text-foreground mb-2">
             Invalid Board ID
           </h1>
-          <p className="text-gray-600 mb-4">The board ID format is invalid.</p>
+          <p className="text-muted-foreground mb-4">
+            The board ID format is invalid.
+          </p>
           <button
             onClick={() => router.push("/boards")}
-            className="text-blue-600 hover:text-blue-800"
+            className="text-primary hover:text-primary/80"
           >
             Back to Boards
           </button>

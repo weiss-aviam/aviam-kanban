@@ -5,20 +5,19 @@ import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { createClient } from "../../lib/supabase/client";
-import { AppHeader } from "../../components/layout/AppHeader";
-import { HeaderActions } from "../../components/layout/HeaderActions";
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
+import { createClient } from "@/lib/supabase/client";
+import { ContentTopBar } from "@/components/layout/ContentTopBar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "../../components/ui/card";
-import { Alert, AlertDescription } from "../../components/ui/alert";
+} from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Loader2,
   Mail,
@@ -28,11 +27,11 @@ import {
   Bell,
   BellOff,
 } from "lucide-react";
-import { t } from "../../lib/i18n";
+import { t } from "@/lib/i18n";
 import {
   usePreferencesStore,
   requestDesktopPermission,
-} from "../../store/preferences";
+} from "@/store/preferences";
 
 const schema = z.object({
   name: z
@@ -236,25 +235,24 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex flex-1 items-center justify-center">
         <div className="text-center">
-          <Loader2 className="h-12 w-12 text-blue-600 mx-auto mb-4 animate-spin" />
-          <p className="text-gray-600">{t("profile.loading")}</p>
+          <Loader2 className="h-12 w-12 text-primary mx-auto mb-4 animate-spin" />
+          <p className="text-muted-foreground">{t("profile.loading")}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <AppHeader
+    <div className="flex min-h-screen flex-col">
+      <ContentTopBar
         title={t("profile.title")}
         subtitle={t("profile.subtitle")}
-        navActions={<HeaderActions />}
       />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid gap-6">
+      <main className="flex-1 px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+        <div className="grid gap-6 max-w-3xl">
           {/* Profile card */}
           <Card>
             <CardHeader>
@@ -265,7 +263,7 @@ export default function ProfilePage() {
               {/* Avatar */}
               <div className="flex items-center gap-6 mb-6">
                 <div className="relative">
-                  <div className="h-20 w-20 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center ring-2 ring-gray-100">
+                  <div className="h-20 w-20 rounded-full bg-muted overflow-hidden flex items-center justify-center ring-2 ring-border">
                     {avatarUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -274,19 +272,19 @@ export default function ProfilePage() {
                         className="h-full w-full object-cover"
                       />
                     ) : (
-                      <UserIcon className="h-10 w-10 text-gray-400" />
+                      <UserIcon className="h-10 w-10 text-muted-foreground/60" />
                     )}
                   </div>
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={avatarUploading}
-                    className="absolute -bottom-1 -right-1 rounded-full bg-white border border-gray-200 p-1.5 shadow-sm hover:bg-gray-50 disabled:opacity-50"
+                    className="absolute -bottom-1 -right-1 rounded-full bg-white border border-border p-1.5 shadow-sm hover:bg-accent disabled:opacity-50"
                   >
                     {avatarUploading ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin text-gray-600" />
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
                     ) : (
-                      <Camera className="h-3.5 w-3.5 text-gray-600" />
+                      <Camera className="h-3.5 w-3.5 text-muted-foreground" />
                     )}
                   </button>
                   <input
@@ -298,10 +296,10 @@ export default function ProfilePage() {
                   />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-900">
+                  <p className="text-sm font-medium text-foreground">
                     {t("profile.profilePhoto")}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     {t("profile.photoFormats")}
                   </p>
                 </div>
@@ -321,7 +319,7 @@ export default function ProfilePage() {
                 <div className="space-y-2">
                   <Label htmlFor="email">{t("profile.emailLabel")}</Label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/60" />
                     <Input
                       id="email"
                       value={email}
@@ -333,7 +331,7 @@ export default function ProfilePage() {
                 <div className="space-y-2">
                   <Label htmlFor="name">{t("profile.nameLabel")}</Label>
                   <div className="relative">
-                    <UserIcon className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <UserIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/60" />
                     <Input
                       id="name"
                       placeholder={t("profile.namePlaceholder")}
@@ -381,7 +379,7 @@ export default function ProfilePage() {
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-muted-foreground">
                   <p>{t("profile.sendResetEmail")}</p>
                   <p className="text-xs">{t("profile.resetRedirectInfo")}</p>
                 </div>
@@ -418,13 +416,13 @@ export default function ProfilePage() {
                     {dndMode ? (
                       <BellOff className="h-4 w-4 text-amber-500" />
                     ) : (
-                      <Bell className="h-4 w-4 text-gray-500" />
+                      <Bell className="h-4 w-4 text-muted-foreground" />
                     )}
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-sm font-medium text-foreground">
                       {t("notificationSettings.dndMode")}
                     </p>
                   </div>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     {t("notificationSettings.dndModeDescription")}
                   </p>
                 </div>
@@ -434,7 +432,7 @@ export default function ProfilePage() {
                   aria-checked={dndMode}
                   onClick={() => setDndMode(!dndMode)}
                   className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
-                    dndMode ? "bg-amber-500" : "bg-gray-200"
+                    dndMode ? "bg-amber-500" : "bg-muted"
                   }`}
                 >
                   <span
@@ -449,12 +447,12 @@ export default function ProfilePage() {
               <div className="flex items-center justify-between gap-4">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <Bell className="h-4 w-4 text-gray-500" />
-                    <p className="text-sm font-medium text-gray-900">
+                    <Bell className="h-4 w-4 text-muted-foreground" />
+                    <p className="text-sm font-medium text-foreground">
                       {t("notificationSettings.desktopNotifications")}
                     </p>
                   </div>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     {t("notificationSettings.desktopNotificationsDescription")}
                   </p>
                   {desktopPermission === "denied" && (
@@ -463,7 +461,7 @@ export default function ProfilePage() {
                     </p>
                   )}
                   {desktopPermission === "unsupported" && (
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-muted-foreground/60">
                       {t(
                         "notificationSettings.desktopNotificationsUnsupported",
                       )}
@@ -498,9 +496,7 @@ export default function ProfilePage() {
                       )
                     }
                     className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
-                      desktopNotificationsEnabled
-                        ? "bg-blue-600"
-                        : "bg-gray-200"
+                      desktopNotificationsEnabled ? "bg-primary" : "bg-muted"
                     }`}
                   >
                     <span

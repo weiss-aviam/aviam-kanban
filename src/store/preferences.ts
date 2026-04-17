@@ -12,20 +12,12 @@ export type NotificationPreferences = {
   desktopNotificationsEnabled: boolean;
 };
 
-export type BoardLayoutPreferences = {
-  /** Constrain the kanban columns grid to the standard layout width (max-w-7xl). */
-  constrainBoardWidth: boolean;
-};
-
 type PreferencesActions = {
   setDndMode: (enabled: boolean) => void;
   setDesktopNotificationsEnabled: (enabled: boolean) => void;
-  setConstrainBoardWidth: (enabled: boolean) => void;
 };
 
-type PreferencesStore = NotificationPreferences &
-  BoardLayoutPreferences &
-  PreferencesActions;
+type PreferencesStore = NotificationPreferences & PreferencesActions;
 
 // ── Store ─────────────────────────────────────────────────────────────────────
 
@@ -34,13 +26,10 @@ export const usePreferencesStore = create<PreferencesStore>()(
     (set) => ({
       dndMode: false,
       desktopNotificationsEnabled: false,
-      constrainBoardWidth: false,
 
       setDndMode: (enabled) => set({ dndMode: enabled }),
       setDesktopNotificationsEnabled: (enabled) =>
         set({ desktopNotificationsEnabled: enabled }),
-      setConstrainBoardWidth: (enabled) =>
-        set({ constrainBoardWidth: enabled }),
     }),
     {
       name: "aviam-notification-preferences",

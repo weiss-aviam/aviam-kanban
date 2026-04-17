@@ -40,9 +40,7 @@ import type {
 } from "@/hooks/useBoardPresence";
 import { getCardEditingMembers } from "@/components/boards/board-presence-ui";
 import { useAppActions, type StoreCard } from "@/store";
-import { usePreferencesStore } from "@/store/preferences";
 import { t } from "@/lib/i18n";
-import { Columns2 } from "lucide-react";
 
 interface KanbanBoardProps {
   boardData: BoardWithDetails;
@@ -482,11 +480,6 @@ export function KanbanBoard({
     }
   };
 
-  const constrainBoardWidth = usePreferencesStore((s) => s.constrainBoardWidth);
-  const setConstrainBoardWidth = usePreferencesStore(
-    (s) => s.setConstrainBoardWidth,
-  );
-
   // Check if board has no columns
   const hasNoColumns = !boardData.columns || boardData.columns.length === 0;
   const columnsLayoutStyle = getKanbanColumnsLayoutStyle(
@@ -502,51 +495,26 @@ export function KanbanBoard({
   }
 
   return (
-    <div className="flex flex-col h-full bg-gray-50">
+    <div className="flex flex-col h-full bg-background">
       {/* Board Filters */}
-      <div className="border-b bg-white">
-        <div className="max-w-7xl mx-auto px-3 py-2.5 sm:px-6 sm:py-4">
-          <div className="flex items-start gap-2">
-            <div className="flex-1">
-              <BoardFilters
-                filters={filters}
-                onFiltersChange={setFilters}
-                availableAssignees={availableAssignees}
-                currentUserId={currentUser?.id}
-                className="mb-2"
-              />
-              {hasActiveFilters && (
-                <div className="text-sm text-gray-600">
-                  {t("board.showingCards", {
-                    filtered: stats.filtered,
-                    total: stats.total,
-                  })}
-                  {stats.hidden > 0 &&
-                    ` (${t("board.hiddenCards", { count: stats.hidden })})`}
-                </div>
-              )}
+      <div className="border-b border-border/40 bg-card/40 backdrop-blur-sm">
+        <div className="px-4 py-2.5 sm:px-6 sm:py-3 lg:px-8">
+          <BoardFilters
+            filters={filters}
+            onFiltersChange={setFilters}
+            availableAssignees={availableAssignees}
+            currentUserId={currentUser?.id}
+          />
+          {hasActiveFilters && (
+            <div className="mt-2 text-xs text-muted-foreground">
+              {t("board.showingCards", {
+                filtered: stats.filtered,
+                total: stats.total,
+              })}
+              {stats.hidden > 0 &&
+                ` (${t("board.hiddenCards", { count: stats.hidden })})`}
             </div>
-            <button
-              onClick={() => setConstrainBoardWidth(!constrainBoardWidth)}
-              title={
-                constrainBoardWidth
-                  ? t("board.constrainWidthOff")
-                  : t("board.constrainWidth")
-              }
-              className={`shrink-0 flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs transition-colors ${
-                constrainBoardWidth
-                  ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
-                  : "text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-              }`}
-            >
-              <Columns2 className="h-4 w-4" />
-              <span className="hidden sm:inline">
-                {constrainBoardWidth
-                  ? t("board.constrainWidthOff")
-                  : t("board.constrainWidth")}
-              </span>
-            </button>
-          </div>
+          )}
         </div>
       </div>
 
@@ -559,40 +527,35 @@ export function KanbanBoard({
       >
         <div className="flex-1 overflow-auto kanban-scroll-container">
           <div
-            className={constrainBoardWidth ? "max-w-7xl mx-auto" : undefined}
+            className="grid gap-4 p-4 sm:gap-6 sm:p-6 kanban-board-columns"
+            style={columnsLayoutStyle}
           >
-            <div
-              className="grid gap-6 p-6 kanban-board-columns"
-              style={columnsLayoutStyle}
+            <SortableContext
+              items={boardData.columns.map((col) => `column-${col.id}`)}
+              strategy={horizontalListSortingStrategy}
             >
-              {/* Column Sorting Context */}
-              <SortableContext
-                items={boardData.columns.map((col) => `column-${col.id}`)}
-                strategy={horizontalListSortingStrategy}
-              >
-                {boardData.columns.map((column) => (
-                  <KanbanColumn
-                    key={column.id}
-                    column={column}
-                    cards={cardsByColumn[column.id] || []}
-                    boardId={boardData.id}
-                    boardMembers={boardData.members?.map((m) => m.user) || []}
-                    boardLabels={boardData.labels}
-                    allColumns={boardData.columns}
-                    getEditingMembersForCard={(cardId) =>
-                      getCardEditingMembers(presenceMembers, cardId)
-                    }
-                    isLoading={isLoading}
-                    onCardCreated={handleCardCreated}
-                    onCardClick={handleCardClick}
-                    onCardEdit={handleCardClick}
-                    onCardUpdated={handleCardUpdated}
-                    currentUser={currentUser}
-                    userRole={userRole}
-                  />
-                ))}
-              </SortableContext>
-            </div>
+              {boardData.columns.map((column) => (
+                <KanbanColumn
+                  key={column.id}
+                  column={column}
+                  cards={cardsByColumn[column.id] || []}
+                  boardId={boardData.id}
+                  boardMembers={boardData.members?.map((m) => m.user) || []}
+                  boardLabels={boardData.labels}
+                  allColumns={boardData.columns}
+                  getEditingMembersForCard={(cardId) =>
+                    getCardEditingMembers(presenceMembers, cardId)
+                  }
+                  isLoading={isLoading}
+                  onCardCreated={handleCardCreated}
+                  onCardClick={handleCardClick}
+                  onCardEdit={handleCardClick}
+                  onCardUpdated={handleCardUpdated}
+                  currentUser={currentUser}
+                  userRole={userRole}
+                />
+              ))}
+            </SortableContext>
           </div>
         </div>
 
