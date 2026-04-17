@@ -142,7 +142,6 @@ export function BoardDetailPage({
           initialBoard.memberCount ?? initialBoard.members?.length ?? 0,
       };
 
-      // Initialize store with initial board data
       setCurrentBoard(normalizedInitialBoard);
       setBoard(normalizedInitialBoard);
       setUserRole(normalizedInitialBoard.role);
@@ -174,7 +173,6 @@ export function BoardDetailPage({
         memberCount: board.memberCount ?? board.members?.length ?? 0,
       } as BoardWithDetails;
 
-      // Update both local state and Zustand store
       setBoard(normalizedBoard);
       setCurrentBoard(normalizedBoard);
       setUserRole(normalizedBoard.role);

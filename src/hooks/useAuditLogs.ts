@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useMemo } from "react";
+import useSWR from "swr";
 
 interface AuditLogDetails {
   email?: string;
@@ -56,148 +57,119 @@ export interface UseAuditLogsOptions {
   onError?: (error: string) => void;
 }
 
-export function useAuditLogs(options: UseAuditLogsOptions) {
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
-  const [summary, setSummary] = useState<AuditLogSummary | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 20,
-    total: 0,
-    totalPages: 0,
-    hasNext: false,
-    hasPrev: false,
-  });
-  const [filters, setFilters] = useState<AuditLogFilters>({});
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
+interface AuditLogsResponse {
+  auditLogs: AuditLog[];
+  summary: AuditLogSummary | null;
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+}
 
+const DEFAULT_PAGINATION = {
+  page: 1,
+  limit: 20,
+  total: 0,
+  totalPages: 0,
+  hasNext: false,
+  hasPrev: false,
+};
+
+export function useAuditLogs(options: UseAuditLogsOptions) {
   const {
     boardId,
     autoRefresh = false,
-    refreshInterval = 60000, // 1 minute default for audit logs
+    refreshInterval = 60000,
     onError,
   } = options;
 
-  const handleError = useCallback(
-    (err: unknown) => {
-      const errorMessage =
-        err instanceof Error ? err.message : "An unexpected error occurred";
-      setError(errorMessage);
-      onError?.(errorMessage);
-    },
-    [onError],
-  );
+  const [filters, setFilters] = useState<AuditLogFilters>({
+    page: 1,
+    limit: 20,
+  });
+  const [localError, setLocalError] = useState<string | null>(null);
 
-  /**
-   * Fetch audit logs with filters
-   */
+  const url = useMemo(() => {
+    const sp = new URLSearchParams({
+      boardId,
+      page: (filters.page ?? 1).toString(),
+      limit: (filters.limit ?? 20).toString(),
+    });
+    if (filters.action) sp.append("action", filters.action);
+    if (filters.targetUserId) sp.append("targetUserId", filters.targetUserId);
+    if (filters.startDate) sp.append("startDate", filters.startDate);
+    if (filters.endDate) sp.append("endDate", filters.endDate);
+    return `/api/admin/audit-logs?${sp}`;
+  }, [boardId, filters]);
+
+  const {
+    data,
+    error: swrError,
+    isLoading,
+    mutate,
+  } = useSWR<AuditLogsResponse>(boardId ? url : null, {
+    refreshInterval: autoRefresh ? refreshInterval : 0,
+    onError: (err) => {
+      const msg =
+        err instanceof Error ? err.message : "Failed to fetch audit logs";
+      onError?.(msg);
+    },
+  });
+
+  const auditLogs = data?.auditLogs ?? [];
+  const summary = data?.summary ?? null;
+  const pagination = data?.pagination ?? DEFAULT_PAGINATION;
+  const error =
+    localError ??
+    (swrError
+      ? swrError instanceof Error
+        ? swrError.message
+        : "Failed"
+      : null);
+
   const fetchAuditLogs = useCallback(
-    async (newFilters: AuditLogFilters = {}) => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        const searchParams = new URLSearchParams({
-          boardId,
-          page: (newFilters.page || filters.page || 1).toString(),
-          limit: (newFilters.limit || filters.limit || 20).toString(),
-        });
-
-        const currentFilters = { ...filters, ...newFilters };
-
-        if (currentFilters.action)
-          searchParams.append("action", currentFilters.action);
-        if (currentFilters.targetUserId)
-          searchParams.append("targetUserId", currentFilters.targetUserId);
-        if (currentFilters.startDate)
-          searchParams.append("startDate", currentFilters.startDate);
-        if (currentFilters.endDate)
-          searchParams.append("endDate", currentFilters.endDate);
-
-        const response = await fetch(`/api/admin/audit-logs?${searchParams}`);
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "Failed to fetch audit logs");
-        }
-
-        const data = await response.json();
-        setAuditLogs(data.auditLogs);
-        setSummary(data.summary);
-        setPagination(data.pagination);
-        setFilters(currentFilters);
-
-        return data;
-      } catch (err) {
-        handleError(err);
-        throw err;
-      } finally {
-        setLoading(false);
-      }
+    (newFilters: AuditLogFilters = {}) => {
+      setFilters((prev) => ({ ...prev, ...newFilters }));
+      return mutate();
     },
-    [boardId, filters, handleError],
+    [mutate],
   );
 
-  /**
-   * Update filters and fetch new data
-   */
-  const updateFilters = useCallback(
-    (newFilters: Partial<AuditLogFilters>) => {
-      const updatedFilters = { ...filters, ...newFilters, page: 1 }; // Reset to page 1 when filtering
-      fetchAuditLogs(updatedFilters);
-    },
-    [filters, fetchAuditLogs],
-  );
+  const updateFilters = useCallback((newFilters: Partial<AuditLogFilters>) => {
+    setFilters((prev) => ({ ...prev, ...newFilters, page: 1 }));
+  }, []);
 
-  /**
-   * Go to specific page
-   */
   const goToPage = useCallback(
     (page: number) => {
       if (page >= 1 && page <= pagination.totalPages) {
-        fetchAuditLogs({ ...filters, page });
+        setFilters((prev) => ({ ...prev, page }));
       }
     },
-    [filters, pagination.totalPages, fetchAuditLogs],
+    [pagination.totalPages],
   );
 
-  /**
-   * Go to next page
-   */
   const nextPage = useCallback(() => {
     if (pagination.hasNext) {
-      goToPage(pagination.page + 1);
+      setFilters((prev) => ({ ...prev, page: pagination.page + 1 }));
     }
-  }, [pagination.hasNext, pagination.page, goToPage]);
+  }, [pagination.hasNext, pagination.page]);
 
-  /**
-   * Go to previous page
-   */
   const prevPage = useCallback(() => {
     if (pagination.hasPrev) {
-      goToPage(pagination.page - 1);
+      setFilters((prev) => ({ ...prev, page: pagination.page - 1 }));
     }
-  }, [pagination.hasPrev, pagination.page, goToPage]);
+  }, [pagination.hasPrev, pagination.page]);
 
-  /**
-   * Clear all filters
-   */
   const clearFilters = useCallback(() => {
-    const clearedFilters = { page: 1, limit: filters.limit || 20 };
-    fetchAuditLogs(clearedFilters);
-  }, [filters.limit, fetchAuditLogs]);
+    setFilters({ page: 1, limit: filters.limit ?? 20 });
+  }, [filters.limit]);
 
-  /**
-   * Refresh audit logs
-   */
-  const refresh = useCallback(() => {
-    setRefreshTrigger((prev) => prev + 1);
-  }, []);
+  const refresh = useCallback(() => mutate(), [mutate]);
 
-  /**
-   * Get action label for display
-   */
   const getActionLabel = useCallback((action: string) => {
     const actionLabels: Record<string, string> = {
       invite_user: "User Invited",
@@ -207,24 +179,19 @@ export function useAuditLogs(options: UseAuditLogsOptions) {
       update_role: "Role Changed",
       bulk_update_roles: "Bulk Role Update",
     };
-
     return (
       actionLabels[action] ||
       action.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())
     );
   }, []);
 
-  /**
-   * Format audit log details for display
-   */
   const formatLogDetails = useCallback(
     (action: string, details: AuditLogDetails) => {
       if (!details) return null;
-
       switch (action) {
         case "invite_user":
           return `Invited ${details.email || ""} as ${details.role || ""}`;
-        case "update_user":
+        case "update_user": {
           const changes = [];
           if (details.nameChanged) {
             changes.push(
@@ -237,6 +204,7 @@ export function useAuditLogs(options: UseAuditLogsOptions) {
             );
           }
           return changes.join(", ");
+        }
         case "remove_user":
           return `Removed ${details.removedUser?.name || details.removedUser?.email} (${details.removedUser?.role})`;
         case "reset_password":
@@ -250,12 +218,8 @@ export function useAuditLogs(options: UseAuditLogsOptions) {
     [],
   );
 
-  /**
-   * Export audit logs (client-side CSV generation)
-   */
   const exportLogs = useCallback(() => {
     if (auditLogs.length === 0) return;
-
     const csvHeaders = [
       "Date",
       "Action",
@@ -272,11 +236,9 @@ export function useAuditLogs(options: UseAuditLogsOptions) {
       formatLogDetails(log.action, log.details) || "N/A",
       log.ipAddress || "N/A",
     ]);
-
     const csvContent = [csvHeaders, ...csvRows]
       .map((row) => row.map((field) => `"${field}"`).join(","))
       .join("\n");
-
     const blob = new Blob([csvContent], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -288,41 +250,15 @@ export function useAuditLogs(options: UseAuditLogsOptions) {
     URL.revokeObjectURL(url);
   }, [auditLogs, boardId, getActionLabel, formatLogDetails]);
 
-  /**
-   * Clear error state
-   */
-  const clearError = useCallback(() => {
-    setError(null);
-  }, []);
-
-  // Auto-refresh effect
-  useEffect(() => {
-    if (autoRefresh && refreshInterval > 0) {
-      const interval = setInterval(() => {
-        fetchAuditLogs();
-      }, refreshInterval);
-
-      return () => clearInterval(interval);
-    }
-    return undefined;
-  }, [autoRefresh, refreshInterval, fetchAuditLogs]);
-
-  // Initial fetch and refresh trigger effect
-  useEffect(() => {
-    fetchAuditLogs();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshTrigger]);
+  const clearError = useCallback(() => setLocalError(null), []);
 
   return {
-    // State
     auditLogs,
     summary,
-    loading,
+    loading: isLoading,
     error,
     pagination,
     filters,
-
-    // Actions
     fetchAuditLogs,
     updateFilters,
     goToPage,
@@ -332,8 +268,6 @@ export function useAuditLogs(options: UseAuditLogsOptions) {
     refresh,
     exportLogs,
     clearError,
-
-    // Utilities
     getActionLabel,
     formatLogDetails,
   };

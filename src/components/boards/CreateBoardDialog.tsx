@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useState } from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -15,17 +15,15 @@ import {
 } from "../ui/dialog";
 import { Plus, Loader2, Users } from "lucide-react";
 import { t } from "@/lib/i18n";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import type { Board } from "@/types/database";
 
 import { TemplateSelector } from "../templates/TemplateSelector";
 import { InviteUserForm } from "../admin/InviteUserForm";
 import {
-  createCreateBoardSchema,
-  getCreateBoardErrorMessage,
-  type CreateBoardFormValues,
-} from "./create-board-dialog.utils";
+  createBoardAction,
+  INITIAL_BOARD_STATE,
+  type BoardActionState,
+} from "@/app/actions/boards";
 
 interface CreateBoardDialogProps {
   onBoardCreated?: (board: Board) => void;
@@ -37,72 +35,21 @@ export function CreateBoardDialog({
   trigger,
 }: CreateBoardDialogProps) {
   const [open, setOpen] = useState(false);
-  const [selectedTemplateId, setSelectedTemplateId] = useState<
-    number | undefined
-  >();
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [formKey, setFormKey] = useState(0);
   const [createdBoard, setCreatedBoard] = useState<Board | null>(null);
   const [showMemberPrompt, setShowMemberPrompt] = useState(false);
-
-  const schema = createCreateBoardSchema();
-  const {
-    register,
-    handleSubmit: rhfHandleSubmit,
-    reset,
-  } = useForm<CreateBoardFormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: { name: "" },
-  });
-
-  const onSubmit = async ({ name }: CreateBoardFormValues) => {
-    setIsLoading(true);
-    setError("");
-
-    try {
-      const response = await fetch("/api/boards", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: name.trim(),
-          templateId: selectedTemplateId,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData: unknown = await response.json().catch(() => null);
-        throw new Error(getCreateBoardErrorMessage(errorData));
-      }
-
-      const { board } = await response.json();
-
-      // Reset form
-      reset({ name: "" });
-      setSelectedTemplateId(undefined);
-
-      // Store created board and show member prompt
-      setCreatedBoard(board);
-      setShowMemberPrompt(true);
-
-      // Notify parent component
-      if (onBoardCreated) {
-        onBoardCreated(board);
-      }
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : t("common.unexpectedError"),
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleMemberPromptClose = () => {
     setShowMemberPrompt(false);
     setCreatedBoard(null);
     setOpen(false);
+  };
+
+  const handleBoardCreated = (board: Board) => {
+    setCreatedBoard(board);
+    setShowMemberPrompt(true);
+    setFormKey((k) => k + 1);
+    onBoardCreated?.(board);
   };
 
   const defaultTrigger = (
@@ -123,70 +70,14 @@ export function CreateBoardDialog({
               {t("createBoard.description")}
             </DialogDescription>
           </DialogHeader>
-          <form
-            onSubmit={rhfHandleSubmit(onSubmit)}
-            className="space-y-4 sm:space-y-6"
-          >
-            {error && (
-              <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md border border-red-200">
-                {error}
-              </div>
-            )}
-
-            <div className="space-y-4 sm:space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm font-medium">
-                  {t("createBoard.nameLabel")}
-                </Label>
-                <Input
-                  id="name"
-                  placeholder={t("createBoard.namePlaceholder")}
-                  disabled={isLoading}
-                  autoFocus
-                  {...register("name")}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">
-                  {t("createBoard.templateLabel")}
-                </Label>
-                <TemplateSelector
-                  selectedTemplateId={selectedTemplateId}
-                  onTemplateSelect={setSelectedTemplateId}
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
-
-            <DialogFooter className="pt-4 sm:pt-6 border-t">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setOpen(false)}
-                disabled={isLoading}
-              >
-                {t("common.cancel")}
-              </Button>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    {t("createBoard.creating")}
-                  </>
-                ) : (
-                  <>
-                    <Plus className="w-4 h-4 mr-2" />
-                    {t("createBoard.submit")}
-                  </>
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
+          <CreateBoardForm
+            key={formKey}
+            onClose={() => setOpen(false)}
+            onBoardCreated={handleBoardCreated}
+          />
         </DialogContent>
       </Dialog>
 
-      {/* Add Members prompt — shown after board is created */}
       {createdBoard && (
         <Dialog open={showMemberPrompt} onOpenChange={handleMemberPromptClose}>
           <DialogContent className="sm:max-w-2xl w-[90vw] max-h-[90vh] overflow-y-auto">
@@ -218,5 +109,104 @@ export function CreateBoardDialog({
         </Dialog>
       )}
     </>
+  );
+}
+
+function CreateBoardForm({
+  onClose,
+  onBoardCreated,
+}: {
+  onClose: () => void;
+  onBoardCreated: (board: Board) => void;
+}) {
+  const [selectedTemplateId, setSelectedTemplateId] = useState<
+    number | undefined
+  >();
+
+  const handleAction = async (
+    prev: BoardActionState,
+    formData: FormData,
+  ): Promise<BoardActionState> => {
+    const result = await createBoardAction(prev, formData);
+    if (result.status === "success") {
+      onBoardCreated(result.board);
+    }
+    return result;
+  };
+
+  const [state, formAction, isPending] = useActionState(
+    handleAction,
+    INITIAL_BOARD_STATE,
+  );
+
+  const errorMessage = state.status === "error" ? state.error : null;
+
+  return (
+    <form action={formAction} className="space-y-4 sm:space-y-6">
+      {selectedTemplateId !== undefined && (
+        <input
+          type="hidden"
+          name="templateId"
+          value={String(selectedTemplateId)}
+        />
+      )}
+
+      {errorMessage && (
+        <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md border border-red-200">
+          {errorMessage}
+        </div>
+      )}
+
+      <div className="space-y-4 sm:space-y-6">
+        <div className="space-y-2">
+          <Label htmlFor="name" className="text-sm font-medium">
+            {t("createBoard.nameLabel")}
+          </Label>
+          <Input
+            id="name"
+            name="name"
+            placeholder={t("createBoard.namePlaceholder")}
+            disabled={isPending}
+            autoFocus
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">
+            {t("createBoard.templateLabel")}
+          </Label>
+          <TemplateSelector
+            selectedTemplateId={selectedTemplateId}
+            onTemplateSelect={setSelectedTemplateId}
+            disabled={isPending}
+          />
+        </div>
+      </div>
+
+      <DialogFooter className="pt-4 sm:pt-6 border-t">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onClose}
+          disabled={isPending}
+        >
+          {t("common.cancel")}
+        </Button>
+        <Button type="submit" disabled={isPending}>
+          {isPending ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              {t("createBoard.creating")}
+            </>
+          ) : (
+            <>
+              <Plus className="w-4 h-4 mr-2" />
+              {t("createBoard.submit")}
+            </>
+          )}
+        </Button>
+      </DialogFooter>
+    </form>
   );
 }

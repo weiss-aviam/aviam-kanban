@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -37,81 +37,6 @@ export function EditColumnDialog({
   onOpenChange,
   column,
 }: EditColumnDialogProps) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
-  const { updateColumn, setError: setGlobalError } = useAppActions();
-  const { currentBoard } = useAppState();
-
-  const {
-    register,
-    handleSubmit: rhfHandleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<ColumnFormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: {
-      title: column?.title || "",
-    },
-  });
-
-  // Reset form when column changes
-  useEffect(() => {
-    if (column) {
-      reset({ title: column.title });
-    }
-  }, [column, reset]);
-
-  const onSubmit = async (data: ColumnFormValues) => {
-    if (!column) return;
-
-    setIsLoading(true);
-    setError("");
-
-    try {
-      const response = await fetch(`/api/columns/${column.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          title: data.title,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData: unknown = await response.json().catch(() => null);
-        throw new Error(
-          getColumnMutationErrorMessage(errorData, "failedToUpdate"),
-        );
-      }
-
-      const updatedColumn = await response.json();
-
-      // Get existing cards from the store to preserve them
-      const existingColumn = currentBoard?.columns.find(
-        (col) => col.id === column.id,
-      );
-      const cards = existingColumn?.cards || [];
-
-      // Update the store immediately with cards preserved
-      updateColumn({
-        ...updatedColumn,
-        cards,
-      });
-
-      // Close dialog and reset form
-      onOpenChange(false);
-      reset();
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : t("columns.failedToUpdate");
-      setError(errorMessage);
-      setGlobalError(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   if (!column) return null;
 
   return (
@@ -123,39 +48,110 @@ export function EditColumnDialog({
             {t("columns.updateColumnTitle")}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={rhfHandleSubmit(onSubmit)}>
-          <div className="grid gap-3 py-3 sm:gap-4 sm:py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="title">{t("columns.columnTitle")}</Label>
-              <Input
-                id="title"
-                placeholder={t("columns.enterColumnTitle")}
-                disabled={isLoading}
-                autoFocus
-                {...register("title")}
-              />
-              {errors.title && (
-                <p className="text-sm text-red-600">{errors.title.message}</p>
-              )}
-            </div>
-            {error && <div className="text-sm text-red-600">{error}</div>}
-          </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isLoading}
-            >
-              {t("common.cancel")}
-            </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {t("common.saveChanges")}
-            </Button>
-          </DialogFooter>
-        </form>
+        <EditColumnForm
+          key={column.id}
+          column={column}
+          onClose={() => onOpenChange(false)}
+        />
       </DialogContent>
     </Dialog>
+  );
+}
+
+function EditColumnForm({
+  column,
+  onClose,
+}: {
+  column: Column;
+  onClose: () => void;
+}) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const { updateColumn, setError: setGlobalError } = useAppActions();
+  const { currentBoard } = useAppState();
+
+  const {
+    register,
+    handleSubmit: rhfHandleSubmit,
+    formState: { errors },
+  } = useForm<ColumnFormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: { title: column.title },
+  });
+
+  const onSubmit = async (data: ColumnFormValues) => {
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch(`/api/columns/${column.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: data.title }),
+      });
+
+      if (!response.ok) {
+        const errorData: unknown = await response.json().catch(() => null);
+        throw new Error(
+          getColumnMutationErrorMessage(errorData, "failedToUpdate"),
+        );
+      }
+
+      const updatedColumn = await response.json();
+
+      const existingColumn = currentBoard?.columns.find(
+        (col) => col.id === column.id,
+      );
+      const cards = existingColumn?.cards || [];
+
+      updateColumn({
+        ...updatedColumn,
+        cards,
+      });
+
+      onClose();
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : t("columns.failedToUpdate");
+      setError(errorMessage);
+      setGlobalError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={rhfHandleSubmit(onSubmit)}>
+      <div className="grid gap-3 py-3 sm:gap-4 sm:py-4">
+        <div className="grid gap-2">
+          <Label htmlFor="title">{t("columns.columnTitle")}</Label>
+          <Input
+            id="title"
+            placeholder={t("columns.enterColumnTitle")}
+            disabled={isLoading}
+            autoFocus
+            {...register("title")}
+          />
+          {errors.title && (
+            <p className="text-sm text-red-600">{errors.title.message}</p>
+          )}
+        </div>
+        {error && <div className="text-sm text-red-600">{error}</div>}
+      </div>
+      <DialogFooter>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onClose}
+          disabled={isLoading}
+        >
+          {t("common.cancel")}
+        </Button>
+        <Button type="submit" disabled={isLoading}>
+          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {t("common.saveChanges")}
+        </Button>
+      </DialogFooter>
+    </form>
   );
 }

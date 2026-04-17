@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useActionState, useState } from "react";
+import useSWR from "swr";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,15 +21,23 @@ import {
   canAssignAdminRole,
   createDefaultMemberRole,
   formatAvailableUserLabel,
-  getMemberSelectionValidationError,
   type AvailableBoardUser,
   type AddMemberRole,
 } from "./invite-user-form.utils";
+import {
+  addMemberAction,
+  INITIAL_ADD_MEMBER_STATE,
+  type AddMemberActionState,
+} from "@/app/actions/memberships";
 
 interface InviteUserFormProps {
   boardId: string;
   currentUserRole: "owner" | "admin" | "member" | "viewer";
   onMemberAdded: () => void;
+}
+
+interface AvailableUsersResponse {
+  users: AvailableBoardUser[];
 }
 
 export function InviteUserForm({
@@ -37,142 +46,78 @@ export function InviteUserForm({
   onMemberAdded,
 }: InviteUserFormProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [availableUsers, setAvailableUsers] = useState<AvailableBoardUser[]>(
-    [],
-  );
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [role, setRole] = useState<AddMemberRole>(createDefaultMemberRole());
-  const [loadingUsers, setLoadingUsers] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const canAssignAdmin = canAssignAdminRole(currentUserRole);
 
-  useEffect(() => {
-    const controller = new AbortController();
+  const trimmedSearch = searchTerm.trim();
+  const searchParams = new URLSearchParams({
+    boardId,
+    available: "true",
+    limit: "10",
+  });
+  if (trimmedSearch) searchParams.append("search", trimmedSearch);
 
-    const fetchAvailableUsers = async () => {
-      try {
-        setLoadingUsers(true);
+  const {
+    data,
+    error: fetchError,
+    isLoading: loadingUsers,
+  } = useSWR<AvailableUsersResponse>(`/api/admin/memberships?${searchParams}`, {
+    keepPreviousData: true,
+  });
 
-        const params = new URLSearchParams({
-          boardId,
-          available: "true",
-          limit: "10",
-        });
+  const availableUsers = data?.users ?? [];
+  const fetchErrorMessage = fetchError
+    ? fetchError instanceof Error
+      ? fetchError.message
+      : t("admin.failedToFetchAvailableUsers")
+    : null;
 
-        const trimmedSearch = searchTerm.trim();
-        if (trimmedSearch) {
-          params.append("search", trimmedSearch);
-        }
+  const selectedUser =
+    availableUsers.find((user) => user.id === selectedUserId) ?? null;
 
-        const response = await fetch(`/api/admin/memberships?${params}`, {
-          signal: controller.signal,
-        });
+  const handleAction = async (
+    prev: AddMemberActionState,
+    formData: FormData,
+  ): Promise<AddMemberActionState> => {
+    if (!selectedUserId) {
+      return {
+        status: "error",
+        error: t("admin.validationErrors.noUserSelected"),
+      };
+    }
+    const result = await addMemberAction(prev, formData);
+    if (result.status === "success") {
+      const addedLabel =
+        result.membership.name ||
+        result.membership.email ||
+        selectedUser?.name ||
+        selectedUser?.email ||
+        t("common.unknown");
+      setSuccessMessage(t("admin.memberAddedSuccess", { name: addedLabel }));
+      setSelectedUserId(null);
+      setRole(createDefaultMemberRole());
+      setSearchTerm("");
+      onMemberAdded();
+    }
+    return result;
+  };
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(
-            errorData.error || t("admin.failedToFetchAvailableUsers"),
-          );
-        }
+  const [submitState, formAction, submitting] = useActionState(
+    handleAction,
+    INITIAL_ADD_MEMBER_STATE,
+  );
 
-        const data = await response.json();
-        const nextUsers = (data.users || []) as AvailableBoardUser[];
-        setAvailableUsers(nextUsers);
-
-        if (
-          selectedUserId &&
-          !nextUsers.some((user) => user.id === selectedUserId)
-        ) {
-          setSelectedUserId(null);
-        }
-      } catch (err) {
-        if (!controller.signal.aborted) {
-          setAvailableUsers([]);
-          setError(
-            err instanceof Error
-              ? err.message
-              : t("admin.failedToFetchAvailableUsers"),
-          );
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setLoadingUsers(false);
-        }
-      }
-    };
-
-    void fetchAvailableUsers();
-
-    return () => controller.abort();
-  }, [boardId, searchTerm, selectedUserId]);
+  const submitError = submitState.status === "error" ? submitState.error : null;
+  const error = submitError ?? fetchErrorMessage;
 
   const resetForm = () => {
     setSearchTerm("");
     setSelectedUserId(null);
     setRole(createDefaultMemberRole());
-    setError(null);
-    setSuccess(null);
-  };
-
-  const selectedUser =
-    availableUsers.find((user) => user.id === selectedUserId) || null;
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setSuccess(null);
-
-    const validationError = getMemberSelectionValidationError(selectedUserId);
-    if (validationError) {
-      setError(t(validationError));
-      return;
-    }
-
-    setSubmitting(true);
-
-    try {
-      const response = await fetch(
-        `/api/admin/memberships?boardId=${boardId}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            userId: selectedUserId,
-            role,
-          }),
-        },
-      );
-
-      const responseData = await response.json();
-
-      if (!response.ok) {
-        throw new Error(responseData.error || t("admin.failedToAddMember"));
-      }
-
-      const addedLabel =
-        responseData.membership?.name ||
-        responseData.membership?.email ||
-        selectedUser?.name ||
-        selectedUser?.email ||
-        t("common.unknown");
-
-      setSuccess(t("admin.memberAddedSuccess", { name: addedLabel }));
-      setSelectedUserId(null);
-      setRole(createDefaultMemberRole());
-      setSearchTerm("");
-      onMemberAdded();
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : t("admin.failedToAddMember"),
-      );
-    } finally {
-      setSubmitting(false);
-    }
+    setSuccessMessage(null);
   };
 
   return (
@@ -184,16 +129,20 @@ export function InviteUserForm({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form action={formAction} className="space-y-6">
+          <input type="hidden" name="boardId" value={boardId} />
+          <input type="hidden" name="userId" value={selectedUserId ?? ""} />
+          <input type="hidden" name="role" value={role} />
+
           {error && (
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
 
-          {success && (
+          {successMessage && (
             <Alert>
-              <AlertDescription>{success}</AlertDescription>
+              <AlertDescription>{successMessage}</AlertDescription>
             </Alert>
           )}
 
@@ -245,8 +194,7 @@ export function InviteUserForm({
                       }`}
                       onClick={() => {
                         setSelectedUserId(user.id);
-                        setError(null);
-                        setSuccess(null);
+                        setSuccessMessage(null);
                       }}
                     >
                       <div className="font-medium text-gray-900">
@@ -331,7 +279,10 @@ export function InviteUserForm({
             <Button type="button" variant="outline" onClick={resetForm}>
               {t("admin.clearSelection")}
             </Button>
-            <Button type="submit" disabled={submitting || loadingUsers}>
+            <Button
+              type="submit"
+              disabled={submitting || loadingUsers || !selectedUserId}
+            >
               {submitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

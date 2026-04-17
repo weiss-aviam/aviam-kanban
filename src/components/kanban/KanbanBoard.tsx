@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  useOptimistic,
+  useTransition,
+} from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -42,6 +48,64 @@ import { getCardEditingMembers } from "@/components/boards/board-presence-ui";
 import { useAppActions, type StoreCard } from "@/store";
 import { t } from "@/lib/i18n";
 
+type OptimisticColumns = BoardWithDetails["columns"];
+
+type OptimisticAction =
+  | {
+      type: "moveColumn";
+      updates: Array<{ id: number; position: number }>;
+    }
+  | {
+      type: "moveCard";
+      cardId: string;
+      targetColumnId: number;
+      targetPosition: number;
+      isDone: boolean;
+    };
+
+function kanbanOptimisticReducer(
+  state: OptimisticColumns,
+  action: OptimisticAction,
+): OptimisticColumns {
+  switch (action.type) {
+    case "moveColumn":
+      return state
+        .map((column) => {
+          const update = action.updates.find((u) => u.id === column.id);
+          return update ? { ...column, position: update.position } : column;
+        })
+        .sort((a, b) => a.position - b.position);
+
+    case "moveCard": {
+      const cardToMove = state
+        .flatMap((col) => col.cards)
+        .find((card) => card.id === action.cardId);
+      if (!cardToMove) return state;
+
+      return state.map((col) => {
+        const filteredCards = col.cards.filter((c) => c.id !== action.cardId);
+        if (col.id === action.targetColumnId) {
+          const updatedCard = {
+            ...cardToMove,
+            columnId: action.targetColumnId,
+            position: action.targetPosition,
+            completedAt: (action.isDone
+              ? new Date().toISOString()
+              : null) as unknown as Date | null,
+          };
+          return {
+            ...col,
+            cards: [...filteredCards, updatedCard].sort(
+              (a, b) => a.position - b.position,
+            ),
+          };
+        }
+        return { ...col, cards: filteredCards };
+      });
+    }
+  }
+}
+
 interface KanbanBoardProps {
   boardData: BoardWithDetails;
   onBoardDataChange?: (data: BoardWithDetails) => void;
@@ -71,8 +135,13 @@ export function KanbanBoard({
   const [activeCard, setActiveCard] = useState<CardType | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editingCard, setEditingCard] = useState<CardType | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const autoOpenedRef = useRef(false);
+
+  const [optimisticColumns, applyOptimistic] = useOptimistic(
+    boardData.columns,
+    kanbanOptimisticReducer,
+  );
 
   // Auto-open a card when ?cardId is present in URL
   useEffect(() => {
@@ -92,8 +161,9 @@ export function KanbanBoard({
   // Zustand store actions
   const { addCard, updateCard, deleteCard } = useAppActions();
 
-  // Get all cards for filtering
-  const allCards = boardData.columns.flatMap((col) => col.cards || []);
+  // Get all cards for filtering (from optimistic state so drag-in-progress moves
+  // are reflected in filter stats immediately)
+  const allCards = optimisticColumns.flatMap((col) => col.cards || []);
 
   // Board filters hook
   const {
@@ -117,24 +187,17 @@ export function KanbanBoard({
   // Drag and drop handlers
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
-    console.log("Drag start:", active.id, typeof active.id);
 
-    // Check if it's a column being dragged
     if (typeof active.id === "string" && active.id.startsWith("column-")) {
-      console.log("Column drag detected");
       return;
     }
 
-    // Find the card being dragged
-    const card = boardData.columns
+    const card = optimisticColumns
       .flatMap((col) => col.cards)
       .find((card) => card.id === active.id);
 
     if (card) {
-      console.log("Found card:", card.title);
       setActiveCard(card);
-    } else {
-      console.log("No card found for ID:", active.id);
     }
   };
 
@@ -142,25 +205,14 @@ export function KanbanBoard({
     // Optional: Add visual feedback during drag over
   };
 
-  const handleDragEnd = async (event: DragEndEvent) => {
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveCard(null);
 
-    if (!over) {
-      console.log("No drop target");
-      return;
-    }
+    if (!over) return;
 
-    console.log("Drag end event:", {
-      activeId: active.id,
-      activeType: typeof active.id,
-      overId: over.id,
-      overType: typeof over.id,
-    });
-
-    // Check if we're dragging a column
+    // Column reorder
     if (typeof active.id === "string" && active.id.startsWith("column-")) {
-      console.log("Processing column drag");
       const columnId = parseInt(active.id.replace("column-", ""));
       const overColumnId =
         typeof over.id === "string" && over.id.startsWith("column-")
@@ -169,101 +221,68 @@ export function KanbanBoard({
 
       if (!overColumnId || columnId === overColumnId) return;
 
-      // Find the positions
-      const activeColumn = boardData.columns.find((col) => col.id === columnId);
-      const overColumn = boardData.columns.find(
+      const overColumn = optimisticColumns.find(
         (col) => col.id === overColumnId,
       );
+      if (!overColumn) return;
 
-      if (!activeColumn || !overColumn) return;
-
-      // Calculate column position updates
       const updates = calculateColumnMove(
         columnId,
         overColumn.position,
-        boardData.columns,
+        optimisticColumns,
       );
-
       if (updates.length === 0) return;
 
-      console.log("Column drag result:", {
-        columnId,
-        newPosition: overColumn.position,
-        updates,
-      });
-
-      // Apply optimistic updates for columns
-      const updatedColumns = boardData.columns
+      const updatedColumns = optimisticColumns
         .map((column) => {
           const update = updates.find((u) => u.id === column.id);
           return update ? { ...column, position: update.position } : column;
         })
         .sort((a, b) => a.position - b.position);
 
-      if (onBoardDataChange) {
-        onBoardDataChange({ ...boardData, columns: updatedColumns });
-      }
-
-      // Send bulk update to server
-      try {
-        setIsLoading(true);
-        await bulkUpdateColumnPositions(updates);
-        console.log("Column positions updated successfully");
-      } catch (error) {
-        console.error("Failed to update column positions:", error);
-        // Revert optimistic update on error
-        if (onBoardDataChange) {
-          onBoardDataChange(boardData);
+      startTransition(async () => {
+        applyOptimistic({ type: "moveColumn", updates });
+        try {
+          await bulkUpdateColumnPositions(updates);
+          onBoardDataChange?.({ ...boardData, columns: updatedColumns });
+        } catch (error) {
+          console.error("Failed to update column positions:", error);
+          // useOptimistic reverts automatically when the transition ends
+          // without the underlying state being updated.
         }
-      } finally {
-        setIsLoading(false);
-      }
+      });
       return;
     }
 
-    // Handle card drag and drop
+    // Card move
     const cardId = active.id as string;
-
-    // Find the card
-    const draggedCard = boardData.columns
+    const draggedCard = optimisticColumns
       .flatMap((col) => col.cards)
       .find((card) => card.id === cardId);
+    if (!draggedCard) return;
 
-    if (!draggedCard) {
-      return;
-    }
-
-    // Determine target column and position
     let targetColumnId: number;
     let targetPosition: number;
 
     if (typeof over.id === "string" && over.id.startsWith("column-drop-")) {
-      // Dropped on empty column
       targetColumnId = parseInt(over.id.replace("column-drop-", ""));
-      const targetColumn = boardData.columns.find(
+      const targetColumn = optimisticColumns.find(
         (col) => col.id === targetColumnId,
       );
       const maxPosition = targetColumn?.cards.length
         ? Math.max(...targetColumn.cards.map((c) => c.position))
         : 0;
-      targetPosition = maxPosition + 1; // Add to end
+      targetPosition = maxPosition + 1;
     } else {
-      // Dropped on another card
-      const targetCard = boardData.columns
+      const targetCard = optimisticColumns
         .flatMap((col) => col.cards)
         .find((card) => card.id === over.id);
-
-      if (!targetCard) {
-        console.log("Target card not found!");
-        return;
-      }
+      if (!targetCard) return;
 
       targetColumnId = targetCard.columnId;
-      // Insert before the target card
       targetPosition = targetCard.position;
     }
 
-    // Don't do anything if dropped in same position
     if (
       draggedCard.columnId === targetColumnId &&
       draggedCard.position === targetPosition
@@ -271,69 +290,51 @@ export function KanbanBoard({
       return;
     }
 
-    setIsLoading(true);
-    try {
-      const requestBody = {
-        updates: [
-          {
-            id: cardId, // Use the UUID from the drag event
-            columnId: targetColumnId,
-            position: targetPosition,
-          },
-        ],
-      };
+    const targetCol = optimisticColumns.find((c) => c.id === targetColumnId);
+    const isDone = Boolean(targetCol?.isDone);
 
-      const response = await fetch("/api/cards/bulk-update", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody),
+    startTransition(async () => {
+      applyOptimistic({
+        type: "moveCard",
+        cardId,
+        targetColumnId,
+        targetPosition,
+        isDone,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`API Error: ${JSON.stringify(errorData)}`);
-      }
+      try {
+        const response = await fetch("/api/cards/bulk-update", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            updates: [
+              {
+                id: cardId,
+                columnId: targetColumnId,
+                position: targetPosition,
+              },
+            ],
+          }),
+        });
 
-      // Update local state - remove from all columns first, then add to target
-      const targetCol = boardData.columns.find((c) => c.id === targetColumnId);
-      const newColumns = boardData.columns.map((col) => {
-        // Remove the card from all columns first
-        const filteredCards = col.cards.filter((card) => card.id !== cardId);
-
-        if (col.id === targetColumnId) {
-          // Add to target column; auto-complete/reopen based on is_done flag
-          const updatedCard = {
-            ...draggedCard,
-            columnId: targetColumnId,
-            position: targetPosition,
-            // Cast: store type expects Date | null but API returns strings at runtime
-            completedAt: (targetCol?.isDone
-              ? new Date().toISOString()
-              : null) as unknown as Date | null,
-          };
-          return {
-            ...col,
-            cards: [...filteredCards, updatedCard].sort(
-              (a, b) => a.position - b.position,
-            ),
-          };
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(`API Error: ${JSON.stringify(errorData)}`);
         }
 
-        // Return column without the moved card
-        return {
-          ...col,
-          cards: filteredCards,
-        };
-      });
-
-      if (onBoardDataChange) {
-        onBoardDataChange({ ...boardData, columns: newColumns });
+        const newColumns = kanbanOptimisticReducer(boardData.columns, {
+          type: "moveCard",
+          cardId,
+          targetColumnId,
+          targetPosition,
+          isDone,
+        });
+        onBoardDataChange?.({ ...boardData, columns: newColumns });
+      } catch (error) {
+        console.error("Failed to update card position:", error);
+        // useOptimistic reverts automatically.
       }
-    } catch (error) {
-      console.error("Failed to update card position:", error);
-    } finally {
-      setIsLoading(false);
-    }
+    });
   };
 
   // Card handlers
@@ -481,9 +482,9 @@ export function KanbanBoard({
   };
 
   // Check if board has no columns
-  const hasNoColumns = !boardData.columns || boardData.columns.length === 0;
+  const hasNoColumns = !optimisticColumns || optimisticColumns.length === 0;
   const columnsLayoutStyle = getKanbanColumnsLayoutStyle(
-    boardData.columns.length,
+    optimisticColumns.length,
   );
 
   if (hasNoColumns) {
@@ -531,10 +532,10 @@ export function KanbanBoard({
             style={columnsLayoutStyle}
           >
             <SortableContext
-              items={boardData.columns.map((col) => `column-${col.id}`)}
+              items={optimisticColumns.map((col) => `column-${col.id}`)}
               strategy={horizontalListSortingStrategy}
             >
-              {boardData.columns.map((column) => (
+              {optimisticColumns.map((column) => (
                 <KanbanColumn
                   key={column.id}
                   column={column}
@@ -542,11 +543,11 @@ export function KanbanBoard({
                   boardId={boardData.id}
                   boardMembers={boardData.members?.map((m) => m.user) || []}
                   boardLabels={boardData.labels}
-                  allColumns={boardData.columns}
+                  allColumns={optimisticColumns}
                   getEditingMembersForCard={(cardId) =>
                     getCardEditingMembers(presenceMembers, cardId)
                   }
-                  isLoading={isLoading}
+                  isLoading={isPending}
                   onCardCreated={handleCardCreated}
                   onCardClick={handleCardClick}
                   onCardEdit={handleCardClick}

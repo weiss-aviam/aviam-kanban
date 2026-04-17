@@ -2,6 +2,7 @@
 
 import { useCallback } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
 import Image from "next/image";
 import {
   LayoutDashboard,
@@ -189,10 +190,10 @@ export function AppSidebar() {
                     isActive={isActive}
                     tooltip={t(item.labelKey)}
                   >
-                    <a href={item.href}>
+                    <Link href={item.href}>
                       <item.icon />
                       <span>{t(item.labelKey)}</span>
-                    </a>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               );
@@ -213,10 +214,10 @@ export function AppSidebar() {
                       isActive={isActive}
                       tooltip={t(item.labelKey)}
                     >
-                      <a href={item.href}>
+                      <Link href={item.href}>
                         <item.icon />
                         <span>{t(item.labelKey)}</span>
-                      </a>
+                      </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
