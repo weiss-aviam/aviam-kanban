@@ -21,6 +21,7 @@ import { formatDueDate, isOverdue, isDueSoon } from "@/lib/board-permissions";
 import { formatDisplayDate } from "@/lib/date-format";
 import { CompactMarkdownViewer } from "@/components/ui/markdown-viewer";
 import { PriorityBadge } from "@/components/ui/priority-selector";
+import { ViaApiBadge } from "@/components/ui/ViaApiBadge";
 import { AutoCardContextMenu } from "./CardContextMenu";
 import { useCardActionsWithStore } from "@/hooks/useCardActionsWithStore";
 import type { BoardPresenceMember } from "@/hooks/useBoardPresence";
@@ -205,8 +206,9 @@ export function KanbanCard({
         onClick={handleCardClick}
         onDoubleClick={handleCardDoubleClick}
       >
-        {/* Header: priority badge */}
+        {/* Header: priority + via-api badges */}
         <div className="flex items-center justify-end gap-2">
+          {card.createdVia === "api" && <ViaApiBadge />}
           <PriorityBadge priority={priority} size="md" />
         </div>
 
