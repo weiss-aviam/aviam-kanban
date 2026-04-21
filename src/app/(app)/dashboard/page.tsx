@@ -13,7 +13,7 @@ export default async function DashboardPage() {
   return (
     <DashboardContent
       initialBoards={boards as unknown as BoardWithDetails[]}
-      initialTaskCount={stats.activeTaskCount}
+      initialStats={stats}
       initialBoardGroups={boardGroups}
     />
   );

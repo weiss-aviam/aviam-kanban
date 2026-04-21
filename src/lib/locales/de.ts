@@ -613,6 +613,19 @@ export const de = {
     deleteBoardConfirm:
       'Sind Sie sicher, dass Sie "{name}" löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.',
     deleteBoardFailed: "Board konnte nicht gelöscht werden",
+    totalTasks: "Aufgaben gesamt",
+    totalGroups: "Gruppen gesamt",
+    upcomingDeadlines: "Anstehende Fälligkeiten",
+    noUpcomingDeadlines: "Keine anstehenden Fälligkeiten",
+    recentActivity: "Letzte Aktivitäten",
+    noRecentActivity: "Noch keine Aktivitäten",
+    dueToday: "Heute fällig",
+    dueTomorrow: "Morgen fällig",
+    dueInDays: "In {count} Tagen",
+    justNow: "Gerade eben",
+    minutesAgo: "vor {count} Min.",
+    hoursAgo: "vor {count} Std.",
+    daysAgo: "vor {count} T.",
   },
 
   boardGroups: {

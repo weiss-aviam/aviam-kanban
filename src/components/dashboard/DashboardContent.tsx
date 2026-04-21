@@ -3,7 +3,14 @@
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Kanban, Plus, Users, Calendar, FolderPlus } from "lucide-react";
+import {
+  Kanban,
+  Plus,
+  Users,
+  ListTodo,
+  FolderKanban,
+  FolderPlus,
+} from "lucide-react";
 import { CreateBoardDialog } from "@/components/boards/CreateBoardDialog";
 import { EditBoardDialog } from "@/components/boards/EditBoardDialog";
 import { BoardCard } from "@/components/boards/BoardCard";
@@ -12,29 +19,26 @@ import { EditGroupDialog } from "@/components/board-groups/EditGroupDialog";
 import { DeleteGroupDialog } from "@/components/board-groups/DeleteGroupDialog";
 import { GroupSection } from "@/components/board-groups/GroupSection";
 import { ContentTopBar } from "@/components/layout/ContentTopBar";
+import { UpcomingDeadlinesCard } from "@/components/dashboard/UpcomingDeadlinesCard";
+import { RecentActivityCard } from "@/components/dashboard/RecentActivityCard";
 import { t } from "@/lib/i18n";
-import {
-  useAppStore,
-  useBoards,
-  useActiveTaskCount,
-  useBoardGroups,
-  useAppActions,
-} from "@/store";
+import { useAppStore, useBoards, useBoardGroups, useAppActions } from "@/store";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type { BoardWithDetails } from "@/types/database";
 import type { DashboardBoardGroup } from "@/lib/data/board-groups";
+import type { DashboardStats } from "@/lib/data/dashboard";
 
 type Board = BoardWithDetails;
 
 interface DashboardContentProps {
   initialBoards: BoardWithDetails[];
-  initialTaskCount: number;
+  initialStats: DashboardStats;
   initialBoardGroups: DashboardBoardGroup[];
 }
 
 export function DashboardContent({
   initialBoards,
-  initialTaskCount,
+  initialStats,
   initialBoardGroups,
 }: DashboardContentProps) {
   // Hydrate the Zustand store from server data once per mount, in the same
@@ -45,7 +49,7 @@ export function DashboardContent({
   useState(() => {
     useAppStore.setState({
       boards: initialBoards,
-      activeTaskCount: initialTaskCount,
+      activeTaskCount: initialStats.activeTaskCount,
       boardGroups: initialBoardGroups,
       boardsFetchedAt: new Date(),
     });
@@ -53,7 +57,6 @@ export function DashboardContent({
 
   const boards = useBoards();
   const boardGroups = useBoardGroups();
-  const activeTaskCount = useActiveTaskCount();
   const { user } = useCurrentUser();
   const {
     addBoard,
@@ -224,63 +227,32 @@ export function DashboardContent({
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {t("dashboard.totalBoards")}
-              </CardTitle>
-              <Kanban className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{boards.length}</div>
-              <p className="text-xs text-muted-foreground">
-                {boards.length === 0
-                  ? t("dashboard.noBoardsCreated")
-                  : boards.length === 1
-                    ? t("dashboard.oneBoardCreated")
-                    : t("dashboard.nBoardsCreated", { count: boards.length })}
-              </p>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <UpcomingDeadlinesCard deadlines={initialStats.upcomingDeadlines} />
+          <RecentActivityCard activities={initialStats.recentActivities} />
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {t("dashboard.teamMembers")}
-              </CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">1</div>
-              <p className="text-xs text-muted-foreground">
-                {t("dashboard.justYou")}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {t("dashboard.activeTasks")}
-              </CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {activeTaskCount ?? (
-                  <span className="inline-block h-7 w-8 animate-pulse rounded bg-muted" />
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {activeTaskCount === 0
-                  ? t("dashboard.noTasksYet")
-                  : t("dashboard.assignedTasks", {
-                      count: activeTaskCount ?? 0,
-                    })}
-              </p>
-            </CardContent>
-          </Card>
+          <div className="grid grid-cols-2 gap-4">
+            <KpiCard
+              label={t("dashboard.totalBoards")}
+              value={boards.length}
+              icon={<Kanban className="h-4 w-4 text-muted-foreground" />}
+            />
+            <KpiCard
+              label={t("dashboard.totalTasks")}
+              value={initialStats.totalTaskCount}
+              icon={<ListTodo className="h-4 w-4 text-muted-foreground" />}
+            />
+            <KpiCard
+              label={t("dashboard.teamMembers")}
+              value={initialStats.teamMemberCount}
+              icon={<Users className="h-4 w-4 text-muted-foreground" />}
+            />
+            <KpiCard
+              label={t("dashboard.totalGroups")}
+              value={boardGroups.length}
+              icon={<FolderKanban className="h-4 w-4 text-muted-foreground" />}
+            />
+          </div>
         </div>
 
         <div className="mb-8">
@@ -402,5 +374,29 @@ export function DashboardContent({
         }}
       />
     </div>
+  );
+}
+
+function KpiCard({
+  label,
+  value,
+  icon,
+}: {
+  label: string;
+  value: number;
+  icon: React.ReactNode;
+}) {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+        <CardTitle className="text-xs font-medium text-muted-foreground">
+          {label}
+        </CardTitle>
+        {icon}
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">{value}</div>
+      </CardContent>
+    </Card>
   );
 }
