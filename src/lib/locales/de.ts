@@ -922,6 +922,36 @@ export const de = {
     desktopNotificationsUnsupported:
       "Desktop-Benachrichtigungen werden von diesem Browser nicht unterstützt.",
   },
+  apiAccess: {
+    title: "Claude API-Zugang",
+    subtitle: "Tokens für Claude Code und ähnliche Agenten verwalten.",
+    masterToggle: "Claude API-Zugang aktivieren",
+    masterToggleDescription:
+      "Wenn aktiviert, können erstellte Tokens Boards, Karten und Dateien in deinem Namen anlegen.",
+    masterDisabledBanner:
+      "API-Zugang ist deaktiviert. Tokens bleiben gespeichert, sind aber inaktiv.",
+    disableConfirmTitle: "API-Zugang deaktivieren?",
+    disableConfirmDescription:
+      "Alle aktiven Tokens werden sofort inaktiv. Du kannst sie später wieder aktivieren, indem du diesen Schalter erneut einschaltest.",
+    tokenListTitle: "Tokens",
+    tokenListEmpty: "Noch keine Tokens erstellt.",
+    createToken: "Neuen Token erstellen",
+    tokenName: "Name",
+    tokenNamePlaceholder: 'z. B. „Claude Code Laptop"',
+    tokenCreatedTitle: "Token erstellt",
+    tokenCreatedOnce:
+      "Kopiere diesen Token jetzt. Er wird aus Sicherheitsgründen nicht erneut angezeigt.",
+    tokenCopy: "In Zwischenablage kopieren",
+    tokenCopied: "Kopiert",
+    tokenLastUsedNever: "Noch nie verwendet",
+    tokenLastUsed: "Zuletzt verwendet:",
+    revoke: "Widerrufen",
+    revokeConfirmTitle: "Token widerrufen?",
+    revokeConfirmDescription:
+      "Der Token kann nicht mehr verwendet werden. Diese Aktion lässt sich nicht rückgängig machen.",
+    viaApiBadge: "via API",
+    viaApiBadgeTitle: "Über die Claude API erstellt",
+  },
 } as const;
 
 export type DeLocale = typeof de;
