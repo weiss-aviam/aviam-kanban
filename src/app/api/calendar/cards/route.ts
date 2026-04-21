@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionUser } from "@/lib/supabase/server";
+import { getAuthorizedUser } from "@/lib/supabase/server";
 
 export type CalendarCard = {
   id: string;
@@ -17,7 +17,7 @@ export type CalendarCard = {
 // Returns all cards with a due_date in [start, end] across all boards the user is a member of.
 export async function GET(request: NextRequest) {
   try {
-    const { supabase, user } = await getSessionUser();
+    const { supabase, user } = await getAuthorizedUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

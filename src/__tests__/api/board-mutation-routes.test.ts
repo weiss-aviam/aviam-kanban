@@ -13,13 +13,14 @@ import {
   DELETE as deleteColumn,
 } from "@/app/api/columns/[id]/route";
 import { POST as bulkUpdateColumns } from "@/app/api/columns/bulk-update/route";
-import { getSessionUser } from "@/lib/supabase/server";
+import { getAuthorizedUser } from "@/lib/supabase/server";
 import {
   getBoardMutationAuthorization,
   getBoardRoleForUser,
 } from "@/lib/board-access";
 
 vi.mock("@/lib/supabase/server", () => ({
+  getAuthorizedUser: vi.fn(),
   getSessionUser: vi.fn(),
 }));
 
@@ -32,7 +33,7 @@ const BOARD_ID = "11111111-1111-4111-8111-111111111111";
 const CARD_ID = "22222222-2222-4222-8222-222222222222";
 const AUTH_USER = { id: "33333333-3333-4333-8333-333333333333" };
 
-const mockGetSessionUser = vi.mocked(getSessionUser);
+const mockGetSessionUser = vi.mocked(getAuthorizedUser);
 const mockGetBoardMutationAuthorization = vi.mocked(
   getBoardMutationAuthorization,
 );

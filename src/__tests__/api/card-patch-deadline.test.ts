@@ -8,11 +8,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { PATCH } from "@/app/api/cards/[id]/route";
-import { getSessionUser } from "@/lib/supabase/server";
+import { getAuthorizedUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getBoardMutationAuthorization } from "@/lib/board-access";
 
-vi.mock("@/lib/supabase/server", () => ({ getSessionUser: vi.fn() }));
+vi.mock("@/lib/supabase/server", () => ({
+  getAuthorizedUser: vi.fn(),
+  getSessionUser: vi.fn(),
+}));
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: vi.fn() }));
 vi.mock("@/lib/board-access", () => ({
   getBoardMutationAuthorization: vi.fn(),
@@ -26,7 +29,7 @@ const BOARD_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const CREATOR_ID = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 const OTHER_ID = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
 
-const mockGetSessionUser = vi.mocked(getSessionUser);
+const mockGetSessionUser = vi.mocked(getAuthorizedUser);
 const mockCreateAdminClient = vi.mocked(createAdminClient);
 const mockGetBoardMutationAuthorization = vi.mocked(
   getBoardMutationAuthorization,

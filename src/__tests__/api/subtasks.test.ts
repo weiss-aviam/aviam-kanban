@@ -60,6 +60,7 @@ function buildSupabaseMock() {
 }
 
 vi.mock("@/lib/supabase/server", () => ({
+  getAuthorizedUser: mockGetSessionUser,
   getSessionUser: mockGetSessionUser,
 }));
 
@@ -124,7 +125,7 @@ describe("GET /api/cards/[id]/subtasks", () => {
     const supabase = buildSupabaseMock();
     mockSingle.mockResolvedValue({ data: { id: CARD_ID }, error: null });
     // Override the card_subtasks select chain to return empty list
-     
+
     (supabase.from as any) = vi.fn((table: string) => {
       if (table === "cards") {
         return {
@@ -212,7 +213,7 @@ describe("POST /api/cards/[id]/subtasks", () => {
     const supabase = buildSupabaseMock();
     mockSingle.mockResolvedValueOnce({ data: { id: CARD_ID }, error: null }); // card check
     mockInsert.mockResolvedValue({ data: createdSubtask, error: null });
-     
+
     (supabase.from as any) = vi.fn((table: string) => {
       if (table === "cards") {
         return {
