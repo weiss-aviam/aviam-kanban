@@ -954,6 +954,13 @@ export const de = {
     profileCardDescription:
       "Persönliche Tokens für Claude Code und ähnliche Agenten verwalten.",
     profileCardButton: "Tokens verwalten",
+    claudeMdCardTitle: "CLAUDE.md-Vorlage für Claude Code",
+    claudeMdCardDescription:
+      "Diesen Block in die CLAUDE.md deines Projekts kopieren. Er erteilt Claude Code die Erlaubnis, mit deinem Token Boards, Spalten, Karten und Subtasks zu erstellen — und beschreibt den genauen Ablauf (vorschlagen → bestätigen → senden).",
+    claudeMdCopy: "Vorlage kopieren",
+    claudeMdCopied: "Kopiert",
+    claudeMdReplaceTokenHint:
+      'Ersetze "<HIER-DEINEN-TOKEN-EINSETZEN>" lokal in deiner .env durch den oben erstellten Token.',
   },
 } as const;
 

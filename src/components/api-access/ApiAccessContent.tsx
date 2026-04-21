@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ContentTopBar } from "@/components/layout/ContentTopBar";
 import { CreateTokenDialog } from "./CreateTokenDialog";
+import { ClaudeMdSnippetCard } from "./ClaudeMdSnippetCard";
 import { t } from "@/lib/i18n";
 
 export interface TokenRow {
@@ -146,6 +147,8 @@ export function ApiAccessContent({
             )}
           </CardContent>
         </Card>
+
+        <ClaudeMdSnippetCard />
       </main>
 
       <AlertDialog open={confirmDisable} onOpenChange={setConfirmDisable}>
