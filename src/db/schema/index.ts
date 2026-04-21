@@ -82,6 +82,9 @@ export const boards = pgTable(
     groupPosition: integer("group_position").notNull().default(0),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdVia: text("created_via", { enum: ["ui", "api"] })
+      .notNull()
+      .default("ui"),
   },
   (table) => ({
     groupIdIdx: index("boards_group_id_idx").on(table.groupId),
@@ -144,6 +147,9 @@ export const cards = pgTable("cards", {
   position: integer("position").notNull(),
   completedAt: timestamp("completed_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdVia: text("created_via", { enum: ["ui", "api"] })
+    .notNull()
+    .default("ui"),
 });
 
 // Labels table
@@ -185,6 +191,9 @@ export const cardSubtasks = pgTable("card_subtasks", {
   position: integer("position").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   deletedAt: timestamp("deleted_at"),
+  createdVia: text("created_via", { enum: ["ui", "api"] })
+    .notNull()
+    .default("ui"),
 });
 
 // Comments table

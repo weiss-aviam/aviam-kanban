@@ -136,6 +136,7 @@ export async function createBoardAction(
       updatedAt: newBoard.updated_at,
       groupId: newBoard.group_id ?? null,
       groupPosition: newBoard.group_position ?? 0,
+      createdVia: newBoard.created_via,
     } as Board,
   };
 }
@@ -202,6 +203,7 @@ export async function updateBoardAction(
       role: memberData.role,
       groupId: updated.group_id ?? null,
       groupPosition: updated.group_position ?? 0,
+      createdVia: updated.created_via,
     } as Board,
   };
 }
