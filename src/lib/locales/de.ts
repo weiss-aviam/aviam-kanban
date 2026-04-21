@@ -951,6 +951,9 @@ export const de = {
       "Der Token kann nicht mehr verwendet werden. Diese Aktion lässt sich nicht rückgängig machen.",
     viaApiBadge: "via API",
     viaApiBadgeTitle: "Über die Claude API erstellt",
+    profileCardDescription:
+      "Persönliche Tokens für Claude Code und ähnliche Agenten verwalten.",
+    profileCardButton: "Tokens verwalten",
   },
 } as const;
 
