@@ -85,15 +85,25 @@ ins Kanban zu übernehmen":
 
 ## Was du tun darfst
 
-| Ressource    | Endpoints                                                                       |
-| ------------ | ------------------------------------------------------------------------------- |
-| Boards       | \`GET/POST/PUT/DELETE /api/boards[/:id]\`                                       |
-| Gruppen      | \`GET/POST/PUT/DELETE /api/board-groups[/:id]\`                                 |
-| Spalten      | \`GET/POST/PUT/DELETE /api/columns[/:id]\`, \`POST /api/columns/bulk-update\`   |
-| Karten       | \`GET/POST/PUT/DELETE /api/cards[/:id]\`, \`POST /api/cards/bulk-{reorder,update}\` |
-| Subtasks     | \`POST /api/cards/:id/subtasks\`, \`PUT/DELETE /api/cards/:id/subtasks/:sid\`   |
-| Anhänge      | \`POST /api/cards/:id/attachments\` (multipart)                                 |
-| Composite    | \`POST /api/changesets/board\` (Board + Spalten + Karten + Subtasks)            |
+Die Routen unten sind **alle Endpoints, die existieren**. Andere Pfade
+(\`GET /api/cards\`, \`GET /api/columns\`, \`PUT\` auf Cards/Columns/Subtasks)
+gibt es nicht — sie liefern 404 oder 405.
+
+| Ressource    | Echte Endpoints                                                                  |
+| ------------ | -------------------------------------------------------------------------------- |
+| Boards       | \`GET, POST /api/boards\` · \`GET, PUT, DELETE /api/boards/:id\`                 |
+| Gruppen      | \`GET, POST /api/board-groups\` · \`PUT, DELETE /api/board-groups/:id\`          |
+| Spalten      | \`POST /api/columns\` · \`PATCH, DELETE /api/columns/:id\` · \`POST /api/columns/bulk-update\` |
+| Karten       | \`POST /api/cards\` · \`PATCH, DELETE /api/cards/:id\` · \`POST /api/cards/bulk-update\` · \`POST /api/cards/bulk-reorder\` |
+| Subtasks     | \`GET, POST /api/cards/:id/subtasks\` · \`PATCH, DELETE /api/cards/:id/subtasks/:subtaskId\` |
+| Anhänge      | \`GET, POST, DELETE /api/cards/:id/attachments\` (POST = multipart)              |
+| Kalender     | \`GET /api/calendar/cards\` (alle Karten mit Fälligkeit über alle Boards)        |
+| Composite    | \`POST /api/changesets/board\` (Board + Spalten + Karten + Subtasks atomar)      |
+
+**Lese-Strategie:** Es gibt **keinen** \`GET /api/cards\` oder \`GET /api/columns\`.
+Den vollständigen Stand eines Boards (Spalten, Karten, Members) holst du über
+\`GET /api/boards/:id\`. Eine Liste aller Karten mit Fälligkeit gibt es über
+\`GET /api/calendar/cards\`.
 
 ## Fehlerbehandlung
 

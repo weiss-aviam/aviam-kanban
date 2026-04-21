@@ -59,14 +59,23 @@ All titles (board, column, card, subtask) must be:
 
 ## What you can do
 
-| Resource    | Routes                                                                          |
-| ----------- | ------------------------------------------------------------------------------- |
-| Boards      | `GET/POST/PUT/DELETE /api/boards[/:id]`                                         |
-| Groups      | `GET/POST/PUT/DELETE /api/board-groups[/:id]`                                   |
-| Columns     | `GET/POST/PUT/DELETE /api/columns[/:id]`, `POST /api/columns/bulk-update`       |
-| Cards       | `GET/POST/PUT/DELETE /api/cards[/:id]`, `POST /api/cards/bulk-{reorder,update}` |
-| Subtasks    | `POST /api/cards/:id/subtasks`, `PUT/DELETE /api/cards/:id/subtasks/:sid`       |
-| Attachments | `POST /api/cards/:id/attachments` (multipart)                                   |
-| Composite   | `POST /api/changesets/board` (board + columns + cards + subtasks)               |
+The table below is the **complete** list of endpoints. Paths that look like
+they should exist but don't (`GET /api/cards`, `GET /api/columns`, `PUT`
+on cards/columns/subtasks) will 404 or 405 — don't try them.
+
+| Resource    | Real routes                                                                                                         |
+| ----------- | ------------------------------------------------------------------------------------------------------------------- |
+| Boards      | `GET, POST /api/boards` · `GET, PUT, DELETE /api/boards/:id`                                                        |
+| Groups      | `GET, POST /api/board-groups` · `PUT, DELETE /api/board-groups/:id`                                                 |
+| Columns     | `POST /api/columns` · `PATCH, DELETE /api/columns/:id` · `POST /api/columns/bulk-update`                            |
+| Cards       | `POST /api/cards` · `PATCH, DELETE /api/cards/:id` · `POST /api/cards/bulk-update` · `POST /api/cards/bulk-reorder` |
+| Subtasks    | `GET, POST /api/cards/:id/subtasks` · `PATCH, DELETE /api/cards/:id/subtasks/:subtaskId`                            |
+| Attachments | `GET, POST, DELETE /api/cards/:id/attachments` (POST = multipart)                                                   |
+| Calendar    | `GET /api/calendar/cards` (all cards with due dates across boards)                                                  |
+| Composite   | `POST /api/changesets/board` (board + columns + cards + subtasks, atomic)                                           |
+
+**Read strategy.** There is no `GET /api/cards` or `GET /api/columns`. To
+read a board's full state (columns, cards, members) use `GET /api/boards/:id`.
+For a cross-board feed of upcoming work, use `GET /api/calendar/cards`.
 
 See `docs/api/changesets.md` for the composite-create payload schema.
