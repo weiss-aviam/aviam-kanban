@@ -43,7 +43,7 @@ export interface BoardCardData {
   memberCount?: number;
   taskCount?: number;
   groupId?: string | null;
-  createdVia?: "ui" | "api" | null;
+  createdVia?: "ui" | "api";
 }
 
 export type BoardCardGroupOption = {

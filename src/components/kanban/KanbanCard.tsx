@@ -208,8 +208,8 @@ export function KanbanCard({
       >
         {/* Header: priority + via-api badges */}
         <div className="flex items-center justify-end gap-2">
-          {card.createdVia === "api" && <ViaApiBadge />}
           <PriorityBadge priority={priority} size="md" />
+          {card.createdVia === "api" && <ViaApiBadge />}
         </div>
 
         {/* Content: title + description + due date */}
