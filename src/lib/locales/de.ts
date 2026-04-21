@@ -657,6 +657,13 @@ export const de = {
     notFoundDescription:
       "Diese Gruppe existiert nicht oder Sie haben keinen Zugriff.",
     requestFailed: "Aktion ist fehlgeschlagen",
+    cardBoards: "Boards",
+    cardTasks: "Aufgaben",
+    cardMembers: "Mitglieder",
+    cardOpen: "Gruppe öffnen",
+    sectionTitle: "Gruppen",
+    sectionEmpty: "Noch keine Gruppen angelegt",
+    ungroupedBoards: "Ungruppierte Boards",
   },
 
   boardsPage: {

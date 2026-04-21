@@ -8,11 +8,18 @@ export type DashboardBoardGroup = {
   createdBy: string | null;
   position: number;
   createdAt: string;
+  /** Visible boards in this group (RLS-filtered). Defaults to 0 if not aggregated. */
+  boardCount?: number;
+  /** Total cards across visible boards in this group. */
+  taskCount?: number;
+  /** Distinct members across visible boards in this group. */
+  memberCount?: number;
 };
 
 /**
  * Returns every group the current user can see. RLS handles the visibility
  * filter (creator OR member of any board in the group), so we just SELECT.
+ * KPI counts (boards, tasks, members) are aggregated server-side per group.
  */
 export async function getBoardGroupsForUser(): Promise<DashboardBoardGroup[]> {
   const { supabase, user } = await getSessionUser();
@@ -29,14 +36,72 @@ export async function getBoardGroupsForUser(): Promise<DashboardBoardGroup[]> {
     return [];
   }
 
-  return data.map((g) => ({
-    id: g.id,
-    name: g.name,
-    color: g.color ?? null,
-    createdBy: g.created_by ?? null,
-    position: g.position ?? 0,
-    createdAt: g.created_at,
-  }));
+  const groupIds = data.map((g) => g.id);
+
+  // Fetch boards belonging to any of these groups (RLS limits to visible).
+  // We need both group_id (to bucket) and id (to join cards/members).
+  const boardsByGroup = new Map<string, string[]>();
+  if (groupIds.length > 0) {
+    const { data: groupBoards } = await supabase
+      .from("boards")
+      .select("id, group_id")
+      .in("group_id", groupIds);
+    for (const b of groupBoards ?? []) {
+      const arr = boardsByGroup.get(b.group_id) ?? [];
+      arr.push(b.id);
+      boardsByGroup.set(b.group_id, arr);
+    }
+  }
+
+  const allBoardIds = Array.from(boardsByGroup.values()).flat();
+
+  // Aggregate cards per board, then sum per group.
+  const cardsByBoard = new Map<string, number>();
+  if (allBoardIds.length > 0) {
+    const { data: cardRows } = await supabase
+      .from("cards")
+      .select("board_id")
+      .in("board_id", allBoardIds);
+    for (const c of cardRows ?? []) {
+      cardsByBoard.set(c.board_id, (cardsByBoard.get(c.board_id) ?? 0) + 1);
+    }
+  }
+
+  // Distinct member set per board, then union per group.
+  const membersByBoard = new Map<string, Set<string>>();
+  if (allBoardIds.length > 0) {
+    const { data: memberRows } = await supabase
+      .from("board_members")
+      .select("board_id, user_id")
+      .in("board_id", allBoardIds);
+    for (const m of memberRows ?? []) {
+      const set = membersByBoard.get(m.board_id) ?? new Set<string>();
+      set.add(m.user_id);
+      membersByBoard.set(m.board_id, set);
+    }
+  }
+
+  return data.map((g) => {
+    const boardIds = boardsByGroup.get(g.id) ?? [];
+    let taskCount = 0;
+    const memberSet = new Set<string>();
+    for (const boardId of boardIds) {
+      taskCount += cardsByBoard.get(boardId) ?? 0;
+      const members = membersByBoard.get(boardId);
+      if (members) for (const uid of members) memberSet.add(uid);
+    }
+    return {
+      id: g.id,
+      name: g.name,
+      color: g.color ?? null,
+      createdBy: g.created_by ?? null,
+      position: g.position ?? 0,
+      createdAt: g.created_at,
+      boardCount: boardIds.length,
+      taskCount,
+      memberCount: memberSet.size,
+    };
+  });
 }
 
 /**

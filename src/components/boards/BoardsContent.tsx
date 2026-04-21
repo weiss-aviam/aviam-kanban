@@ -30,7 +30,7 @@ import { ContentTopBar } from "@/components/layout/ContentTopBar";
 import { CreateGroupDialog } from "@/components/board-groups/CreateGroupDialog";
 import { EditGroupDialog } from "@/components/board-groups/EditGroupDialog";
 import { DeleteGroupDialog } from "@/components/board-groups/DeleteGroupDialog";
-import { GroupSection } from "@/components/board-groups/GroupSection";
+import { GroupCard } from "@/components/board-groups/GroupCard";
 import { t } from "@/lib/i18n";
 import { useAppStore, useBoards, useBoardGroups, useAppActions } from "@/store";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -124,6 +124,14 @@ export function BoardsContent({
   const groupOptions = useMemo(
     () => boardGroups.map((g) => ({ id: g.id, name: g.name, color: g.color })),
     [boardGroups],
+  );
+
+  const visibleGroups = useMemo(
+    () =>
+      boardGroups.filter(
+        (g) => (g.boardCount ?? 0) > 0 || g.createdBy === user?.id,
+      ),
+    [boardGroups, user?.id],
   );
 
   const handleAssignGroup = async (boardId: string, groupId: string | null) => {
@@ -407,79 +415,47 @@ export function BoardsContent({
             )}
           </div>
         ) : (
-          (() => {
-            const buckets = new Map<string, BoardWithDetails[]>();
-            const loose: BoardWithDetails[] = [];
-            for (const b of filteredBoards) {
-              const gid =
-                (b as BoardWithDetails & { groupId?: string | null }).groupId ??
-                null;
-              if (gid) {
-                const arr = buckets.get(gid) ?? [];
-                arr.push(b);
-                buckets.set(gid, arr);
-              } else {
-                loose.push(b);
-              }
-            }
-            const gridClass =
-              viewMode === "grid"
-                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-                : "space-y-4";
-            const renderGrid = (items: BoardWithDetails[]) => (
-              <div className={gridClass}>
-                {items.map((board) => (
-                  <BoardCard
-                    key={board.id}
-                    board={board as unknown as BoardCardData}
-                    viewMode={viewMode}
-                    groupOptions={groupOptions}
-                    onEdit={() => setEditingBoard(board)}
-                    onArchive={() => handleArchiveBoard(board)}
-                    onDelete={() => handleDeleteBoard(board)}
-                    onAssignGroup={(gid) => handleAssignGroup(board.id, gid)}
-                  />
-                ))}
-              </div>
-            );
-            return (
-              <>
-                {boardGroups.map((group) => {
-                  const items = buckets.get(group.id) ?? [];
-                  if (items.length === 0 && group.createdBy !== user?.id) {
-                    return null;
-                  }
-                  return (
-                    <GroupSection
+          <>
+            {visibleGroups.length > 0 && (
+              <section className="mb-8">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                  {t("boardGroups.sectionTitle")}
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {visibleGroups.map((group) => (
+                    <GroupCard
                       key={group.id}
                       group={group}
-                      boardCount={items.length}
                       canManage={group.createdBy === user?.id}
                       onEdit={() => setEditingGroup(group)}
                       onDelete={() => setDeletingGroup(group)}
-                    >
-                      {items.length > 0 ? (
-                        renderGrid(items)
-                      ) : (
-                        <p className="text-sm text-muted-foreground italic">
-                          {t("boardGroups.boardCount", { count: 0 })}
-                        </p>
-                      )}
-                    </GroupSection>
-                  );
-                })}
-                <GroupSection group={null} boardCount={loose.length}>
-                  {loose.length > 0 ? (
-                    renderGrid(loose)
-                  ) : (
-                    <p className="text-sm text-muted-foreground italic">
-                      {t("boardGroups.boardCount", { count: 0 })}
-                    </p>
-                  )}
-                </GroupSection>
-              </>
-            );
-          })()
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            <div
+              className={
+                viewMode === "grid"
+                  ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                  : "space-y-4"
+              }
+            >
+              {filteredBoards.map((board) => (
+                <BoardCard
+                  key={board.id}
+                  board={board as unknown as BoardCardData}
+                  viewMode={viewMode}
+                  groupOptions={groupOptions}
+                  onEdit={() => setEditingBoard(board)}
+                  onArchive={() => handleArchiveBoard(board)}
+                  onDelete={() => handleDeleteBoard(board)}
+                  onAssignGroup={(gid) => handleAssignGroup(board.id, gid)}
+                />
+              ))}
+            </div>
+          </>
         )}
 
         {editingBoard && (

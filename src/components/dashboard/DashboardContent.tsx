@@ -17,7 +17,7 @@ import { BoardCard } from "@/components/boards/BoardCard";
 import { CreateGroupDialog } from "@/components/board-groups/CreateGroupDialog";
 import { EditGroupDialog } from "@/components/board-groups/EditGroupDialog";
 import { DeleteGroupDialog } from "@/components/board-groups/DeleteGroupDialog";
-import { GroupSection } from "@/components/board-groups/GroupSection";
+import { GroupCard } from "@/components/board-groups/GroupCard";
 import { ContentTopBar } from "@/components/layout/ContentTopBar";
 import { UpcomingDeadlinesCard } from "@/components/dashboard/UpcomingDeadlinesCard";
 import { RecentActivityCard } from "@/components/dashboard/RecentActivityCard";
@@ -86,22 +86,12 @@ export function DashboardContent({
     [boardGroups],
   );
 
-  // Bucket boards by group, preserving the existing dashboard order
-  const { grouped, ungrouped } = useMemo(() => {
-    const buckets = new Map<string, Board[]>();
-    const loose: Board[] = [];
-    for (const b of boards) {
-      const gid = (b as Board & { groupId?: string | null }).groupId ?? null;
-      if (gid) {
-        const arr = buckets.get(gid) ?? [];
-        arr.push(b);
-        buckets.set(gid, arr);
-      } else {
-        loose.push(b);
-      }
-    }
-    return { grouped: buckets, ungrouped: loose };
-  }, [boards]);
+  // Visible groups: hide empty groups the user didn't create
+  const visibleGroups = useMemo(() => {
+    return boardGroups.filter(
+      (g) => (g.boardCount ?? 0) > 0 || g.createdBy === user?.id,
+    );
+  }, [boardGroups, user?.id]);
 
   const handleBoardCreated = (newBoard: {
     id: string;
@@ -305,43 +295,26 @@ export function DashboardContent({
             </Card>
           ) : (
             <>
-              {boardGroups.map((group) => {
-                const items = grouped.get(group.id) ?? [];
-                if (items.length === 0 && group.createdBy !== user?.id) {
-                  // Hide empty groups the user didn't create — they only exist
-                  // because the user used to be a member of a board that was
-                  // moved out. Avoid clutter.
-                  return null;
-                }
-                return (
-                  <GroupSection
-                    key={group.id}
-                    group={group}
-                    boardCount={items.length}
-                    canManage={group.createdBy === user?.id}
-                    onEdit={() => setEditingGroup(group)}
-                    onDelete={() => setDeletingGroup(group)}
-                  >
-                    {items.length > 0 ? (
-                      renderBoardGrid(items)
-                    ) : (
-                      <p className="text-sm text-muted-foreground italic">
-                        {t("boardGroups.boardCount", { count: 0 })}
-                      </p>
-                    )}
-                  </GroupSection>
-                );
-              })}
+              {visibleGroups.length > 0 && (
+                <section className="mb-8">
+                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                    {t("boardGroups.sectionTitle")}
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {visibleGroups.map((group) => (
+                      <GroupCard
+                        key={group.id}
+                        group={group}
+                        canManage={group.createdBy === user?.id}
+                        onEdit={() => setEditingGroup(group)}
+                        onDelete={() => setDeletingGroup(group)}
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
 
-              <GroupSection group={null} boardCount={ungrouped.length}>
-                {ungrouped.length > 0 ? (
-                  renderBoardGrid(ungrouped)
-                ) : (
-                  <p className="text-sm text-muted-foreground italic">
-                    {t("boardGroups.boardCount", { count: 0 })}
-                  </p>
-                )}
-              </GroupSection>
+              {renderBoardGrid(boards)}
             </>
           )}
         </div>

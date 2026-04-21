@@ -8,6 +8,7 @@ import type { BoardActionState } from "./boards-state";
 const createBoardSchema = z.object({
   name: z.string().trim().min(1, "Board name is required"),
   templateId: z.string().optional().nullable(),
+  groupId: z.string().uuid("Invalid group ID").optional().nullable(),
 });
 
 const updateBoardSchema = z.object({
@@ -23,6 +24,7 @@ export async function createBoardAction(
   const parsed = createBoardSchema.safeParse({
     name: formData.get("name"),
     templateId: formData.get("templateId") || null,
+    groupId: formData.get("groupId") || null,
   });
   if (!parsed.success) {
     return {
@@ -75,9 +77,27 @@ export async function createBoardAction(
     }
   }
 
+  // Verify the group exists and is visible to the user (RLS protects).
+  // Without this check, a malicious caller could orphan boards under a
+  // group ID they have no access to.
+  if (parsed.data.groupId) {
+    const { data: group } = await supabase
+      .from("board_groups")
+      .select("id")
+      .eq("id", parsed.data.groupId)
+      .maybeSingle();
+    if (!group) {
+      return { status: "error", error: "Group not found or access denied" };
+    }
+  }
+
   const { data: newBoard, error: boardError } = await supabase
     .from("boards")
-    .insert({ name: parsed.data.name, owner_id: user.id })
+    .insert({
+      name: parsed.data.name,
+      owner_id: user.id,
+      group_id: parsed.data.groupId ?? null,
+    })
     .select()
     .single();
   if (boardError || !newBoard) {

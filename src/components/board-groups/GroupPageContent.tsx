@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -13,10 +13,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ContentTopBar } from "@/components/layout/ContentTopBar";
 import { BoardCard, type BoardCardData } from "@/components/boards/BoardCard";
+import { CreateBoardDialog } from "@/components/boards/CreateBoardDialog";
 import { EditGroupDialog } from "@/components/board-groups/EditGroupDialog";
 import { DeleteGroupDialog } from "@/components/board-groups/DeleteGroupDialog";
 import { t } from "@/lib/i18n";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import type { Board } from "@/types/database";
 import type { DashboardBoardGroup } from "@/lib/data/board-groups";
 import type { DashboardBoard } from "@/lib/data/dashboard";
 
@@ -58,6 +60,31 @@ export function GroupPageContent({
     } catch (err) {
       console.error("Assign group failed:", err);
     }
+  };
+
+  const handleBoardCreated = (created: Board) => {
+    const next: DashboardBoard = {
+      id: created.id,
+      name: created.name,
+      description: created.description ?? null,
+      isArchived: created.isArchived ?? false,
+      createdAt:
+        created.createdAt instanceof Date
+          ? created.createdAt.toISOString()
+          : (created.createdAt as unknown as string),
+      updatedAt:
+        created.updatedAt instanceof Date
+          ? created.updatedAt.toISOString()
+          : ((created.updatedAt as unknown as string) ??
+            new Date().toISOString()),
+      ownerId: created.ownerId,
+      groupId: group.id,
+      groupPosition: 0,
+      role: "owner",
+      memberCount: 1,
+      taskCount: 0,
+    };
+    setBoards((prev) => [next, ...prev]);
   };
 
   const handleArchive = async (board: DashboardBoard) => {
@@ -104,36 +131,48 @@ export function GroupPageContent({
         }
         subtitle={t("boardGroups.boardCount", { count: boards.length })}
         actions={
-          canManage ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  <MoreHorizontal className="h-4 w-4" />
+          <div className="flex items-center gap-2">
+            <CreateBoardDialog
+              defaultGroupId={group.id}
+              onBoardCreated={handleBoardCreated}
+              trigger={
+                <Button variant="outline" size="sm">
+                  <Plus className="w-4 h-4 mr-2" />
+                  {t("dashboard.newBoard")}
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setEditingGroup(group);
-                  }}
-                >
-                  <Pencil className="mr-2 h-4 w-4" />
-                  {t("boardGroups.editTitle")}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setDeletingGroup(group);
-                  }}
-                  className="text-red-600"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  {t("boardGroups.delete")}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : null
+              }
+            />
+            {canManage ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setEditingGroup(group);
+                    }}
+                  >
+                    <Pencil className="mr-2 h-4 w-4" />
+                    {t("boardGroups.editTitle")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setDeletingGroup(group);
+                    }}
+                    className="text-red-600"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    {t("boardGroups.delete")}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : null}
+          </div>
         }
       />
 

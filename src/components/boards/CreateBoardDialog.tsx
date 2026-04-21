@@ -28,11 +28,13 @@ import {
 interface CreateBoardDialogProps {
   onBoardCreated?: (board: Board) => void;
   trigger?: React.ReactNode;
+  defaultGroupId?: string;
 }
 
 export function CreateBoardDialog({
   onBoardCreated,
   trigger,
+  defaultGroupId,
 }: CreateBoardDialogProps) {
   const [open, setOpen] = useState(false);
   const [formKey, setFormKey] = useState(0);
@@ -74,6 +76,7 @@ export function CreateBoardDialog({
             key={formKey}
             onClose={() => setOpen(false)}
             onBoardCreated={handleBoardCreated}
+            {...(defaultGroupId ? { defaultGroupId } : {})}
           />
         </DialogContent>
       </Dialog>
@@ -115,9 +118,11 @@ export function CreateBoardDialog({
 function CreateBoardForm({
   onClose,
   onBoardCreated,
+  defaultGroupId,
 }: {
   onClose: () => void;
   onBoardCreated: (board: Board) => void;
+  defaultGroupId?: string;
 }) {
   const [selectedTemplateId, setSelectedTemplateId] = useState<
     number | undefined
@@ -149,6 +154,10 @@ function CreateBoardForm({
           name="templateId"
           value={String(selectedTemplateId)}
         />
+      )}
+
+      {defaultGroupId && (
+        <input type="hidden" name="groupId" value={defaultGroupId} />
       )}
 
       {errorMessage && (
