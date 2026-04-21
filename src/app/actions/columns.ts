@@ -4,13 +4,7 @@ import { z } from "zod";
 import { getSessionUser } from "@/lib/supabase/server";
 import { getBoardMutationAuthorization } from "@/lib/board-access";
 import type { Column } from "@/types/database";
-
-export type ColumnActionState =
-  | { status: "idle" }
-  | { status: "success"; column: Column }
-  | { status: "error"; error: string };
-
-export const INITIAL_COLUMN_STATE: ColumnActionState = { status: "idle" };
+import type { ColumnActionState } from "./columns-state";
 
 type BoardAccessClient = Parameters<typeof getBoardMutationAuthorization>[0];
 

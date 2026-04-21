@@ -24,11 +24,11 @@ import {
   type AvailableBoardUser,
   type AddMemberRole,
 } from "./invite-user-form.utils";
+import { addMemberAction } from "@/app/actions/memberships";
 import {
-  addMemberAction,
   INITIAL_ADD_MEMBER_STATE,
   type AddMemberActionState,
-} from "@/app/actions/memberships";
+} from "@/app/actions/memberships-state";
 
 interface InviteUserFormProps {
   boardId: string;

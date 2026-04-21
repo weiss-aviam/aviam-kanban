@@ -19,11 +19,11 @@ import type { Board } from "@/types/database";
 
 import { TemplateSelector } from "../templates/TemplateSelector";
 import { InviteUserForm } from "../admin/InviteUserForm";
+import { createBoardAction } from "@/app/actions/boards";
 import {
-  createBoardAction,
   INITIAL_BOARD_STATE,
   type BoardActionState,
-} from "@/app/actions/boards";
+} from "@/app/actions/boards-state";
 
 interface CreateBoardDialogProps {
   onBoardCreated?: (board: Board) => void;

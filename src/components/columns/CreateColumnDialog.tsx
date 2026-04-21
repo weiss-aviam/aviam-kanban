@@ -16,11 +16,11 @@ import {
 import { Plus, Loader2 } from "lucide-react";
 import type { Column } from "@/types/database";
 import { t } from "@/lib/i18n";
+import { createColumnAction } from "@/app/actions/columns";
 import {
-  createColumnAction,
   INITIAL_COLUMN_STATE,
   type ColumnActionState,
-} from "@/app/actions/columns";
+} from "@/app/actions/columns-state";
 
 interface CreateColumnDialogProps {
   boardId: string;

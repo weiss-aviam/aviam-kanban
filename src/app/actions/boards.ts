@@ -3,13 +3,7 @@
 import { z } from "zod";
 import { getSessionUser } from "@/lib/supabase/server";
 import type { Board } from "@/types/database";
-
-export type BoardActionState =
-  | { status: "idle" }
-  | { status: "success"; board: Board }
-  | { status: "error"; error: string };
-
-export const INITIAL_BOARD_STATE: BoardActionState = { status: "idle" };
+import type { BoardActionState } from "./boards-state";
 
 const createBoardSchema = z.object({
   name: z.string().trim().min(1, "Board name is required"),

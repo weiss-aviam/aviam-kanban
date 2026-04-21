@@ -12,17 +12,7 @@ import {
   validateRoleAssignment,
 } from "@/lib/validations/admin";
 
-export type AddMemberActionState =
-  | { status: "idle" }
-  | {
-      status: "success";
-      membership: { userId: string; email: string; name: string; role: string };
-    }
-  | { status: "error"; error: string };
-
-export const INITIAL_ADD_MEMBER_STATE: AddMemberActionState = {
-  status: "idle",
-};
+import type { AddMemberActionState } from "./memberships-state";
 
 export async function addMemberAction(
   _prev: AddMemberActionState,

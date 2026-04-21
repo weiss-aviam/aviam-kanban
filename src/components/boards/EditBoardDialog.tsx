@@ -15,11 +15,11 @@ import {
 } from "../ui/dialog";
 import { Edit, Loader2 } from "lucide-react";
 import { t } from "@/lib/i18n";
+import { updateBoardAction } from "@/app/actions/boards";
 import {
-  updateBoardAction,
   INITIAL_BOARD_STATE,
   type BoardActionState,
-} from "@/app/actions/boards";
+} from "@/app/actions/boards-state";
 
 interface EditBoardDialogProps {
   board: { id: string; name: string; description?: string | null } | null;
