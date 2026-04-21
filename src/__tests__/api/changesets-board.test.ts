@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 import { POST } from "@/app/api/changesets/board/route";
 import { getAuthorizedUser } from "@/lib/supabase/server";
+import { _resetRateLimitForTests } from "@/lib/api/rate-limit";
 
 vi.mock("@/lib/supabase/server", () => ({
   getAuthorizedUser: vi.fn(),
@@ -117,5 +118,21 @@ describe("POST /api/changesets/board", () => {
     expect(res.status).toBe(201);
     expect(await res.json()).toEqual(stored);
     expect(rpcSpy).not.toHaveBeenCalled();
+  });
+
+  it("returns 429 when token rate limit is exceeded", async () => {
+    _resetRateLimitForTests();
+    const rpcSpy = vi.fn().mockResolvedValue({ data: {}, error: null });
+    mockAuth.mockResolvedValue({
+      supabase: { rpc: rpcSpy, from: vi.fn() } as never,
+      user: { id: "u1", tokenId: "t-rate" } as never,
+    });
+
+    for (let i = 0; i < 60; i++) {
+      await POST(buildReq(validPayload));
+    }
+    const res = await POST(buildReq(validPayload));
+    expect(res.status).toBe(429);
+    expect(res.headers.get("Retry-After")).toBeDefined();
   });
 });

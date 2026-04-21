@@ -3,11 +3,23 @@ import { ZodError } from "zod";
 import { getAuthorizedUser } from "@/lib/supabase/server";
 import { ChangesetSchema } from "@/lib/api/changeset-schema";
 import { withIdempotency } from "@/lib/api/idempotency";
+import { rateLimit } from "@/lib/api/rate-limit";
 
 export async function POST(req: NextRequest) {
   const { supabase, user } = await getAuthorizedUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const tokenIdForLimit = (user as { tokenId?: string }).tokenId;
+  if (tokenIdForLimit) {
+    const limit = rateLimit(tokenIdForLimit);
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { error: "Rate limit exceeded" },
+        { status: 429, headers: { "Retry-After": String(limit.retryAfter) } },
+      );
+    }
   }
 
   let parsed;
