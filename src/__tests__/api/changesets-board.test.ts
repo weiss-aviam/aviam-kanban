@@ -83,4 +83,39 @@ describe("POST /api/changesets/board", () => {
     const body = await res.json();
     expect(body.error).toMatch(/boom/);
   });
+
+  it("returns the stored response on idempotency replay", async () => {
+    const stored = {
+      board: { id: "b1", name: "Q3", groupId: null },
+      columns: [],
+      cards: [],
+    };
+    const fromSpy = vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            gt: vi.fn(() => ({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: { status: 201, response: stored },
+                error: null,
+              }),
+            })),
+          })),
+        })),
+      })),
+      insert: vi.fn(),
+    }));
+    const rpcSpy = vi.fn();
+    mockAuth.mockResolvedValue({
+      supabase: { rpc: rpcSpy, from: fromSpy } as never,
+      user: { id: "u1", tokenId: "t1" } as never,
+    });
+
+    const res = await POST(
+      buildReq(validPayload, { "idempotency-key": "abc" }),
+    );
+    expect(res.status).toBe(201);
+    expect(await res.json()).toEqual(stored);
+    expect(rpcSpy).not.toHaveBeenCalled();
+  });
 });

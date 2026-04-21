@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { ZodError } from "zod";
 import { getAuthorizedUser } from "@/lib/supabase/server";
 import { ChangesetSchema } from "@/lib/api/changeset-schema";
+import { withIdempotency } from "@/lib/api/idempotency";
 
 export async function POST(req: NextRequest) {
   const { supabase, user } = await getAuthorizedUser();
@@ -28,16 +29,28 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { data, error } = await supabase.rpc("create_board_changeset", {
-    payload: parsed,
-  });
+  const idempotencyKey = req.headers.get("idempotency-key");
+  const tokenId = (user as { tokenId?: string }).tokenId ?? null;
 
-  if (error) {
-    return NextResponse.json(
-      { error: error.message, details: error },
-      { status: 500 },
-    );
-  }
+  const result = await withIdempotency(
+    {
+      tokenId: tokenId ?? "session",
+      key: tokenId ? idempotencyKey : null,
+      supabase,
+    },
+    async () => {
+      const { data, error } = await supabase.rpc("create_board_changeset", {
+        payload: parsed,
+      });
+      if (error) {
+        return {
+          status: 500,
+          body: { error: error.message, details: error },
+        };
+      }
+      return { status: 201, body: data };
+    },
+  );
 
-  return NextResponse.json(data, { status: 201 });
+  return NextResponse.json(result.body, { status: result.status });
 }
