@@ -131,16 +131,14 @@ export function ApiAccessContent({
                           : t("apiAccess.tokenLastUsedNever")}
                       </div>
                     </div>
-                    {!tok.revokedAt && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onRevoke(tok.id)}
-                        disabled={!enabled}
-                      >
-                        {t("apiAccess.revoke")}
-                      </Button>
-                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onRevoke(tok.id)}
+                      disabled={!enabled}
+                    >
+                      {t("apiAccess.revoke")}
+                    </Button>
                   </li>
                 ))}
               </ul>

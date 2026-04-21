@@ -14,6 +14,7 @@ export async function GET() {
     .from("api_tokens")
     .select("id, name, prefix, last_used_at, created_at, revoked_at")
     .eq("user_id", user.id)
+    .is("revoked_at", null)
     .order("created_at", { ascending: false });
 
   if (error)

@@ -57,7 +57,9 @@ describe("API tokens routes", () => {
       supabase: supabaseMock(() => ({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
-            order: vi.fn().mockResolvedValue({ data: rows, error: null }),
+            is: vi.fn(() => ({
+              order: vi.fn().mockResolvedValue({ data: rows, error: null }),
+            })),
           })),
         })),
       })) as never,
