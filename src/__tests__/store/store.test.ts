@@ -54,6 +54,7 @@ const makeBoard = (columns: Column[] = []): BoardWithDetails =>
       email: "owner@example.com",
       name: "Owner",
       avatarUrl: null,
+      apiAccessEnabled: false,
       createdAt: new Date("2026-01-01"),
     },
     members: [],
@@ -370,6 +371,7 @@ describe("setAuthenticated", () => {
       email: "a@b.com",
       name: "A",
       avatarUrl: null,
+      apiAccessEnabled: false,
       createdAt: new Date(),
     });
     store.setCurrentBoard(makeBoard());
@@ -542,6 +544,7 @@ describe("reset", () => {
       email: "a@b.com",
       name: "A",
       avatarUrl: null,
+      apiAccessEnabled: false,
       createdAt: new Date(),
     });
     store.setCurrentBoard(makeBoard());

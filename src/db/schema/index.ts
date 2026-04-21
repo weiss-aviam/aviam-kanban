@@ -19,6 +19,7 @@ export const users = pgTable("users", {
   email: varchar("email", { length: 255 }).notNull().unique(),
   name: varchar("name", { length: 255 }),
   avatarUrl: varchar("avatar_url", { length: 2048 }),
+  apiAccessEnabled: boolean("api_access_enabled").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

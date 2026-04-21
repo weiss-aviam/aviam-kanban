@@ -55,6 +55,7 @@ const createUser = (overrides: Partial<User> = {}): User => ({
   email: "ada@example.com",
   name: "Ada Lovelace",
   avatarUrl: null,
+  apiAccessEnabled: false,
   createdAt: new Date("2026-03-05T12:00:00Z"),
   ...overrides,
 });
