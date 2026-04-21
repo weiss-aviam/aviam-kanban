@@ -2,6 +2,7 @@ import { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import {
   users,
   boards,
+  boardGroups,
   boardMembers,
   columns,
   cards,
@@ -30,6 +31,8 @@ export type AdminAuditLog = InferSelectModel<typeof adminAuditLog>;
 export type UserInvitation = InferSelectModel<typeof userInvitations>;
 export type CardDeadlineRequest = InferSelectModel<typeof cardDeadlineRequests>;
 export type Notification = InferSelectModel<typeof notifications>;
+export type BoardGroup = InferSelectModel<typeof boardGroups>;
+export type NewBoardGroup = InferInsertModel<typeof boardGroups>;
 
 // Insert types (for creating new records)
 export type NewUser = InferInsertModel<typeof users>;

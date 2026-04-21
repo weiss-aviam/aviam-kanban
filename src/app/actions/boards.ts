@@ -120,6 +120,8 @@ export async function createBoardAction(
       role: "owner",
       description: null,
       updatedAt: newBoard.updated_at,
+      groupId: newBoard.group_id ?? null,
+      groupPosition: newBoard.group_position ?? 0,
     } as Board,
   };
 }
@@ -184,6 +186,8 @@ export async function updateBoardAction(
       updatedAt: updated.updated_at,
       ownerId: updated.owner_id,
       role: memberData.role,
+      groupId: updated.group_id ?? null,
+      groupPosition: updated.group_position ?? 0,
     } as Board,
   };
 }

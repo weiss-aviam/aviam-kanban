@@ -13,6 +13,7 @@ import {
   Star,
   SlidersHorizontal,
   Check,
+  FolderPlus,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -26,30 +27,82 @@ import { DeleteBoardDialog } from "@/components/boards/DeleteBoardDialog";
 import { BoardCard, BoardCardData } from "@/components/boards/BoardCard";
 import type { Board, BoardWithDetails } from "@/types/database";
 import { ContentTopBar } from "@/components/layout/ContentTopBar";
+import { CreateGroupDialog } from "@/components/board-groups/CreateGroupDialog";
+import { EditGroupDialog } from "@/components/board-groups/EditGroupDialog";
+import { DeleteGroupDialog } from "@/components/board-groups/DeleteGroupDialog";
+import { GroupSection } from "@/components/board-groups/GroupSection";
 import { t } from "@/lib/i18n";
-import { useBoards, useAppActions } from "@/store";
+import { useAppStore, useBoards, useBoardGroups, useAppActions } from "@/store";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import type { DashboardBoardGroup } from "@/lib/data/board-groups";
 
 function BoardsActions({
   onBoardCreated,
+  onGroupCreated,
 }: {
   onBoardCreated: (b: Board) => void;
+  onGroupCreated: (g: DashboardBoardGroup) => void;
 }) {
   return (
-    <CreateBoardDialog
-      onBoardCreated={onBoardCreated}
-      trigger={
-        <Button size="sm">
-          <Plus className="w-4 h-4 sm:mr-1.5" />
-          <span className="hidden sm:inline">{t("boardsPage.newBoard")}</span>
-        </Button>
-      }
-    />
+    <div className="flex items-center gap-2">
+      <CreateGroupDialog
+        onGroupCreated={onGroupCreated}
+        trigger={
+          <Button variant="outline" size="sm">
+            <FolderPlus className="w-4 h-4 sm:mr-1.5" />
+            <span className="hidden sm:inline">
+              {t("boardGroups.newGroup")}
+            </span>
+          </Button>
+        }
+      />
+      <CreateBoardDialog
+        onBoardCreated={onBoardCreated}
+        trigger={
+          <Button size="sm">
+            <Plus className="w-4 h-4 sm:mr-1.5" />
+            <span className="hidden sm:inline">{t("boardsPage.newBoard")}</span>
+          </Button>
+        }
+      />
+    </div>
   );
 }
 
-export function BoardsContent() {
+interface BoardsContentProps {
+  initialBoards: BoardWithDetails[];
+  initialBoardGroups: DashboardBoardGroup[];
+}
+
+export function BoardsContent({
+  initialBoards,
+  initialBoardGroups,
+}: BoardsContentProps) {
+  // Hydrate the Zustand store from server data once per mount, in the same
+  // component that subscribes. useState's lazy initializer fires before any
+  // useSyncExternalStore subscription is registered in this render, so the
+  // setState notification has no listeners to schedule — avoiding React 19's
+  // "Cannot update a component while rendering a different component" error.
+  useState(() => {
+    useAppStore.setState({
+      boards: initialBoards,
+      boardGroups: initialBoardGroups,
+      boardsFetchedAt: new Date(),
+    });
+  });
+
   const boards = useBoards();
-  const { addBoard, removeBoard, updateBoardInList } = useAppActions();
+  const boardGroups = useBoardGroups();
+  const { user } = useCurrentUser();
+  const {
+    addBoard,
+    removeBoard,
+    updateBoardInList,
+    addBoardGroup,
+    updateBoardGroup,
+    removeBoardGroup,
+    setBoardGroup,
+  } = useAppActions();
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [filterBy, setFilterBy] = useState<
@@ -62,6 +115,30 @@ export function BoardsContent() {
   const [deletingBoard, setDeletingBoard] = useState<BoardWithDetails | null>(
     null,
   );
+  const [editingGroup, setEditingGroup] = useState<DashboardBoardGroup | null>(
+    null,
+  );
+  const [deletingGroup, setDeletingGroup] =
+    useState<DashboardBoardGroup | null>(null);
+
+  const groupOptions = useMemo(
+    () => boardGroups.map((g) => ({ id: g.id, name: g.name, color: g.color })),
+    [boardGroups],
+  );
+
+  const handleAssignGroup = async (boardId: string, groupId: string | null) => {
+    setBoardGroup(boardId, groupId);
+    try {
+      const res = await fetch(`/api/boards/${boardId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ groupId }),
+      });
+      if (!res.ok) console.error("Assign group failed:", await res.text());
+    } catch (err) {
+      console.error("Assign group failed:", err);
+    }
+  };
 
   const filteredBoards = useMemo(() => {
     let filtered = [...boards];
@@ -159,7 +236,12 @@ export function BoardsContent() {
       <ContentTopBar
         title={t("boardsPage.title")}
         subtitle={t("boardsPage.subtitle")}
-        actions={<BoardsActions onBoardCreated={handleBoardCreated} />}
+        actions={
+          <BoardsActions
+            onBoardCreated={handleBoardCreated}
+            onGroupCreated={addBoardGroup}
+          />
+        }
       />
 
       <main className="flex-1 px-4 sm:px-6 lg:px-8 py-8">
@@ -325,24 +407,79 @@ export function BoardsContent() {
             )}
           </div>
         ) : (
-          <div
-            className={
+          (() => {
+            const buckets = new Map<string, BoardWithDetails[]>();
+            const loose: BoardWithDetails[] = [];
+            for (const b of filteredBoards) {
+              const gid =
+                (b as BoardWithDetails & { groupId?: string | null }).groupId ??
+                null;
+              if (gid) {
+                const arr = buckets.get(gid) ?? [];
+                arr.push(b);
+                buckets.set(gid, arr);
+              } else {
+                loose.push(b);
+              }
+            }
+            const gridClass =
               viewMode === "grid"
                 ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-                : "space-y-4"
-            }
-          >
-            {filteredBoards.map((board) => (
-              <BoardCard
-                key={board.id}
-                board={board as unknown as BoardCardData}
-                viewMode={viewMode}
-                onEdit={() => setEditingBoard(board)}
-                onArchive={() => handleArchiveBoard(board)}
-                onDelete={() => handleDeleteBoard(board)}
-              />
-            ))}
-          </div>
+                : "space-y-4";
+            const renderGrid = (items: BoardWithDetails[]) => (
+              <div className={gridClass}>
+                {items.map((board) => (
+                  <BoardCard
+                    key={board.id}
+                    board={board as unknown as BoardCardData}
+                    viewMode={viewMode}
+                    groupOptions={groupOptions}
+                    onEdit={() => setEditingBoard(board)}
+                    onArchive={() => handleArchiveBoard(board)}
+                    onDelete={() => handleDeleteBoard(board)}
+                    onAssignGroup={(gid) => handleAssignGroup(board.id, gid)}
+                  />
+                ))}
+              </div>
+            );
+            return (
+              <>
+                {boardGroups.map((group) => {
+                  const items = buckets.get(group.id) ?? [];
+                  if (items.length === 0 && group.createdBy !== user?.id) {
+                    return null;
+                  }
+                  return (
+                    <GroupSection
+                      key={group.id}
+                      group={group}
+                      boardCount={items.length}
+                      canManage={group.createdBy === user?.id}
+                      onEdit={() => setEditingGroup(group)}
+                      onDelete={() => setDeletingGroup(group)}
+                    >
+                      {items.length > 0 ? (
+                        renderGrid(items)
+                      ) : (
+                        <p className="text-sm text-muted-foreground italic">
+                          {t("boardGroups.boardCount", { count: 0 })}
+                        </p>
+                      )}
+                    </GroupSection>
+                  );
+                })}
+                <GroupSection group={null} boardCount={loose.length}>
+                  {loose.length > 0 ? (
+                    renderGrid(loose)
+                  ) : (
+                    <p className="text-sm text-muted-foreground italic">
+                      {t("boardGroups.boardCount", { count: 0 })}
+                    </p>
+                  )}
+                </GroupSection>
+              </>
+            );
+          })()
         )}
 
         {editingBoard && (
@@ -359,6 +496,26 @@ export function BoardsContent() {
           onOpenChange={(open) => !open && setDeletingBoard(null)}
           board={deletingBoard}
           onConfirm={handleDeleteConfirmed}
+        />
+
+        <EditGroupDialog
+          group={editingGroup}
+          open={!!editingGroup}
+          onOpenChange={(open) => !open && setEditingGroup(null)}
+          onGroupUpdated={(g) => {
+            updateBoardGroup(g);
+            setEditingGroup(null);
+          }}
+        />
+
+        <DeleteGroupDialog
+          group={deletingGroup}
+          open={!!deletingGroup}
+          onOpenChange={(open) => !open && setDeletingGroup(null)}
+          onConfirmed={(id) => {
+            removeBoardGroup(id);
+            setDeletingGroup(null);
+          }}
         />
       </main>
     </div>

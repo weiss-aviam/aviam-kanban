@@ -23,8 +23,13 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import useSWR from "swr";
+import type { DashboardBoardGroup } from "@/lib/data/board-groups";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -164,6 +169,45 @@ function SidebarUserMenu() {
   );
 }
 
+function SidebarBoardGroupsSection({ pathname }: { pathname: string }) {
+  const { data } = useSWR<{ groups: DashboardBoardGroup[] }>(
+    "/api/board-groups",
+  );
+  const groups = data?.groups ?? [];
+
+  if (groups.length === 0) return null;
+
+  return (
+    <SidebarGroup>
+      <SidebarGroupLabel>{t("sidebar.boardGroups")}</SidebarGroupLabel>
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuSub>
+            {groups.map((group) => {
+              const href = `/groups/${group.id}`;
+              const isActive = pathname === href;
+              return (
+                <SidebarMenuSubItem key={group.id}>
+                  <SidebarMenuSubButton asChild isActive={isActive}>
+                    <Link href={href}>
+                      <span
+                        className="inline-block h-2 w-2 rounded-full shrink-0"
+                        style={{ backgroundColor: group.color ?? "#9ca3af" }}
+                        aria-hidden
+                      />
+                      <span className="truncate">{group.name}</span>
+                    </Link>
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+              );
+            })}
+          </SidebarMenuSub>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    </SidebarGroup>
+  );
+}
+
 export function AppSidebar() {
   const pathname = usePathname();
   const { user } = useCurrentUser();
@@ -200,6 +244,8 @@ export function AppSidebar() {
             })}
           </SidebarMenu>
         </SidebarGroup>
+
+        <SidebarBoardGroupsSection pathname={pathname} />
 
         {user?.isSuperAdmin ? (
           <SidebarGroup>

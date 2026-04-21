@@ -9,6 +9,8 @@ export type DashboardBoard = {
   createdAt: string;
   updatedAt: string;
   ownerId: string;
+  groupId: string | null;
+  groupPosition: number;
   role: BoardMemberRole;
   memberCount: number;
   taskCount: number;
@@ -29,6 +31,8 @@ export async function getBoardsForUser(): Promise<DashboardBoard[]> {
       owner_id,
       description,
       updated_at,
+      group_id,
+      group_position,
       board_members!inner(role, user_id)
     `,
     )
@@ -58,6 +62,8 @@ export async function getBoardsForUser(): Promise<DashboardBoard[]> {
     isArchived: board.is_archived,
     createdAt: board.created_at,
     ownerId: board.owner_id,
+    groupId: board.group_id ?? null,
+    groupPosition: board.group_position ?? 0,
     role:
       (board.board_members.find((m) => m.user_id === user.id)
         ?.role as BoardMemberRole) ??

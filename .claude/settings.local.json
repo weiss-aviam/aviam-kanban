@@ -32,7 +32,13 @@
       "Bash(find /Users/user/aviam/aviam-pm-kanban/src -name *.test.ts* -o -name *.spec.ts*)",
       "Bash(find /Users/user/aviam/aviam-pm-kanban/src -name *notification* -o -name *mention*)",
       "Bash(find /Users/user/aviam/aviam-pm-kanban/src/components/kanban -name *Board* -o -name *Column*)",
-      "Bash(pnpm lint *)"
+      "Bash(pnpm lint *)",
+      "Bash(git merge feature/sidebar-navigation --no-ff -m 'Merge feature/sidebar-navigation into main *)",
+      "Bash(git fetch *)",
+      "Bash(git pull *)",
+      "Bash(pm2 list *)",
+      "Bash(pnpm exec *)",
+      "Bash(git check-ignore *)"
     ]
   }
 }

@@ -8,6 +8,7 @@ import type {
   User,
   BoardMemberRole,
 } from "@/types/database";
+import type { DashboardBoardGroup } from "@/lib/data/board-groups";
 
 // ── Notification types ────────────────────────────────────────────────────────
 export type NotificationType =
@@ -58,6 +59,9 @@ export interface AppState {
   boards: BoardWithDetails[];
   boardsFetchedAt: Date | null;
   activeTaskCount: number | null;
+
+  // Board group management
+  boardGroups: DashboardBoardGroup[];
 
   // Global presence — user IDs currently online
   onlineUserIds: string[];
@@ -116,6 +120,20 @@ export interface AppActions {
   fetchDashboardStats: (force?: boolean) => Promise<void>;
   setOnlineUserIds: (ids: string[]) => void;
 
+  // Board group actions
+  setBoardGroups: (groups: DashboardBoardGroup[]) => void;
+  addBoardGroup: (group: DashboardBoardGroup) => void;
+  updateBoardGroup: (
+    partial: Pick<DashboardBoardGroup, "id"> & Partial<DashboardBoardGroup>,
+  ) => void;
+  removeBoardGroup: (groupId: string) => void;
+  /** Update a board's group assignment in the local boards list. */
+  setBoardGroup: (
+    boardId: string,
+    groupId: string | null,
+    groupPosition?: number,
+  ) => void;
+
   // Notification actions
   setNotifications: (items: NotificationItem[], unreadCount: number) => void;
   prependNotification: (item: NotificationItem) => void;
@@ -146,6 +164,7 @@ const initialState: AppState = {
   boards: [],
   boardsFetchedAt: null,
   activeTaskCount: null,
+  boardGroups: [],
   onlineUserIds: [],
   lastUpdated: null,
   notifications: [],
@@ -475,6 +494,55 @@ export const useAppStore = create<AppStore>()(
             state.onlineUserIds = ids;
           }),
 
+        // Board group actions
+        setBoardGroups: (groups) =>
+          set((state) => {
+            state.boardGroups = groups;
+          }),
+
+        addBoardGroup: (group) =>
+          set((state) => {
+            state.boardGroups.push(group);
+          }),
+
+        updateBoardGroup: (partial) =>
+          set((state) => {
+            const idx = state.boardGroups.findIndex((g) => g.id === partial.id);
+            if (idx !== -1) {
+              state.boardGroups[idx] = {
+                ...state.boardGroups[idx]!,
+                ...partial,
+              };
+            }
+          }),
+
+        removeBoardGroup: (groupId) =>
+          set((state) => {
+            state.boardGroups = state.boardGroups.filter(
+              (g) => g.id !== groupId,
+            );
+            // Mirror the DB's ON DELETE SET NULL: detach boards locally too
+            for (const b of state.boards) {
+              if ((b as { groupId?: string | null }).groupId === groupId) {
+                (b as { groupId: string | null }).groupId = null;
+              }
+            }
+          }),
+
+        setBoardGroup: (boardId, groupId, groupPosition) =>
+          set((state) => {
+            const idx = state.boards.findIndex((b) => b.id === boardId);
+            if (idx === -1) return;
+            const board = state.boards[idx]! as BoardWithDetails & {
+              groupId?: string | null;
+              groupPosition?: number;
+            };
+            board.groupId = groupId;
+            if (groupPosition !== undefined) {
+              board.groupPosition = groupPosition;
+            }
+          }),
+
         // Notification actions
         setNotifications: (items, unreadCount) =>
           set((state) => {
@@ -611,6 +679,7 @@ export const useNotificationsUnreadCount = () =>
   useAppStore((state) => state.notificationsUnreadCount);
 export const useNotificationsFetchedAt = () =>
   useAppStore((state) => state.notificationsFetchedAt);
+export const useBoardGroups = () => useAppStore((state) => state.boardGroups);
 
 // Combined state selector with stable reference
 export const useAppState = () => {
@@ -684,6 +753,11 @@ export const useAppActions = () => {
   );
   const deleteNotification = useAppStore((s) => s.deleteNotification);
   const fetchNotifications = useAppStore((s) => s.fetchNotifications);
+  const setBoardGroups = useAppStore((s) => s.setBoardGroups);
+  const addBoardGroup = useAppStore((s) => s.addBoardGroup);
+  const updateBoardGroup = useAppStore((s) => s.updateBoardGroup);
+  const removeBoardGroup = useAppStore((s) => s.removeBoardGroup);
+  const setBoardGroup = useAppStore((s) => s.setBoardGroup);
 
   return useMemo(
     () => ({
@@ -718,6 +792,11 @@ export const useAppActions = () => {
       markAllNotificationsRead,
       deleteNotification,
       fetchNotifications,
+      setBoardGroups,
+      addBoardGroup,
+      updateBoardGroup,
+      removeBoardGroup,
+      setBoardGroup,
     }),
     [
       setUser,
@@ -751,6 +830,11 @@ export const useAppActions = () => {
       markAllNotificationsRead,
       deleteNotification,
       fetchNotifications,
+      setBoardGroups,
+      addBoardGroup,
+      updateBoardGroup,
+      removeBoardGroup,
+      setBoardGroup,
     ],
   );
 };

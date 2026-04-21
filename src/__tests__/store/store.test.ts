@@ -42,6 +42,8 @@ const makeBoard = (columns: Column[] = []): BoardWithDetails =>
     description: null,
     isArchived: false,
     ownerId: "user-1",
+    groupId: null,
+    groupPosition: 0,
     createdAt: new Date("2026-01-01"),
     updatedAt: new Date("2026-01-01"),
     role: "owner",
@@ -433,6 +435,100 @@ describe("fetchBoards", () => {
     await store.fetchBoards(true);
 
     expect(useAppStore.getState().boards).toHaveLength(1);
+  });
+});
+
+// ─── board groups ────────────────────────────────────────────────────────────
+
+const makeGroup = (
+  overrides: Partial<{
+    id: string;
+    name: string;
+    color: string | null;
+    createdBy: string | null;
+    position: number;
+    createdAt: string;
+  }> = {},
+) => ({
+  id: "group-1",
+  name: "Marketing",
+  color: "#3b82f6",
+  createdBy: "user-1",
+  position: 0,
+  createdAt: "2026-01-01T00:00:00Z",
+  ...overrides,
+});
+
+describe("board group actions", () => {
+  it("setBoardGroups replaces the list", () => {
+    const store = useAppStore.getState();
+    store.setBoardGroups([makeGroup()]);
+    expect(useAppStore.getState().boardGroups).toHaveLength(1);
+  });
+
+  it("addBoardGroup appends", () => {
+    const store = useAppStore.getState();
+    store.setBoardGroups([makeGroup()]);
+    store.addBoardGroup(makeGroup({ id: "group-2", name: "Sales" }));
+    expect(useAppStore.getState().boardGroups).toHaveLength(2);
+  });
+
+  it("updateBoardGroup patches by id", () => {
+    const store = useAppStore.getState();
+    store.setBoardGroups([makeGroup({ id: "group-1", name: "Old" })]);
+    store.updateBoardGroup({ id: "group-1", name: "New" });
+    expect(useAppStore.getState().boardGroups[0]!.name).toBe("New");
+  });
+
+  it("removeBoardGroup detaches matching boards locally (mirrors ON DELETE SET NULL)", () => {
+    const store = useAppStore.getState();
+    const boardInGroup = { ...makeBoard(), id: "b-1", groupId: "group-1" };
+    const boardOutside = { ...makeBoard(), id: "b-2", groupId: "group-2" };
+    store.setBoards([
+      boardInGroup as BoardWithDetails,
+      boardOutside as BoardWithDetails,
+    ]);
+    store.setBoardGroups([
+      makeGroup({ id: "group-1" }),
+      makeGroup({ id: "group-2", name: "Sales" }),
+    ]);
+
+    store.removeBoardGroup("group-1");
+
+    const state = useAppStore.getState();
+    expect(state.boardGroups).toHaveLength(1);
+    expect(state.boardGroups[0]!.id).toBe("group-2");
+    const updatedBoards = state.boards as Array<
+      BoardWithDetails & { groupId?: string | null }
+    >;
+    expect(updatedBoards.find((b) => b.id === "b-1")!.groupId).toBeNull();
+    expect(updatedBoards.find((b) => b.id === "b-2")!.groupId).toBe("group-2");
+  });
+
+  it("setBoardGroup updates a single board's groupId", () => {
+    const store = useAppStore.getState();
+    const board = { ...makeBoard(), groupId: null };
+    store.setBoards([board as BoardWithDetails]);
+
+    store.setBoardGroup("board-1", "group-1");
+
+    const updated = useAppStore.getState().boards[0] as BoardWithDetails & {
+      groupId?: string | null;
+    };
+    expect(updated.groupId).toBe("group-1");
+  });
+
+  it("setBoardGroup with null detaches the board", () => {
+    const store = useAppStore.getState();
+    const board = { ...makeBoard(), groupId: "group-1" };
+    store.setBoards([board as BoardWithDetails]);
+
+    store.setBoardGroup("board-1", null);
+
+    const updated = useAppStore.getState().boards[0] as BoardWithDetails & {
+      groupId?: string | null;
+    };
+    expect(updated.groupId).toBeNull();
   });
 });
 

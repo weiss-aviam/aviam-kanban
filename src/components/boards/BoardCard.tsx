@@ -9,6 +9,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import {
@@ -19,6 +22,9 @@ import {
   Users,
   CheckSquare,
   Clock,
+  FolderTree,
+  Check,
+  Plus,
 } from "lucide-react";
 import { getRoleBadgeClasses, getRoleLabel } from "../../lib/role-colors";
 import { t } from "@/lib/i18n";
@@ -35,7 +41,14 @@ export interface BoardCardData {
   role: "owner" | "admin" | "member" | "viewer";
   memberCount?: number;
   taskCount?: number;
+  groupId?: string | null;
 }
+
+export type BoardCardGroupOption = {
+  id: string;
+  name: string;
+  color?: string | null;
+};
 
 interface BoardCardProps {
   board: BoardCardData;
@@ -43,6 +56,10 @@ interface BoardCardProps {
   onEdit?: () => void;
   onArchive?: () => void | Promise<void>;
   onDelete?: () => void | Promise<void>;
+  /** Visible groups the user can move this board into. */
+  groupOptions?: BoardCardGroupOption[];
+  onAssignGroup?: (groupId: string | null) => void;
+  onCreateGroup?: () => void;
 }
 
 export function BoardCard({
@@ -51,9 +68,13 @@ export function BoardCard({
   onEdit,
   onArchive,
   onDelete,
+  groupOptions,
+  onAssignGroup,
+  onCreateGroup,
 }: BoardCardProps) {
   const canEdit = board.role === "owner" || board.role === "admin";
   const canDelete = board.role === "owner";
+  const canAssignGroup = canEdit && !!onAssignGroup;
 
   const actionsMenu =
     canEdit || canDelete ? (
@@ -89,6 +110,67 @@ export function BoardCard({
                 <Archive className="mr-2 h-4 w-4" />
                 {board.isArchived ? t("board.unarchive") : t("board.archive")}
               </DropdownMenuItem>
+              {canAssignGroup && (
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    <FolderTree className="mr-2 h-4 w-4" />
+                    {t("boardGroups.moveToGroup")}
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className="max-h-72 overflow-y-auto">
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.preventDefault();
+                        onAssignGroup?.(null);
+                      }}
+                    >
+                      {board.groupId == null ? (
+                        <Check className="mr-2 h-4 w-4" />
+                      ) : (
+                        <span className="mr-2 inline-block h-4 w-4" />
+                      )}
+                      {t("boardGroups.moveNoGroup")}
+                    </DropdownMenuItem>
+                    {(groupOptions ?? []).length > 0 && (
+                      <DropdownMenuSeparator />
+                    )}
+                    {(groupOptions ?? []).map((g) => (
+                      <DropdownMenuItem
+                        key={g.id}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          onAssignGroup?.(g.id);
+                        }}
+                      >
+                        {board.groupId === g.id ? (
+                          <Check className="mr-2 h-4 w-4" />
+                        ) : (
+                          <span className="mr-2 inline-block h-4 w-4" />
+                        )}
+                        <span
+                          className="mr-2 inline-block h-2.5 w-2.5 rounded-full"
+                          style={{ backgroundColor: g.color ?? "#9ca3af" }}
+                          aria-hidden
+                        />
+                        <span className="truncate">{g.name}</span>
+                      </DropdownMenuItem>
+                    ))}
+                    {onCreateGroup && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.preventDefault();
+                            onCreateGroup();
+                          }}
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          {t("boardGroups.moveNewGroup")}
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+              )}
             </>
           )}
           {canDelete && (

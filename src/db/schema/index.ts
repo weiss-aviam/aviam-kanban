@@ -22,18 +22,42 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// Boards table
-export const boards = pgTable("boards", {
+// Board groups table - shared dashboard organization buckets
+export const boardGroups = pgTable("board_groups", {
   id: uuid("id").primaryKey().defaultRandom(),
-  name: varchar("name", { length: 160 }).notNull(),
-  ownerId: varchar("owner_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  isArchived: boolean("is_archived").default(false).notNull(),
-  description: text("description"),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  name: varchar("name", { length: 120 }).notNull(),
+  color: varchar("color", { length: 7 }),
+  createdBy: varchar("created_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  position: integer("position").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
+
+// Boards table
+export const boards = pgTable(
+  "boards",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: varchar("name", { length: 160 }).notNull(),
+    ownerId: varchar("owner_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    isArchived: boolean("is_archived").default(false).notNull(),
+    description: text("description"),
+    groupId: uuid("group_id").references(() => boardGroups.id, {
+      onDelete: "set null",
+    }),
+    groupPosition: integer("group_position").notNull().default(0),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    groupIdIdx: index("boards_group_id_idx").on(table.groupId),
+  }),
+);
 
 // Board members table - for permissions and access control
 export const boardMembers = pgTable(
@@ -259,10 +283,22 @@ export const boardsRelations = relations(boards, ({ one, many }) => ({
     fields: [boards.ownerId],
     references: [users.id],
   }),
+  group: one(boardGroups, {
+    fields: [boards.groupId],
+    references: [boardGroups.id],
+  }),
   members: many(boardMembers),
   columns: many(columns),
   cards: many(cards),
   labels: many(labels),
+}));
+
+export const boardGroupsRelations = relations(boardGroups, ({ one, many }) => ({
+  creator: one(users, {
+    fields: [boardGroups.createdBy],
+    references: [users.id],
+  }),
+  boards: many(boards),
 }));
 
 export const boardMembersRelations = relations(boardMembers, ({ one }) => ({

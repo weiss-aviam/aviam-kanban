@@ -313,7 +313,7 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { name, isArchived, description } = body;
+    const { name, isArchived, description, groupId, groupPosition } = body;
 
     // First, get the user's role for this board
     const { data: memberData, error: memberError } = await supabase
@@ -343,6 +343,8 @@ export async function PUT(
       name: string;
       is_archived: boolean;
       description: string | null;
+      group_id: string | null;
+      group_position: number;
     }> = {};
     if (name !== undefined) {
       if (typeof name !== "string" || name.trim().length === 0) {
@@ -358,6 +360,45 @@ export async function PUT(
     }
     if (description !== undefined) {
       updateData.description = description ?? null;
+    }
+    if (groupId !== undefined) {
+      if (groupId === null) {
+        updateData.group_id = null;
+      } else {
+        if (typeof groupId !== "string" || !uuidRegex.test(groupId)) {
+          return NextResponse.json(
+            { error: "Invalid groupId" },
+            { status: 400 },
+          );
+        }
+        // Verify the group is visible to the caller (RLS-filtered SELECT).
+        // FK constraint alone would let users attach boards to groups they
+        // cannot see; this guard prevents that.
+        const { data: groupRow, error: groupErr } = await supabase
+          .from("board_groups")
+          .select("id")
+          .eq("id", groupId)
+          .maybeSingle();
+        if (groupErr || !groupRow) {
+          return NextResponse.json(
+            { error: "Group not found or access denied" },
+            { status: 404 },
+          );
+        }
+        updateData.group_id = groupId;
+      }
+    }
+    if (groupPosition !== undefined) {
+      if (
+        typeof groupPosition !== "number" ||
+        !Number.isFinite(groupPosition)
+      ) {
+        return NextResponse.json(
+          { error: "Invalid groupPosition" },
+          { status: 400 },
+        );
+      }
+      updateData.group_position = Math.trunc(groupPosition);
     }
 
     // Update the board using Supabase (respects RLS)
@@ -385,6 +426,8 @@ export async function PUT(
         createdAt: updatedBoard.created_at,
         updatedAt: updatedBoard.updated_at,
         ownerId: updatedBoard.owner_id,
+        groupId: updatedBoard.group_id ?? null,
+        groupPosition: updatedBoard.group_position ?? 0,
         role: userRole,
       },
     });

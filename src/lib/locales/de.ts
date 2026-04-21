@@ -563,6 +563,7 @@ export const de = {
     navigation: "Navigation",
     dashboard: "Dashboard",
     boards: "Boards",
+    boardGroups: "Boardgruppen",
     calendar: "Kalender",
     admin: "Benutzerverwaltung",
     adminSection: "Administration",
@@ -612,6 +613,37 @@ export const de = {
     deleteBoardConfirm:
       'Sind Sie sicher, dass Sie "{name}" löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.',
     deleteBoardFailed: "Board konnte nicht gelöscht werden",
+  },
+
+  boardGroups: {
+    sectionUngrouped: "Ohne Gruppe",
+    newGroup: "Neue Gruppe",
+    createTitle: "Gruppe erstellen",
+    createDescription: "Bündeln Sie Boards in einer gemeinsamen Gruppe.",
+    editTitle: "Gruppe bearbeiten",
+    editDescription: "Name und Farbe der Gruppe ändern.",
+    deleteTitle: "Gruppe löschen?",
+    deleteDescription:
+      'Die Gruppe "{name}" wird entfernt. Die enthaltenen Boards bleiben bestehen.',
+    nameLabel: "Gruppenname",
+    namePlaceholder: "z. B. Marketing 2026",
+    colorLabel: "Farbe",
+    colorOptional: "Optional",
+    create: "Erstellen",
+    save: "Speichern",
+    delete: "Löschen",
+    creating: "Wird erstellt...",
+    saving: "Wird gespeichert...",
+    deleting: "Wird gelöscht...",
+    moveToGroup: "Zur Gruppe...",
+    moveNoGroup: "Keine Gruppe",
+    moveNewGroup: "Neue Gruppe...",
+    boardCount: "{count} Board(s)",
+    backToBoards: "Zurück zu Boards",
+    notFound: "Gruppe nicht gefunden",
+    notFoundDescription:
+      "Diese Gruppe existiert nicht oder Sie haben keinen Zugriff.",
+    requestFailed: "Aktion ist fehlgeschlagen",
   },
 
   boardsPage: {
