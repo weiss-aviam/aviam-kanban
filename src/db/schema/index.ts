@@ -10,6 +10,7 @@ import {
   uuid,
   index,
   jsonb,
+  unique,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -112,16 +113,25 @@ export const boardMembers = pgTable(
 );
 
 // Columns table
-export const columns = pgTable("columns", {
-  id: serial("id").primaryKey(),
-  boardId: uuid("board_id")
-    .notNull()
-    .references(() => boards.id, { onDelete: "cascade" }),
-  title: varchar("title", { length: 120 }).notNull(),
-  position: integer("position").notNull(),
-  isDone: boolean("is_done").default(false).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export const columns = pgTable(
+  "columns",
+  {
+    id: serial("id").primaryKey(),
+    boardId: uuid("board_id")
+      .notNull()
+      .references(() => boards.id, { onDelete: "cascade" }),
+    title: varchar("title", { length: 120 }).notNull(),
+    position: integer("position").notNull(),
+    isDone: boolean("is_done").default(false).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    boardTitleUnique: unique("columns_board_title_unique").on(
+      t.boardId,
+      t.title,
+    ),
+  }),
+);
 
 // Cards table
 export const cards = pgTable("cards", {
