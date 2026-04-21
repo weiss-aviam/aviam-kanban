@@ -52,6 +52,29 @@ export const apiTokens = pgTable(
 export type ApiToken = typeof apiTokens.$inferSelect;
 export type NewApiToken = typeof apiTokens.$inferInsert;
 
+export const apiIdempotencyKeys = pgTable(
+  "api_idempotency_keys",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tokenId: uuid("token_id")
+      .notNull()
+      .references(() => apiTokens.id, { onDelete: "cascade" }),
+    key: text("key").notNull(),
+    status: integer("status").notNull(),
+    response: jsonb("response").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    unique: unique("api_idempotency_keys_unique").on(t.tokenId, t.key),
+    createdIdx: index("api_idempotency_keys_created_idx").on(t.createdAt),
+  }),
+);
+
+export type ApiIdempotencyKey = typeof apiIdempotencyKeys.$inferSelect;
+export type NewApiIdempotencyKey = typeof apiIdempotencyKeys.$inferInsert;
+
 // Board groups table - shared dashboard organization buckets
 export const boardGroups = pgTable("board_groups", {
   id: uuid("id").primaryKey().defaultRandom(),
