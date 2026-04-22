@@ -53,6 +53,12 @@ function adminClient() {
 }
 
 function signSupabaseJwt(userId: string): string {
+  const secret = process.env.SUPABASE_JWT_SECRET;
+  if (!secret) {
+    throw new Error(
+      "SUPABASE_JWT_SECRET is not set. Bearer-token (avk_…) auth needs it to mint short-lived Supabase JWTs. Add it to .env.local — find it under Supabase Dashboard → Project Settings → API → JWT Secret.",
+    );
+  }
   const now = Math.floor(Date.now() / 1000);
   return jwt.sign(
     {
@@ -62,7 +68,7 @@ function signSupabaseJwt(userId: string): string {
       iat: now,
       exp: now + 60,
     },
-    process.env.SUPABASE_JWT_SECRET! as string,
+    secret,
   );
 }
 
