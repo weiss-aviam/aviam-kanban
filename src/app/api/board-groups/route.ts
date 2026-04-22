@@ -20,7 +20,11 @@ export async function GET() {
     if (error) {
       console.error("Error fetching board groups:", error);
       return NextResponse.json(
-        { error: "Failed to fetch board groups" },
+        {
+          error: "Failed to fetch board groups",
+          details:
+            process.env.NODE_ENV !== "production" ? error.message : undefined,
+        },
         { status: 500 },
       );
     }
@@ -38,7 +42,15 @@ export async function GET() {
   } catch (error) {
     console.error("Error in GET /api/board-groups:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      {
+        error: "Internal server error",
+        details:
+          process.env.NODE_ENV !== "production"
+            ? error instanceof Error
+              ? error.message
+              : String(error)
+            : undefined,
+      },
       { status: 500 },
     );
   }
