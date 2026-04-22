@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionUser } from "../../../lib/supabase/server";
+import { getAuthorizedUser } from "../../../lib/supabase/server";
 import { createAdminClient } from "../../../lib/supabase/admin";
 import { createNotifications } from "../../../lib/notifications";
 import { z } from "zod";
@@ -15,7 +15,7 @@ const createCommentSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const { supabase, user } = await getSessionUser();
+    const { supabase, user } = await getAuthorizedUser();
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -175,7 +175,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const { supabase, user } = await getSessionUser();
+    const { supabase, user } = await getAuthorizedUser();
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

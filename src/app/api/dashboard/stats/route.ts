@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { getSessionUser } from "@/lib/supabase/server";
+import { getAuthorizedUser } from "@/lib/supabase/server";
 
 // GET /api/dashboard/stats - Returns KPI stats for the current user's dashboard
 export async function GET() {
   try {
-    const { supabase, user } = await getSessionUser();
+    const { supabase, user } = await getAuthorizedUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

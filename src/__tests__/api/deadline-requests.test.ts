@@ -5,10 +5,13 @@ import {
   POST as createDeadlineRequest,
 } from "@/app/api/cards/[id]/deadline-requests/route";
 import { PATCH as resolveDeadlineRequest } from "@/app/api/cards/[id]/deadline-requests/[requestId]/route";
-import { getSessionUser } from "@/lib/supabase/server";
+import { getAuthorizedUser } from "@/lib/supabase/server";
 import { getBoardMutationAuthorization } from "@/lib/board-access";
 
-vi.mock("@/lib/supabase/server", () => ({ getSessionUser: vi.fn() }));
+vi.mock("@/lib/supabase/server", () => ({
+  getAuthorizedUser: vi.fn(),
+  getSessionUser: vi.fn(),
+}));
 vi.mock("@/lib/board-access", () => ({
   getBoardMutationAuthorization: vi.fn(),
 }));
@@ -19,7 +22,7 @@ const REQUEST_ID = "33333333-3333-4333-8333-333333333333";
 const CREATOR_ID = "44444444-4444-4444-8444-444444444444";
 const MEMBER_ID = "55555555-5555-5555-8555-555555555555";
 
-const mockGetSessionUser = vi.mocked(getSessionUser);
+const mockGetSessionUser = vi.mocked(getAuthorizedUser);
 const mockGetBoardMutationAuthorization = vi.mocked(
   getBoardMutationAuthorization,
 );

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionUser } from "@/lib/supabase/server";
+import { getAuthorizedUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function PATCH(
@@ -8,7 +8,7 @@ export async function PATCH(
 ) {
   const { id } = await params;
   try {
-    const { supabase, user } = await getSessionUser();
+    const { supabase, user } = await getAuthorizedUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -44,7 +44,7 @@ export async function DELETE(
 ) {
   const { id } = await params;
   try {
-    const { user } = await getSessionUser();
+    const { user } = await getAuthorizedUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

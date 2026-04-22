@@ -10,6 +10,7 @@ import {
   uuid,
   index,
   jsonb,
+  unique,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -19,8 +20,60 @@ export const users = pgTable("users", {
   email: varchar("email", { length: 255 }).notNull().unique(),
   name: varchar("name", { length: 255 }),
   avatarUrl: varchar("avatar_url", { length: 2048 }),
+  apiAccessEnabled: boolean("api_access_enabled").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const apiTokens = pgTable(
+  "api_tokens",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    tokenHash: text("token_hash").notNull(),
+    prefix: varchar("prefix", { length: 8 }).notNull(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  },
+  (t) => ({
+    prefixIdx: index("api_tokens_prefix_idx").on(t.prefix),
+    userActiveIdx: index("api_tokens_user_active_idx").on(
+      t.userId,
+      t.revokedAt,
+    ),
+  }),
+);
+
+export type ApiToken = typeof apiTokens.$inferSelect;
+export type NewApiToken = typeof apiTokens.$inferInsert;
+
+export const apiIdempotencyKeys = pgTable(
+  "api_idempotency_keys",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tokenId: uuid("token_id")
+      .notNull()
+      .references(() => apiTokens.id, { onDelete: "cascade" }),
+    key: text("key").notNull(),
+    status: integer("status").notNull(),
+    response: jsonb("response").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    unique: unique("api_idempotency_keys_unique").on(t.tokenId, t.key),
+    createdIdx: index("api_idempotency_keys_created_idx").on(t.createdAt),
+  }),
+);
+
+export type ApiIdempotencyKey = typeof apiIdempotencyKeys.$inferSelect;
+export type NewApiIdempotencyKey = typeof apiIdempotencyKeys.$inferInsert;
 
 // Board groups table - shared dashboard organization buckets
 export const boardGroups = pgTable("board_groups", {
@@ -53,6 +106,9 @@ export const boards = pgTable(
     groupPosition: integer("group_position").notNull().default(0),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdVia: text("created_via", { enum: ["ui", "api"] })
+      .notNull()
+      .default("ui"),
   },
   (table) => ({
     groupIdIdx: index("boards_group_id_idx").on(table.groupId),
@@ -80,16 +136,25 @@ export const boardMembers = pgTable(
 );
 
 // Columns table
-export const columns = pgTable("columns", {
-  id: serial("id").primaryKey(),
-  boardId: uuid("board_id")
-    .notNull()
-    .references(() => boards.id, { onDelete: "cascade" }),
-  title: varchar("title", { length: 120 }).notNull(),
-  position: integer("position").notNull(),
-  isDone: boolean("is_done").default(false).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export const columns = pgTable(
+  "columns",
+  {
+    id: serial("id").primaryKey(),
+    boardId: uuid("board_id")
+      .notNull()
+      .references(() => boards.id, { onDelete: "cascade" }),
+    title: varchar("title", { length: 120 }).notNull(),
+    position: integer("position").notNull(),
+    isDone: boolean("is_done").default(false).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    boardTitleUnique: unique("columns_board_title_unique").on(
+      t.boardId,
+      t.title,
+    ),
+  }),
+);
 
 // Cards table
 export const cards = pgTable("cards", {
@@ -115,6 +180,9 @@ export const cards = pgTable("cards", {
   position: integer("position").notNull(),
   completedAt: timestamp("completed_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdVia: text("created_via", { enum: ["ui", "api"] })
+    .notNull()
+    .default("ui"),
 });
 
 // Labels table
@@ -156,6 +224,9 @@ export const cardSubtasks = pgTable("card_subtasks", {
   position: integer("position").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   deletedAt: timestamp("deleted_at"),
+  createdVia: text("created_via", { enum: ["ui", "api"] })
+    .notNull()
+    .default("ui"),
 });
 
 // Comments table

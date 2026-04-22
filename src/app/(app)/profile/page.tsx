@@ -18,6 +18,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import Link from "next/link";
 import {
   Loader2,
   Mail,
@@ -26,6 +27,7 @@ import {
   Camera,
   Bell,
   BellOff,
+  Bot,
 } from "lucide-react";
 import { t } from "@/lib/i18n";
 import {
@@ -395,6 +397,26 @@ export default function ProfilePage() {
                       {t("profile.resetPassword")}
                     </>
                   )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* API access card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("apiAccess.title")}</CardTitle>
+              <CardDescription>
+                {t("apiAccess.profileCardDescription")}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-end">
+                <Button asChild>
+                  <Link href="/profile/api-access">
+                    <Bot className="mr-2 h-4 w-4" />
+                    {t("apiAccess.profileCardButton")}
+                  </Link>
                 </Button>
               </div>
             </CardContent>

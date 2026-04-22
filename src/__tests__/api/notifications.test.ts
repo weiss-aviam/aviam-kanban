@@ -48,6 +48,7 @@ function buildSupabaseMock(
 }
 
 vi.mock("@/lib/supabase/server", () => ({
+  getAuthorizedUser: mockGetSessionUser,
   getSessionUser: mockGetSessionUser,
 }));
 

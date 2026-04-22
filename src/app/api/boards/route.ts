@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionUser } from "../../../lib/supabase/server";
+import { getAuthorizedUser } from "../../../lib/supabase/server";
 
 // GET /api/boards - Get all boards for the current user
 export async function GET(_request: NextRequest) {
   try {
-    const { supabase, user } = await getSessionUser();
+    const { supabase, user } = await getAuthorizedUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -77,7 +77,7 @@ export async function GET(_request: NextRequest) {
 // POST /api/boards - Create a new board
 export async function POST(request: NextRequest) {
   try {
-    const { supabase, user } = await getSessionUser();
+    const { supabase, user } = await getAuthorizedUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

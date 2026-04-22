@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionUser } from "@/lib/supabase/server";
+import { getAuthorizedUser } from "@/lib/supabase/server";
 import {
   getBoardMutationAuthorization,
   getBoardRoleForUser,
@@ -33,7 +33,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { supabase, user } = await getSessionUser();
+    const { supabase, user } = await getAuthorizedUser();
     const boardAccessClient = supabase as unknown as BoardAccessClient;
 
     if (!user) {
@@ -134,7 +134,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { supabase, user } = await getSessionUser();
+    const { supabase, user } = await getAuthorizedUser();
     const boardAccessClient = supabase as unknown as BoardAccessClient;
 
     if (!user) {

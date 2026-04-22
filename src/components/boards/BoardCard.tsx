@@ -29,6 +29,7 @@ import {
 import { getRoleBadgeClasses, getRoleLabel } from "../../lib/role-colors";
 import { t } from "@/lib/i18n";
 import { formatRelativeDate } from "@/lib/date-format";
+import { ViaApiBadge } from "@/components/ui/ViaApiBadge";
 
 export interface BoardCardData {
   id: string;
@@ -42,6 +43,7 @@ export interface BoardCardData {
   memberCount?: number;
   taskCount?: number;
   groupId?: string | null;
+  createdVia?: "ui" | "api";
 }
 
 export type BoardCardGroupOption = {
@@ -215,6 +217,7 @@ export function BoardCard({
                       {t("board.archived")}
                     </Badge>
                   )}
+                  {board.createdVia === "api" && <ViaApiBadge />}
                 </div>
                 {board.description && (
                   <p className="text-sm text-gray-500 truncate">
@@ -259,6 +262,7 @@ export function BoardCard({
           {board.isArchived && (
             <Badge variant="secondary">{t("board.archived")}</Badge>
           )}
+          {board.createdVia === "api" && <ViaApiBadge />}
         </div>
         {actionsMenu}
       </div>

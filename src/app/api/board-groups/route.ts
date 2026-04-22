@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionUser } from "@/lib/supabase/server";
+import { getAuthorizedUser } from "@/lib/supabase/server";
 
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 
 // GET /api/board-groups — visible groups (RLS-filtered)
 export async function GET() {
   try {
-    const { supabase, user } = await getSessionUser();
+    const { supabase, user } = await getAuthorizedUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -20,7 +20,11 @@ export async function GET() {
     if (error) {
       console.error("Error fetching board groups:", error);
       return NextResponse.json(
-        { error: "Failed to fetch board groups" },
+        {
+          error: "Failed to fetch board groups",
+          details:
+            process.env.NODE_ENV !== "production" ? error.message : undefined,
+        },
         { status: 500 },
       );
     }
@@ -38,7 +42,15 @@ export async function GET() {
   } catch (error) {
     console.error("Error in GET /api/board-groups:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      {
+        error: "Internal server error",
+        details:
+          process.env.NODE_ENV !== "production"
+            ? error instanceof Error
+              ? error.message
+              : String(error)
+            : undefined,
+      },
       { status: 500 },
     );
   }
@@ -47,7 +59,7 @@ export async function GET() {
 // POST /api/board-groups — create
 export async function POST(request: NextRequest) {
   try {
-    const { supabase, user } = await getSessionUser();
+    const { supabase, user } = await getAuthorizedUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

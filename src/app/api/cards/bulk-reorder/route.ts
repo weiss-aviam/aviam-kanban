@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionUser } from "@/lib/supabase/server";
+import { getAuthorizedUser } from "@/lib/supabase/server";
 import { getBoardMutationAuthorization } from "@/lib/board-access";
 import { z } from "zod";
 
@@ -25,7 +25,7 @@ const bulkReorderSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const { supabase, user } = await getSessionUser();
+    const { supabase, user } = await getAuthorizedUser();
     const boardAccessClient = supabase as unknown as BoardAccessClient;
 
     if (!user) {

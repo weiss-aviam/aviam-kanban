@@ -1,13 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { GET } from "@/app/api/calendar/cards/route";
-import { getSessionUser } from "@/lib/supabase/server";
+import { getAuthorizedUser } from "@/lib/supabase/server";
 
 vi.mock("@/lib/supabase/server", () => ({
+  getAuthorizedUser: vi.fn(),
   getSessionUser: vi.fn(),
 }));
 
-const mockGetSessionUser = vi.mocked(getSessionUser);
+const mockGetSessionUser = vi.mocked(getAuthorizedUser);
 
 const AUTH_USER = { id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" };
 

@@ -9,13 +9,14 @@ import {
   DELETE as deleteGroup,
 } from "@/app/api/board-groups/[id]/route";
 import { PUT as updateBoard } from "@/app/api/boards/[id]/route";
-import { getSessionUser } from "@/lib/supabase/server";
+import { getAuthorizedUser } from "@/lib/supabase/server";
 
 vi.mock("@/lib/supabase/server", () => ({
+  getAuthorizedUser: vi.fn(),
   getSessionUser: vi.fn(),
 }));
 
-const mockGetSessionUser = vi.mocked(getSessionUser);
+const mockGetSessionUser = vi.mocked(getAuthorizedUser);
 
 const USER = { id: "11111111-1111-4111-8111-111111111111" };
 const OTHER_USER = { id: "22222222-2222-4222-8222-222222222222" };

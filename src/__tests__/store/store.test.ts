@@ -18,6 +18,7 @@ const makeCard = (overrides: Partial<Card> = {}): Card => ({
   priority: "medium",
   completedAt: null,
   createdAt: new Date("2026-01-01"),
+  createdVia: "ui",
   assigneeId: null,
   createdBy: null,
   labels: [],
@@ -46,6 +47,7 @@ const makeBoard = (columns: Column[] = []): BoardWithDetails =>
     groupPosition: 0,
     createdAt: new Date("2026-01-01"),
     updatedAt: new Date("2026-01-01"),
+    createdVia: "ui",
     role: "owner",
     memberCount: 1,
     columns,
@@ -54,6 +56,7 @@ const makeBoard = (columns: Column[] = []): BoardWithDetails =>
       email: "owner@example.com",
       name: "Owner",
       avatarUrl: null,
+      apiAccessEnabled: false,
       createdAt: new Date("2026-01-01"),
     },
     members: [],
@@ -370,6 +373,7 @@ describe("setAuthenticated", () => {
       email: "a@b.com",
       name: "A",
       avatarUrl: null,
+      apiAccessEnabled: false,
       createdAt: new Date(),
     });
     store.setCurrentBoard(makeBoard());
@@ -542,6 +546,7 @@ describe("reset", () => {
       email: "a@b.com",
       name: "A",
       avatarUrl: null,
+      apiAccessEnabled: false,
       createdAt: new Date(),
     });
     store.setCurrentBoard(makeBoard());
