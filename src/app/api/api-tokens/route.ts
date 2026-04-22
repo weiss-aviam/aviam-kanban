@@ -2,13 +2,26 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { getSessionUser } from "@/lib/supabase/server";
 import { mintToken } from "@/lib/api-tokens/mint";
+import { rateLimit } from "@/lib/api/rate-limit";
 
 const NameSchema = z.object({ name: z.string().trim().min(1).max(80) });
+
+function rateLimitResponse(userId: string) {
+  const limit = rateLimit(`tokens:${userId}`);
+  if (limit.allowed) return null;
+  return NextResponse.json(
+    { error: "Rate limit exceeded" },
+    { status: 429, headers: { "Retry-After": String(limit.retryAfter) } },
+  );
+}
 
 export async function GET() {
   const { supabase, user } = await getSessionUser();
   if (!user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const limited = rateLimitResponse(user.id);
+  if (limited) return limited;
 
   const { data, error } = await supabase
     .from("api_tokens")
@@ -17,8 +30,17 @@ export async function GET() {
     .is("revoked_at", null)
     .order("created_at", { ascending: false });
 
-  if (error)
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("List api_tokens error:", error);
+    return NextResponse.json(
+      {
+        error: "Failed to list tokens",
+        details:
+          process.env.NODE_ENV !== "production" ? error.message : undefined,
+      },
+      { status: 500 },
+    );
+  }
   return NextResponse.json({
     tokens: (data ?? []).map((r) => ({
       id: r.id,
@@ -35,6 +57,9 @@ export async function POST(req: NextRequest) {
   const { supabase, user } = await getSessionUser();
   if (!user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const limited = rateLimitResponse(user.id);
+  if (limited) return limited;
 
   const body = await req.json();
   const parsed = NameSchema.safeParse(body);

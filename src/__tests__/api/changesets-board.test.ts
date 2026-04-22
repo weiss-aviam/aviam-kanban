@@ -82,7 +82,9 @@ describe("POST /api/changesets/board", () => {
     const res = await POST(buildReq(validPayload));
     expect(res.status).toBe(500);
     const body = await res.json();
-    expect(body.error).toMatch(/boom/);
+    expect(body.error).toBe("Failed to apply changeset");
+    // dev-only detail — RPC message must not leak into the top-level error string
+    expect(body.details).toBe("boom");
   });
 
   it("returns the stored response on idempotency replay", async () => {

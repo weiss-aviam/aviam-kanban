@@ -22,7 +22,16 @@ export async function PATCH(req: NextRequest) {
     .update({ api_access_enabled: parsed.data.enabled })
     .eq("id", user.id);
 
-  if (error)
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("Toggle api_access_enabled error:", error);
+    return NextResponse.json(
+      {
+        error: "Failed to update API access setting",
+        details:
+          process.env.NODE_ENV !== "production" ? error.message : undefined,
+      },
+      { status: 500 },
+    );
+  }
   return NextResponse.json({ ok: true, enabled: parsed.data.enabled });
 }

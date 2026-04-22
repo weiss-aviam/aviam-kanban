@@ -55,9 +55,14 @@ export async function POST(req: NextRequest) {
         payload: parsed,
       });
       if (error) {
+        console.error("create_board_changeset RPC error:", error);
         return {
           status: 500,
-          body: { error: error.message, details: error },
+          body: {
+            error: "Failed to apply changeset",
+            details:
+              process.env.NODE_ENV !== "production" ? error.message : undefined,
+          },
         };
       }
       return { status: 201, body: data };

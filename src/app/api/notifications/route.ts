@@ -36,7 +36,11 @@ export async function GET() {
         error.hint,
       );
       return NextResponse.json(
-        { error: "Failed to fetch notifications", detail: error.message },
+        {
+          error: "Failed to fetch notifications",
+          details:
+            process.env.NODE_ENV !== "production" ? error.message : undefined,
+        },
         { status: 500 },
       );
     }
