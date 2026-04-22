@@ -1,9 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { withIdempotency } from "../idempotency";
 
-const supabaseMock = (
-  existing: { status: number; response: unknown } | null,
-) => ({
+const adminMock = (existing: { status: number; response: unknown } | null) => ({
   from: vi.fn(() => ({
     select: vi.fn(() => ({
       eq: vi.fn(() => ({
@@ -20,6 +18,9 @@ const supabaseMock = (
       })),
     })),
     insert: vi.fn().mockResolvedValue({ data: null, error: null }),
+    delete: vi.fn(() => ({
+      lt: vi.fn().mockResolvedValue({ data: null, error: null }),
+    })),
   })),
 });
 
@@ -27,30 +28,30 @@ describe("withIdempotency", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("runs handler and stores result on first call", async () => {
-    const supabase = supabaseMock(null);
+    const admin = adminMock(null);
     const handler = vi
       .fn()
       .mockResolvedValue({ status: 201, body: { ok: true } });
 
     const out = await withIdempotency(
-      { tokenId: "t1", key: "k1", supabase: supabase as never },
+      { tokenId: "t1", key: "k1", adminClient: admin as never },
       handler,
     );
 
     expect(handler).toHaveBeenCalledOnce();
     expect(out).toEqual({ status: 201, body: { ok: true } });
-    expect(supabase.from).toHaveBeenCalledWith("api_idempotency_keys");
+    expect(admin.from).toHaveBeenCalledWith("api_idempotency_keys");
   });
 
   it("returns stored response and skips handler on replay", async () => {
-    const supabase = supabaseMock({
+    const admin = adminMock({
       status: 201,
       response: { ok: true, replayed: true },
     });
     const handler = vi.fn();
 
     const out = await withIdempotency(
-      { tokenId: "t1", key: "k1", supabase: supabase as never },
+      { tokenId: "t1", key: "k1", adminClient: admin as never },
       handler,
     );
 
@@ -59,18 +60,18 @@ describe("withIdempotency", () => {
   });
 
   it("does nothing when no key is provided", async () => {
-    const supabase = supabaseMock(null);
+    const admin = adminMock(null);
     const handler = vi
       .fn()
       .mockResolvedValue({ status: 201, body: { ok: true } });
 
     const out = await withIdempotency(
-      { tokenId: "t1", key: null, supabase: supabase as never },
+      { tokenId: "t1", key: null, adminClient: admin as never },
       handler,
     );
 
     expect(handler).toHaveBeenCalledOnce();
-    expect(supabase.from).not.toHaveBeenCalled();
+    expect(admin.from).not.toHaveBeenCalled();
     expect(out).toEqual({ status: 201, body: { ok: true } });
   });
 });

@@ -1,11 +1,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-
-const TTL_HOURS = 24;
+import { createAdminClient } from "@/lib/supabase/admin";
 
 interface Args {
   tokenId: string;
   key: string | null;
-  supabase: SupabaseClient;
+  /**
+   * Optional admin client override. Defaults to a fresh service-role client.
+   * Tests inject a mock here; production callers can omit.
+   */
+  adminClient?: SupabaseClient;
 }
 
 interface HandlerResult {
@@ -13,21 +16,31 @@ interface HandlerResult {
   body: unknown;
 }
 
+// 1-in-N chance per call to opportunistically prune expired rows. Cheap
+// (single indexed DELETE) but no need to run on every request.
+const SWEEP_PROBABILITY = 0.05;
+
 export async function withIdempotency(
   args: Args,
   handler: () => Promise<HandlerResult>,
 ): Promise<HandlerResult> {
   if (!args.key) return await handler();
 
-  const cutoff = new Date(
-    Date.now() - TTL_HOURS * 60 * 60 * 1000,
-  ).toISOString();
-  const { data: existing } = await args.supabase
+  const admin = args.adminClient ?? createAdminClient();
+
+  if (Math.random() < SWEEP_PROBABILITY) {
+    await admin
+      .from("api_idempotency_keys")
+      .delete()
+      .lt("expires_at", new Date().toISOString());
+  }
+
+  const { data: existing } = await admin
     .from("api_idempotency_keys")
     .select("status, response")
     .eq("token_id", args.tokenId)
     .eq("key", args.key)
-    .gt("created_at", cutoff)
+    .gt("expires_at", new Date().toISOString())
     .maybeSingle();
 
   if (existing) {
@@ -35,7 +48,7 @@ export async function withIdempotency(
   }
 
   const result = await handler();
-  await args.supabase.from("api_idempotency_keys").insert({
+  await admin.from("api_idempotency_keys").insert({
     token_id: args.tokenId,
     key: args.key,
     status: result.status,

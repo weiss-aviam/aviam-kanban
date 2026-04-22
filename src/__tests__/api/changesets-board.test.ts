@@ -2,13 +2,39 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 import { POST } from "@/app/api/changesets/board/route";
 import { getAuthorizedUser } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { _resetRateLimitForTests } from "@/lib/api/rate-limit";
 
 vi.mock("@/lib/supabase/server", () => ({
   getAuthorizedUser: vi.fn(),
 }));
 
+vi.mock("@/lib/supabase/admin", () => ({
+  createAdminClient: vi.fn(),
+}));
+
 const mockAuth = vi.mocked(getAuthorizedUser);
+const mockAdmin = vi.mocked(createAdminClient);
+
+function noopAdminClient() {
+  // No replay row found; insert is a no-op; sweep DELETE returns nothing.
+  const lookup = {
+    select: vi.fn(() => ({
+      eq: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          gt: vi.fn(() => ({
+            maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+          })),
+        })),
+      })),
+    })),
+    insert: vi.fn().mockResolvedValue({ data: null, error: null }),
+    delete: vi.fn(() => ({
+      lt: vi.fn().mockResolvedValue({ data: null, error: null }),
+    })),
+  };
+  return { from: vi.fn(() => lookup) } as never;
+}
 
 const validPayload = {
   board: { name: "Q3" },
@@ -27,7 +53,10 @@ const buildReq = (body: unknown, headers: Record<string, string> = {}) =>
   });
 
 describe("POST /api/changesets/board", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdmin.mockReturnValue(noopAdminClient());
+  });
 
   it("returns 401 when unauthenticated", async () => {
     mockAuth.mockResolvedValue({ supabase: {} as never, user: null as never });
@@ -93,24 +122,30 @@ describe("POST /api/changesets/board", () => {
       columns: [],
       cards: [],
     };
-    const fromSpy = vi.fn(() => ({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
+    mockAdmin.mockReturnValue({
+      from: vi.fn(() => ({
+        select: vi.fn(() => ({
           eq: vi.fn(() => ({
-            gt: vi.fn(() => ({
-              maybeSingle: vi.fn().mockResolvedValue({
-                data: { status: 201, response: stored },
-                error: null,
-              }),
+            eq: vi.fn(() => ({
+              gt: vi.fn(() => ({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: { status: 201, response: stored },
+                  error: null,
+                }),
+              })),
             })),
           })),
         })),
+        insert: vi.fn(),
+        delete: vi.fn(() => ({
+          lt: vi.fn().mockResolvedValue({ data: null, error: null }),
+        })),
       })),
-      insert: vi.fn(),
-    }));
+    } as never);
+
     const rpcSpy = vi.fn();
     mockAuth.mockResolvedValue({
-      supabase: { rpc: rpcSpy, from: fromSpy } as never,
+      supabase: { rpc: rpcSpy } as never,
       user: { id: "u1", tokenId: "t1" } as never,
     });
 

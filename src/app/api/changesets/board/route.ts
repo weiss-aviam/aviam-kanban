@@ -48,7 +48,6 @@ export async function POST(req: NextRequest) {
     {
       tokenId: tokenId ?? "session",
       key: tokenId ? idempotencyKey : null,
-      supabase,
     },
     async () => {
       const { data, error } = await supabase.rpc("create_board_changeset", {
