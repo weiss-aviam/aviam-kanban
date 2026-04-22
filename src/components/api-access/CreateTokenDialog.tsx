@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Plus, Copy, Check } from "lucide-react";
 import { t } from "@/lib/i18n";
+import { buildClaudeMdSnippet } from "./claude-md-snippet";
 
 export function CreateTokenDialog({
   disabled,
@@ -28,6 +29,16 @@ export function CreateTokenDialog({
   const [submitting, setSubmitting] = useState(false);
   const [created, setCreated] = useState<{ token: string } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [snippetCopied, setSnippetCopied] = useState(false);
+
+  const personalizedSnippet = useMemo(() => {
+    if (!created) return "";
+    const baseUrl = (
+      process.env.NEXT_PUBLIC_SITE_URL ||
+      (typeof window !== "undefined" ? window.location.origin : "")
+    ).replace(/\/$/, "");
+    return buildClaudeMdSnippet({ baseUrl, token: created.token });
+  }, [created]);
 
   const submit = async () => {
     setSubmitting(true);
@@ -48,6 +59,7 @@ export function CreateTokenDialog({
     setName("");
     setCreated(null);
     setCopied(false);
+    setSnippetCopied(false);
   };
 
   return (
@@ -58,7 +70,7 @@ export function CreateTokenDialog({
           {t("apiAccess.createToken")}
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         {!created ? (
           <>
             <DialogHeader>
@@ -90,28 +102,71 @@ export function CreateTokenDialog({
                 {t("apiAccess.tokenCreatedOnce")}
               </DialogDescription>
             </DialogHeader>
-            <div className="rounded-md border bg-muted px-3 py-2 font-mono text-sm break-all">
-              {created.token}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <div className="rounded-md border bg-muted px-3 py-2 font-mono text-sm break-all">
+                  {created.token}
+                </div>
+                <Button
+                  size="sm"
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(created.token);
+                    setCopied(true);
+                    window.setTimeout(() => setCopied(false), 2000);
+                  }}
+                >
+                  {copied ? (
+                    <>
+                      <Check className="w-4 h-4 mr-2" />
+                      {t("apiAccess.tokenCopied")}
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4 mr-2" />
+                      {t("apiAccess.tokenCopy")}
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              <div className="space-y-2 border-t pt-4">
+                <div className="flex flex-row items-start justify-between gap-4">
+                  <div>
+                    <h3 className="font-semibold text-sm">
+                      {t("apiAccess.tokenCreatedClaudeMdTitle")}
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {t("apiAccess.tokenCreatedClaudeMdHint")}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="shrink-0"
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(personalizedSnippet);
+                      setSnippetCopied(true);
+                      window.setTimeout(() => setSnippetCopied(false), 2000);
+                    }}
+                  >
+                    {snippetCopied ? (
+                      <>
+                        <Check className="w-4 h-4 mr-2" />
+                        {t("apiAccess.tokenCreatedClaudeMdCopied")}
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4 mr-2" />
+                        {t("apiAccess.tokenCreatedClaudeMdCopy")}
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <pre className="rounded-md border bg-muted px-3 py-3 text-xs leading-relaxed overflow-x-auto max-h-72 font-mono whitespace-pre-wrap break-words">
+                  {personalizedSnippet}
+                </pre>
+              </div>
             </div>
             <DialogFooter>
-              <Button
-                onClick={async () => {
-                  await navigator.clipboard.writeText(created.token);
-                  setCopied(true);
-                }}
-              >
-                {copied ? (
-                  <>
-                    <Check className="w-4 h-4 mr-2" />
-                    {t("apiAccess.tokenCopied")}
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-4 h-4 mr-2" />
-                    {t("apiAccess.tokenCopy")}
-                  </>
-                )}
-              </Button>
               <Button variant="outline" onClick={close}>
                 Schließen
               </Button>

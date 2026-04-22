@@ -943,6 +943,11 @@ export const de = {
       "Kopiere diesen Token jetzt. Er wird aus Sicherheitsgründen nicht erneut angezeigt.",
     tokenCopy: "In Zwischenablage kopieren",
     tokenCopied: "Kopiert",
+    tokenCreatedClaudeMdTitle: "CLAUDE.md mit eingefügtem Token",
+    tokenCreatedClaudeMdHint:
+      "URL und Token sind bereits eingesetzt — direkt in die CLAUDE.md deines Projekts einfügen. Behandle den Token wie ein Passwort.",
+    tokenCreatedClaudeMdCopy: "CLAUDE.md kopieren",
+    tokenCreatedClaudeMdCopied: "Kopiert",
     tokenLastUsedNever: "Noch nie verwendet",
     tokenLastUsed: "Zuletzt verwendet:",
     revoke: "Widerrufen",
