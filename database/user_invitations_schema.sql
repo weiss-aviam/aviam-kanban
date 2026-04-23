@@ -68,9 +68,13 @@ CREATE TABLE IF NOT EXISTS user_login_activity (
 CREATE INDEX IF NOT EXISTS idx_user_login_activity_user_id ON user_login_activity(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_login_activity_login_at ON user_login_activity(login_at);
 
--- View to get invitation status with user login information
-CREATE OR REPLACE VIEW invitation_status_view AS
-SELECT 
+-- View to get invitation status with user login information.
+-- security_invoker = true so the view enforces the caller's RLS policies
+-- on the underlying tables, not the view owner's privileges (Supabase
+-- linter flags views without this option as effectively SECURITY DEFINER).
+CREATE OR REPLACE VIEW invitation_status_view
+WITH (security_invoker = true) AS
+SELECT
   ui.id,
   ui.board_id,
   ui.email,
