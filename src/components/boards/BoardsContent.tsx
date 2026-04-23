@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import {
+  useState,
+  useMemo,
+  useLayoutEffect,
+  useRef,
+  useSyncExternalStore,
+} from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -32,7 +38,7 @@ import { EditGroupDialog } from "@/components/board-groups/EditGroupDialog";
 import { DeleteGroupDialog } from "@/components/board-groups/DeleteGroupDialog";
 import { GroupCard } from "@/components/board-groups/GroupCard";
 import { t } from "@/lib/i18n";
-import { useAppStore, useBoards, useBoardGroups, useAppActions } from "@/store";
+import { useAppStore, useAppActions } from "@/store";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type { DashboardBoardGroup } from "@/lib/data/board-groups";
 
@@ -78,21 +84,37 @@ export function BoardsContent({
   initialBoards,
   initialBoardGroups,
 }: BoardsContentProps) {
-  // Hydrate the Zustand store from server data once per mount, in the same
-  // component that subscribes. useState's lazy initializer fires before any
-  // useSyncExternalStore subscription is registered in this render, so the
-  // setState notification has no listeners to schedule — avoiding React 19's
-  // "Cannot update a component while rendering a different component" error.
-  useState(() => {
+  // Hydrate the Zustand store from server data at commit time. Doing this
+  // in render (even via useState's lazy initializer) notifies *all* live
+  // subscribers — including the previous page's BoardsContent/DashboardContent
+  // still mounted during App Router navigation — which violates React 19's
+  // render-phase rules. It also mutates the module-level store on the server
+  // during SSR, which can leak state across concurrent requests.
+  const hydratedRef = useRef(false);
+  useLayoutEffect(() => {
+    if (hydratedRef.current) return;
+    hydratedRef.current = true;
     useAppStore.setState({
       boards: initialBoards,
       boardGroups: initialBoardGroups,
       boardsFetchedAt: new Date(),
     });
-  });
+  }, [initialBoards, initialBoardGroups]);
 
-  const boards = useBoards();
-  const boardGroups = useBoardGroups();
+  // Read from the store via useSyncExternalStore with a server snapshot that
+  // returns the server-provided props. This matches SSR markup on the first
+  // client render (before the useLayoutEffect above has committed) and avoids
+  // a flash of stale or empty data on client-side navigation.
+  const boards = useSyncExternalStore(
+    useAppStore.subscribe,
+    () => useAppStore.getState().boards,
+    () => initialBoards,
+  );
+  const boardGroups = useSyncExternalStore(
+    useAppStore.subscribe,
+    () => useAppStore.getState().boardGroups,
+    () => initialBoardGroups,
+  );
   const { user } = useCurrentUser();
   const {
     addBoard,
