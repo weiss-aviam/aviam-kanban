@@ -29,13 +29,19 @@ export async function proxy(request: NextRequest) {
     },
   );
 
-  // IMPORTANT: Avoid writing any logic between createServerClient and
-  // supabase.auth.getUser(). A simple mistake could make it very hard to debug
-  // issues with users being randomly logged out.
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // IMPORTANT: Avoid writing any logic between createServerClient and the auth
+  // check. A simple mistake could make it very hard to debug issues with users
+  // being randomly logged out.
+  //
+  // We use getClaims() rather than getUser(): on projects with asymmetric JWT
+  // signing keys (Project Settings → JWT Keys → "Use asymmetric signing keys")
+  // it verifies the JWT locally against cached JWKS — no network round-trip.
+  // On HS256 projects it transparently falls back to a getUser() network call,
+  // so this is safe either way.
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const user = claimsData?.claims
+    ? { id: claimsData.claims.sub as string }
+    : null;
 
   // Define protected routes
   const protectedRoutes = ["/dashboard", "/boards"];
@@ -156,8 +162,11 @@ export const config = {
      *                         fetches these and would trigger getUser() in a
      *                         burst on every app install/update)
      * - /manifest.webmanifest, /offline.html, /icons/*
+     * - /icon                (Next.js dynamic icon from src/app/icon.tsx —
+     *                         browsers fetch it on every page load)
+     * - /robots.txt, /sitemap.xml, /.well-known/* (crawler / protocol paths)
      * - favicon and image files
      */
-    "/((?!api/|_next/|sw\\.js|workbox-.*\\.js|manifest\\.webmanifest|offline\\.html|icons/|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!api/|_next/|sw\\.js|workbox-.*\\.js|manifest\\.webmanifest|offline\\.html|icons/|icon$|favicon\\.ico|robots\\.txt$|sitemap\\.xml$|\\.well-known/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico)$).*)",
   ],
 };
