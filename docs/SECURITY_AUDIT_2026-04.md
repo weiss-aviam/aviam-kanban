@@ -148,14 +148,19 @@ require action in the Supabase dashboard.
   Been Pwned breach corpus.
 - **How:** flip the toggle to enabled. No application changes needed —
   Supabase Auth handles the check on signup and password change.
+- **Status:** blocked on plan tier. Toggle is only available on
+  Supabase **Pro** and above; the project is on a lower tier today.
+  Revisit when/if we upgrade the Supabase plan.
 
 ### Postgres version upgrade
 
 - **Where:** Project Settings → Infrastructure → Database
 - **Why:** the running Postgres image (`17.4.1.075`) has security
   patches available in newer point releases.
-- **How:** schedule the upgrade in the dashboard. Plan for ~2 minutes
-  of read-write downtime during the version swap.
+- **How:** schedule the upgrade in the dashboard. Real-world downtime
+  on this project's tier is ~1 hour of read-write unavailability
+  (Supabase's own estimate of ~2 minutes does not match what we have
+  observed); plan an evening maintenance window.
 
 ## Verifying the in-database fixes
 
