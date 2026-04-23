@@ -12,7 +12,14 @@ AVIAM_KANBAN_URL="https://kanban.aviam.ag"
 AVIAM_KANBAN_TOKEN="avk_…"
 ```
 
-Mint the token at `${AVIAM_KANBAN_URL}/profile/api-access` first.
+### Prerequisite
+
+API access is **opt-in**. A super admin must enable it on your account
+before you can mint a token. Open `${AVIAM_KANBAN_URL}/profile/api-access`
+— if you see "API-Zugang ist deaktiviert", ask a super admin to flip the
+toggle on your user record under
+`${AVIAM_KANBAN_URL}/dashboard/super-admin/users`. Once it shows "Aktiv",
+mint your token from the same page.
 
 ## Workflow — propose, confirm, apply
 
@@ -52,8 +59,10 @@ All titles (board, column, card, subtask) must be:
 
 ## Error handling
 
-- **401** — token invalid, expired, or master flag off → tell the user to
-  re-mint at `/profile/api-access`.
+- **401** — token invalid, expired, or `api_access_enabled` was turned off
+  by a super admin → tell the user to check the status at
+  `/profile/api-access` and contact a super admin if access has been
+  withdrawn.
 - **429** — rate limit; respect the `Retry-After` header.
 - **400** — validation; `error` and `at` point to the issue, fix and retry.
 
