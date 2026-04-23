@@ -17,6 +17,7 @@ type UserRow = {
   name: string | null;
   created_at: string;
   status: string;
+  api_access_enabled: boolean;
 };
 
 // Effectively permanent ban (~100 years)
@@ -69,13 +70,13 @@ export async function PATCH(
     }
 
     const targetUserId = userIdValidation.data;
-    const { name, status } = validation.data;
+    const { name, status, apiAccessEnabled } = validation.data;
 
     const adminClient = createAdminClient();
 
     const { data: existingUser, error: existingUserError } = await adminClient
       .from("users")
-      .select("id, email, name, created_at, status")
+      .select("id, email, name, created_at, status, api_access_enabled")
       .eq("id", targetUserId)
       .single();
 
@@ -122,6 +123,17 @@ export async function PATCH(
       }
     }
 
+    if (
+      apiAccessEnabled !== undefined &&
+      apiAccessEnabled !== row.api_access_enabled
+    ) {
+      updateData.api_access_enabled = apiAccessEnabled;
+      changes.apiAccessEnabled = {
+        from: row.api_access_enabled,
+        to: apiAccessEnabled,
+      };
+    }
+
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json({ message: "No changes applied", user: row });
     }
@@ -160,6 +172,7 @@ export async function PATCH(
         name: name ?? row.name,
         createdAt: row.created_at,
         status: status ?? row.status,
+        apiAccessEnabled: apiAccessEnabled ?? row.api_access_enabled,
       },
     });
   } catch (error) {

@@ -1,20 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
 import useSWR from "swr";
-import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 import { ContentTopBar } from "@/components/layout/ContentTopBar";
 import { CreateTokenDialog } from "./CreateTokenDialog";
 import { ClaudeMdSnippetCard } from "./ClaudeMdSnippetCard";
@@ -38,9 +27,7 @@ export function ApiAccessContent({
   initialEnabled: boolean;
   initialTokens: TokenRow[];
 }) {
-  const [enabled, setEnabled] = useState(initialEnabled);
-  const [confirmDisable, setConfirmDisable] = useState(false);
-  const [, startTransition] = useTransition();
+  const enabled = initialEnabled;
 
   const { data, mutate } = useSWR<{ tokens: TokenRow[] }>(
     "/api/api-tokens",
@@ -48,22 +35,6 @@ export function ApiAccessContent({
     { fallbackData: { tokens: initialTokens } },
   );
   const tokens = data?.tokens ?? [];
-
-  const writeFlag = (next: boolean) => {
-    startTransition(async () => {
-      const res = await fetch("/api/users/api-access", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ enabled: next }),
-      });
-      if (res.ok) setEnabled(next);
-    });
-  };
-
-  const onToggle = (next: boolean) => {
-    if (!next) setConfirmDisable(true);
-    else writeFlag(true);
-  };
 
   const onRevoke = async (id: string) => {
     if (!confirm(t("apiAccess.revokeConfirmDescription"))) return;
@@ -82,22 +53,29 @@ export function ApiAccessContent({
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle>{t("apiAccess.masterToggle")}</CardTitle>
+              <CardTitle>{t("apiAccess.statusTitle")}</CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
-                {t("apiAccess.masterToggleDescription")}
+                {t("apiAccess.statusDescription")}
               </p>
             </div>
-            <Switch
-              checked={enabled}
-              onCheckedChange={onToggle}
-              aria-label={t("apiAccess.masterToggle")}
-            />
+            <Badge
+              variant={enabled ? "default" : "secondary"}
+              className={
+                enabled
+                  ? "bg-green-100 text-green-800 hover:bg-green-100"
+                  : undefined
+              }
+            >
+              {enabled
+                ? t("apiAccess.statusEnabled")
+                : t("apiAccess.statusDisabled")}
+            </Badge>
           </CardHeader>
         </Card>
 
         {!enabled && (
           <div className="rounded-md border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-900">
-            {t("apiAccess.masterDisabledBanner")}
+            {t("apiAccess.contactAdminBanner")}
           </div>
         )}
 
@@ -148,30 +126,6 @@ export function ApiAccessContent({
 
         <ClaudeMdSnippetCard />
       </main>
-
-      <AlertDialog open={confirmDisable} onOpenChange={setConfirmDisable}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {t("apiAccess.disableConfirmTitle")}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("apiAccess.disableConfirmDescription")}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                writeFlag(false);
-                setConfirmDisable(false);
-              }}
-            >
-              {t("apiAccess.masterToggle")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

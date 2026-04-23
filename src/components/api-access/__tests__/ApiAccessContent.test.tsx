@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { ApiAccessContent } from "../ApiAccessContent";
 
 // ContentTopBar uses SidebarTrigger which requires SidebarProvider — mock it out
@@ -22,24 +21,19 @@ vi.mock("@/components/layout/ContentTopBar", () => ({
 beforeEach(() => {
   vi.stubGlobal(
     "fetch",
-    vi.fn(async (input: RequestInfo, init?: RequestInit) => {
-      const url = typeof input === "string" ? input : input.url;
-      if (url.endsWith("/api/users/api-access") && init?.method === "PATCH") {
-        return new Response(JSON.stringify({ ok: true, enabled: true }));
-      }
-      return new Response("{}");
-    }),
+    vi.fn(async () => new Response("{}")),
   );
 });
 
 describe("ApiAccessContent", () => {
-  it("shows the master toggle and disables token list when off", () => {
+  it("shows the disabled status badge and admin hint when access is off", () => {
     render(<ApiAccessContent initialEnabled={false} initialTokens={[]} />);
-    expect(screen.getByRole("switch")).not.toBeChecked();
+    // No interactive switch any more — admins control this
+    expect(screen.queryByRole("switch")).toBeNull();
     expect(screen.getByText(/API-Zugang ist deaktiviert/i)).toBeInTheDocument();
   });
 
-  it("renders token rows with the prefix and last-used time", () => {
+  it("renders token rows with the prefix and last-used time when enabled", () => {
     render(
       <ApiAccessContent
         initialEnabled={true}
@@ -57,15 +51,5 @@ describe("ApiAccessContent", () => {
     );
     expect(screen.getByText("Laptop")).toBeInTheDocument();
     expect(screen.getByText(/avk_a1b2/)).toBeInTheDocument();
-  });
-
-  it("PATCHes /api/users/api-access when toggle is flipped", async () => {
-    const user = userEvent.setup();
-    render(<ApiAccessContent initialEnabled={false} initialTokens={[]} />);
-    await user.click(screen.getByRole("switch"));
-    expect(fetch).toHaveBeenCalledWith(
-      "/api/users/api-access",
-      expect.objectContaining({ method: "PATCH" }),
-    );
   });
 });

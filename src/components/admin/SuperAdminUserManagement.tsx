@@ -6,11 +6,13 @@ import { t } from "@/lib/i18n";
 import { useOnlineUserIds } from "@/store";
 import {
   Check,
+  KeyRound,
   Loader2,
   Pencil,
   Plus,
   RefreshCw,
   Search,
+  ShieldOff,
   Trash2,
   TriangleAlert,
   UserMinus,
@@ -48,6 +50,7 @@ interface ManagedUser {
   createdAt: string;
   status: UserStatus | "unconfirmed";
   lastSeenAt: string | null;
+  apiAccessEnabled: boolean;
 }
 
 interface PaginationState {
@@ -461,6 +464,7 @@ function UserActionButtons({
   onDeactivate,
   onReactivate,
   onPurge,
+  onToggleApiAccess,
 }: {
   user: ManagedUser;
   status: UserStatus;
@@ -471,6 +475,7 @@ function UserActionButtons({
   onDeactivate: ((user: ManagedUser) => void) | undefined;
   onReactivate: ((user: ManagedUser) => void) | undefined;
   onPurge: ((user: ManagedUser) => void) | undefined;
+  onToggleApiAccess: ((user: ManagedUser) => void) | undefined;
 }) {
   const isLoading = actionLoading === user.id;
 
@@ -515,6 +520,28 @@ function UserActionButtons({
         >
           <Pencil className="h-3 w-3" />
           {t("superAdmin.editButton")}
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => onToggleApiAccess?.(user)}
+          disabled={isLoading}
+          className={
+            user.apiAccessEnabled
+              ? "text-amber-700 border-amber-200 hover:bg-amber-50"
+              : "text-blue-700 border-blue-200 hover:bg-blue-50"
+          }
+        >
+          {isLoading ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : user.apiAccessEnabled ? (
+            <ShieldOff className="h-3 w-3" />
+          ) : (
+            <KeyRound className="h-3 w-3" />
+          )}
+          {user.apiAccessEnabled
+            ? t("superAdmin.disableApiAccessButton")
+            : t("superAdmin.enableApiAccessButton")}
         </Button>
         <Button
           size="sm"
@@ -572,6 +599,7 @@ function UserTable({
   onDeactivate,
   onReactivate,
   onPurge,
+  onToggleApiAccess,
   actionLoading,
   emptyMessage,
   onlineUserIds,
@@ -587,6 +615,7 @@ function UserTable({
   onDeactivate?: (user: ManagedUser) => void;
   onReactivate?: (user: ManagedUser) => void;
   onPurge?: (user: ManagedUser) => void;
+  onToggleApiAccess?: (user: ManagedUser) => void;
   actionLoading: string | null;
   emptyMessage: string;
   onlineUserIds: Set<string>;
@@ -706,6 +735,7 @@ function UserTable({
                         onDeactivate={onDeactivate}
                         onReactivate={onReactivate}
                         onPurge={onPurge}
+                        onToggleApiAccess={onToggleApiAccess}
                       />
                     </div>
                   </td>
@@ -781,6 +811,7 @@ function UserTable({
                   onDeactivate={onDeactivate}
                   onReactivate={onReactivate}
                   onPurge={onPurge}
+                  onToggleApiAccess={onToggleApiAccess}
                 />
               </div>
             </div>
@@ -997,6 +1028,24 @@ export function SuperAdminUserManagement() {
     await patchStatus(user, "active");
   };
 
+  const handleToggleApiAccess = async (user: ManagedUser) => {
+    setActionLoading(user.id);
+    try {
+      const response = await fetch(`/api/admin/super-admin/users/${user.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ apiAccessEnabled: !user.apiAccessEnabled }),
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || t("superAdmin.failedToUpdate"));
+      }
+      await active.refresh();
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const handlePurgeConfirm = async () => {
     if (!purgeUser) return;
     setActionLoading(purgeUser.id);
@@ -1122,6 +1171,7 @@ export function SuperAdminUserManagement() {
                 onDeactivate={(user) =>
                   setConfirmDialog({ user, action: "deactivate" })
                 }
+                onToggleApiAccess={handleToggleApiAccess}
                 actionLoading={actionLoading}
                 emptyMessage={t("superAdmin.noUsersFound")}
                 onlineUserIds={onlineSet}

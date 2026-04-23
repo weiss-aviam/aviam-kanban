@@ -24,6 +24,7 @@ type UserRow = {
   created_at: string;
   status: string;
   last_seen_at: string | null;
+  api_access_enabled: boolean;
 };
 
 function getAuthErrorResponse(error: unknown) {
@@ -65,9 +66,10 @@ export async function GET(request: NextRequest) {
 
     let query = adminClient
       .from("users")
-      .select("id, email, name, created_at, status, last_seen_at", {
-        count: "exact",
-      });
+      .select(
+        "id, email, name, created_at, status, last_seen_at, api_access_enabled",
+        { count: "exact" },
+      );
 
     if (search) {
       query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`);
@@ -104,6 +106,7 @@ export async function GET(request: NextRequest) {
       createdAt: user.created_at,
       status: user.status ?? "active",
       lastSeenAt: user.last_seen_at ?? null,
+      apiAccessEnabled: user.api_access_enabled ?? false,
     }));
 
     return NextResponse.json({

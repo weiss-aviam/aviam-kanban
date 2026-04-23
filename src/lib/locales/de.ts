@@ -759,6 +759,8 @@ export const de = {
     editButton: "Bearbeiten",
     deactivateButton: "Deaktivieren",
     reactivateButton: "Reaktivieren",
+    enableApiAccessButton: "API-Zugang aktivieren",
+    disableApiAccessButton: "API-Zugang sperren",
     approvingUser: "Wird freigegeben...",
     rejectingUser: "Wird abgelehnt...",
     deactivatingUser: "Wird deaktiviert...",
@@ -925,14 +927,13 @@ export const de = {
   apiAccess: {
     title: "Claude API-Zugang",
     subtitle: "Tokens für Claude Code und ähnliche Agenten verwalten.",
-    masterToggle: "Claude API-Zugang aktivieren",
-    masterToggleDescription:
-      "Wenn aktiviert, können erstellte Tokens Boards, Karten und Dateien in deinem Namen anlegen.",
-    masterDisabledBanner:
-      "API-Zugang ist deaktiviert. Tokens bleiben gespeichert, sind aber inaktiv.",
-    disableConfirmTitle: "API-Zugang deaktivieren?",
-    disableConfirmDescription:
-      "Alle aktiven Tokens werden sofort inaktiv. Du kannst sie später wieder aktivieren, indem du diesen Schalter erneut einschaltest.",
+    statusTitle: "Status des API-Zugangs",
+    statusDescription:
+      "Der API-Zugang wird zentral durch die Administration freigeschaltet.",
+    statusEnabled: "Aktiv",
+    statusDisabled: "Deaktiviert",
+    contactAdminBanner:
+      "API-Zugang ist deaktiviert. Wende dich an einen Super-Admin, um den Zugang freischalten zu lassen.",
     tokenListTitle: "Tokens",
     tokenListEmpty: "Noch keine Tokens erstellt.",
     createToken: "Neuen Token erstellen",

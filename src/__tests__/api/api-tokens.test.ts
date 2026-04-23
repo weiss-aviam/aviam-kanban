@@ -5,7 +5,6 @@ import {
   POST as createToken,
 } from "@/app/api/api-tokens/route";
 import { DELETE as revokeToken } from "@/app/api/api-tokens/[id]/route";
-import { PATCH as patchAccess } from "@/app/api/users/api-access/route";
 import { getSessionUser } from "@/lib/supabase/server";
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -149,20 +148,5 @@ describe("API tokens routes", () => {
     expect(updateSpy).toHaveBeenCalledWith(
       expect.objectContaining({ revoked_at: expect.any(String) }),
     );
-  });
-
-  it("PATCH /users/api-access toggles the flag for the caller", async () => {
-    const updateSpy = vi.fn(() => ({
-      eq: vi.fn().mockResolvedValue({ data: null, error: null }),
-    }));
-    mockSession.mockResolvedValue({
-      supabase: supabaseMock(() => ({ update: updateSpy })) as never,
-      user: USER as never,
-    });
-    const res = await patchAccess(
-      req("/api/users/api-access", "PATCH", { enabled: true }),
-    );
-    expect(res.status).toBe(200);
-    expect(updateSpy).toHaveBeenCalledWith({ api_access_enabled: true });
   });
 });

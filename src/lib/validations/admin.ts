@@ -182,10 +182,17 @@ export const superAdminUpdateUserSchema = z
   .object({
     name: nameSchema.optional(),
     status: z.enum(["pending", "active", "deactivated"]).optional(),
+    apiAccessEnabled: z.boolean().optional(),
   })
-  .refine((data) => data.name !== undefined || data.status !== undefined, {
-    message: "At least one field must be provided",
-  });
+  .refine(
+    (data) =>
+      data.name !== undefined ||
+      data.status !== undefined ||
+      data.apiAccessEnabled !== undefined,
+    {
+      message: "At least one field must be provided",
+    },
+  );
 
 export type SuperAdminUpdateUserInput = z.infer<
   typeof superAdminUpdateUserSchema
